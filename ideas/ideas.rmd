@@ -1,0 +1,262 @@
+
+---
+author: |
+  | William Findlay
+title: |
+  | Honors Thesis Ideas
+date: \today
+bibliography: /home/housedhorse/.bibs/uni.bib
+csl: /home/housedhorse/.bibs/ieee.csl
+subparagraph: yes
+header-includes: |
+  ```{=latex}
+  \usepackage{float}
+  \usepackage{listings}
+  \usepackage[hang,bf]{caption}
+  \usepackage{framed}
+  \usepackage[section]{placeins}
+
+  \usepackage[dvipsnames,table]{xcolor}
+
+  \usepackage{pifont}
+
+  \allowdisplaybreaks
+
+  % fancy headers/footers
+  \makeatletter
+  \usepackage{fancyhdr}
+  \lhead{\@author}
+  \chead{}
+  \rhead{\@title}
+  \lfoot{}
+  \cfoot{\thepage}
+  \rfoot{}
+  \renewcommand{\headrulewidth}{0.4pt}
+
+  \usepackage{amsmath, amsfonts,amssymb, amsthm}
+  \usepackage{siunitx}
+  \usepackage[boxruled,lined,linesnumbered,titlenumbered]{algorithm2e}
+
+  \usepackage{setspace}
+  \usepackage{changepage}
+  \usepackage[explicit]{titlesec}
+  \usepackage{aliascnt}
+
+  \floatplacement{figure}{!htbp}
+  \floatplacement{table}{!htbp}
+  \lstset{numbers=left,breaklines=true,frame=single,language=Python,captionpos=t,abovecaptionskip={\abovecaptionskip},
+  belowcaptionskip={0.5em},aboveskip=\intextsep,showstringspaces=false,identifierstyle=\color{Blue},
+  commentstyle={\color{OliveGreen}},keywordstyle={\bfseries\color{Orange}}}
+  \setlength{\captionmargin}{1in}
+
+  \newgeometry{margin=1in}
+
+  \newtheoremstyle{plain}
+  {12pt}   % ABOVESPACE
+  {12pt}   % BELOWSPACE
+  {\itshape}  % BODYFONT
+  {0pt}       % INDENT (empty value is the same as 0pt)
+  {\bfseries} % HEADFONT
+  {.}         % HEADPUNCT
+  {5pt plus 1pt minus 1pt} % HEADSPACE
+  {}          % CUSTOM-HEAD-SPEC
+
+  \newtheoremstyle{definition}
+  {12pt}   % ABOVESPACE
+  {12pt}   % BELOWSPACE
+  {\normalfont}  % BODYFONT
+  {0pt}       % INDENT (empty value is the same as 0pt)
+  {\bfseries} % HEADFONT
+  {.}         % HEADPUNCT
+  {5pt plus 1pt minus 1pt} % HEADSPACE
+  {}          % CUSTOM-HEAD-SPEC
+
+  \newtheoremstyle{remark}
+  {12pt}   % ABOVESPACE
+  {12pt}   % BELOWSPACE
+  {\normalfont}  % BODYFONT
+  {0pt}       % INDENT (empty value is the same as 0pt)
+  {\itshape} % HEADFONT
+  {.}         % HEADPUNCT
+  {5pt plus 1pt minus 1pt} % HEADSPACE
+  {}          % CUSTOM-HEAD-SPEC
+
+  \theoremstyle{plain}
+
+  % define theorem
+  \newtheorem{theorem}{Theorem}[section]
+  \providecommand*{\theoremautorefname}{Theorem}
+
+  % define lemma
+  \newtheorem{lemma}{Lemma}[section]
+  \providecommand*{\lemmaautorefname}{Lemma}
+
+  % define claim
+  \newtheorem{claim}{Claim}[section]
+  \providecommand*{\claimautorefname}{Claim}
+
+  % define corollary
+  \newtheorem{corollary}{Corollary}[section]
+  \providecommand*{\corollaryautorefname}{Corollary}
+
+  % define proposition
+  \newtheorem{proposition}{Proposition}[section]
+  \providecommand*{\propositionautorefname}{Proposition}
+
+  % define conjecture
+  \newtheorem{conjecture}{Conjecture}[section]
+  \providecommand*{\conjectureautorefname}{Conjecture}
+
+  \theoremstyle{remark}
+
+  % define observation
+  \newtheorem{observation}{Observation}[section]
+  \providecommand*{\observationautorefname}{Observation}
+
+  % define remark
+  \newtheorem{remark}{Remark}[section]
+  \providecommand*{\remarkautorefname}{Remark}
+
+  \theoremstyle{definition}
+
+  % define example
+  \newtheorem{example}{Example}[section]
+  \providecommand*{\exampleautorefname}{Example}
+
+  % define definition
+  \newtheorem{definition}{Definition}[section]
+  \providecommand*{\definitionautorefname}{Definition}
+
+  \newcommand{\blackbox}{\hfill$\blacksquare$}
+  \usepackage{tikz}
+  \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+              \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+  \renewcommand{\labelitemi}{\large$\bullet$}
+  \renewcommand{\labelitemii}{\ding{226}}
+  \renewcommand{\labelitemiii}{\tiny$\blacksquare$}
+  \renewcommand{\labelitemiv}{\small$\triangleright$}
+
+  \titleformat{\paragraph} % command to change
+  [runin]                  % shape  (runin, etc.)
+  {\bfseries}              % format (bfseries, itshape, etc.)
+  {}                       % label  (thesection, thesubsection, etc.)
+  {0em}                    % separation between label and body
+  {#1}        % before the body
+  [.]                       % after the body
+
+  \titleformat{\subparagraph} % command to change
+  [runin]                  % shape  (runin, etc.)
+  {\itshape}              % format (bfseries, itshape, etc.)
+  {}                       % label  (thesection, thesubsection, etc.)
+  {0em}                    % separation between label and body
+  {#1}        % before the body
+  [.]                       % after the body
+
+  \let\lil\lstinputlisting
+  \usepackage{afterpage}
+  \hypersetup{colorlinks, allcolors=., urlcolor=blue}
+
+  \usepackage{etoolbox}% http://ctan.org/pkg/etoolbox
+  \makeatletter
+  \patchcmd{\lst@GLI@}% <command>
+    {\def\lst@firstline{#1\relax}}% <search>
+    {\def\lst@firstline{#1\relax}\def\lst@firstnumber{#1\relax}}% <replace>
+    {\typeout{listings firstnumber=firstline}}% <success>
+    {\typeout{listings firstnumber not set}}% <failure>
+  \makeatother
+
+  \renewcommand\lstlistlistingname{List of Listings}
+  \usepackage{chngcntr}
+  \counterwithin{figure}{section}
+  \counterwithin{table}{section}
+
+  \usepackage{booktabs}
+  \usepackage{longtable}
+  \usepackage{array}
+  \usepackage{multirow}
+  \usepackage{wrapfig}
+  \usepackage{float}
+  \usepackage{colortbl}
+  \usepackage{pdflscape}
+  \usepackage{tabu}
+  \usepackage{threeparttable}
+  \usepackage{threeparttablex}
+  \usepackage[normalem]{ulem}
+  \usepackage{makecell}
+  \pagestyle{fancy}
+  ```
+output:
+  pdf_document:
+    number_sections: true
+    fig_crop: true
+    fig_caption: true
+    keep_tex: false
+---
+```{r,include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+options(kableExtra.latex.load_packages = FALSE)
+library(kableExtra)
+library(dplyr)
+```
+\thispagestyle{empty}
+\counterwithin{lstlisting}{section}
+
+- priorities
+  1. Linux-related?
+  1. security-related?
+  1. a few interesting ideas
+- what do I love right now?
+  - \LaTeX
+  - Vim
+  - GNU/Linux
+  - terminals, CLIs
+  - tiling window managers
+- what am I interested in learning more about?
+  - Linux kernel development
+  - computer security
+    - Linux kernel security?
+  - machine learning
+
+```{r}
+ideas = c()
+descriptions = c()
+bullet = "{\\tiny$\\bullet$}\\hspace{.8em}"
+rebullet = "{\\\\tiny$\\\\bullet$}\\\\hspace{.8em}"
+
+addIdea = function(idea="",desc="")
+{
+  ideas <<- c(ideas,idea)
+  addDescription(desc)
+}
+
+addDescription = function(desc)
+{
+  desc = paste(bullet, desc, sep="")
+  desc = gsub("; ",paste("\n",rebullet,sep=""),x=desc)
+  desc = gsub(";",paste("\n",rebullet,sep=""),x=desc)
+  descriptions <<- c(descriptions,desc)
+}
+
+data = NULL
+
+addIdea("","")
+addIdea("","")
+addIdea("Collaborative vim","")
+addIdea("vish","A configurable POSIX-compliant UNIX shell inspired by my love for Vim; Vimkey bindings for all basic text editing features and oft-used commands; All key bindings are fully customizable; Macros to build shell scripts and execute them on the fly; Unsure about some implementation details like using a Vim buffer etc.")
+addIdea("Requirements Analysis Document Generator","Some kind of generator for requirements analysis documents; Inspired in part by my own custom document generation for 3004; Probably a Qt based GUI; Helps users input and categorize FR and NFR; Tailored diagram drawing for UML diagrams; Possibility for automatic generation of diagram layout (this could be a project in and of itself); Puts everything together in PDF format by generating \\LaTeX{} code and passing it to pandoc.")
+
+#feedback = vector(mode="character", length=length(ideas))
+feedback = rep("\n\n\n\n\n",times=length(ideas))
+data = data.frame(ideas,descriptions,feedback)
+names(data) = c("\\normalfont{\\bfseries Idea}","Description","Feedback")
+
+data %>%
+  mutate_all(linebreak) %>%
+  kable(align=c('r','l','l'), format="latex", escape=F, caption="Some project ideas sorted (-ish) by most to least interesting/relevant.", longtable=T) %>%
+  row_spec(0,bold=T) %>%
+  column_spec(1,italic=T,width="12em") %>%
+  column_spec(2,width="15em") %>%
+  column_spec(3,width="15em") %>%
+  kable_styling(latex_options=c("repeat_header"))
+```
