@@ -3,7 +3,7 @@
 author: |
   | William Findlay
 title: |
-  | Honors Thesis Project Pre-Proposal
+  | Honours Thesis Pre-Proposal
 subtitle: |
   | Implementing Process Homeostasis Using
   | Enhanced Berkeley Packet Filtering
@@ -223,6 +223,7 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 options(kableExtra.latex.load_packages = FALSE)
 library(kableExtra)
+library(lubridate)
 ```
 \pagestyle{fancy}
 \thispagestyle{plain}
@@ -234,24 +235,54 @@ library(kableExtra)
 
 # Overview of Thesis
 
-\lipsum[1]
-
 ## Motivation
-
-\lipsum[2-3]
 
 ## Main Objectives
 
-\lipsum[4-6]
-
 ## Equipment Requirements
-
-\lipsum[9]
 
 ## Expected Deliverables
 
-\lipsum[10-12]
-
 # Bi-Weekly Schedule for First Term (Fall 2019)
 
-\lipsum[13-14]
+\autoref{fall-sched} presents a bi-weekly schedule for the fall 2019 term. This term will be used
+primarily for background research on Process Homeostasis and Extended Berkeley Packet Filtering in
+the Linux Kernel.
+
+```{r}
+# weekly
+dates = c(seq(as.Date("2019-09-04"), as.Date("2019-12-06"), by = 'week'))
+
+# biweekly
+start_dates = dates[seq(1,length(dates),2)]
+end_dates = start_dates + 13
+end_dates[7] = as.Date("2019-12-06")
+
+dates = paste(format(start_dates, "%b %d"), "-", format(end_dates, "%b %d, %Y"))
+tasks = NULL
+
+for(i in 1 : length(dates)) {
+  tasks = c(tasks,NA)
+}
+
+tasks[1] = "Background research on eBPF"
+tasks[2] = "Background research on pH"
+tasks[3] = "Explore other intrusion detection methods"
+tasks[4] = "Explore other eBPF implementations of intrusion detection"
+tasks[5] = "Determine best approach to solve the problem"
+tasks[6] = "Draft thesis proposal report"
+tasks[7] = "Finalize thesis proposal report"
+
+dates[7] = paste(dates[7],footnote_marker_alphabet(1))
+
+df = data.frame(week=dates,task=tasks)
+
+names(df) = c("Bi-weekly Period","Task")
+
+df %>%
+  kable(longtable=F, align = c('r','l'), caption=('\\label{fall-sched}A bi-weekly schedule for the fall 2019 term.'), escape=F) %>%
+  kable_styling(latex_options=c('striped','hold_position')) %>%
+  row_spec(0,bold=T) %>%
+  column_spec(2,width='30em') %>%
+  add_footnote("This period is slightly shorter to reflect the end of the term.")
+```
