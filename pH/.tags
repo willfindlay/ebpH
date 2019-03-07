@@ -5,6 +5,17 @@
 !_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
 !_TAG_PROGRAM_VERSION	0.0.0	/45968eff/
-b	hello_field.py	/^b = BPF(text=prog)$/;"	v
-prog	hello_field.py	/^prog = """$/;"	v
-try	hello_field.py	/^    try:$/;"	v
+SEQLEN	process-syscount.py	/^SEQLEN = 8$/;"	v
+args	process-syscount.py	/^args = parser.parse_args()$/;"	v
+bpf	process-syscount.py	/^bpf = BPF(text=text)$/;"	v
+ct	process-syscount.py	/^import ctypes as ct$/;"	I
+exiting	process-syscount.py	/^        exiting = 1$/;"	v
+exiting	process-syscount.py	/^exiting = 0$/;"	v
+handle_errno	process-syscount.py	/^def handle_errno(errstr):$/;"	f
+l	process-syscount.py	/^        l = len(seq_hash.items())$/;"	v
+parser	process-syscount.py	/^parser = argparse.ArgumentParser($/;"	v
+print_sequences	process-syscount.py	/^def print_sequences():$/;"	f
+seconds	process-syscount.py	/^seconds = 0$/;"	v
+seq_hash	process-syscount.py	/^        seq_hash = bpf["seq"]$/;"	v
+signal_ignore	process-syscount.py	/^def signal_ignore(signal, frame):$/;"	f
+text	process-syscount.py	/^text = """$/;"	v
