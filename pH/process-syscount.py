@@ -50,7 +50,7 @@ args = parser.parse_args()
 # hash for sequences per process
 # hash for profiles per executable
 
-SEQLEN = 400
+SEQLEN = 8
 
 text = """
 #define SEQLEN %d
@@ -104,43 +104,55 @@ if args.ebpf:
 bpf = BPF(text=text)
 
 def print_sequences():
+    # fetch BPF hashmap
     seq_hash = bpf["seq"]
-    print("[%s]" % strftime("%H:%M:%S"))
-    #print("%-22s %-8s" % ("Process", "Sequence"))
+
+    # print system time
+    print()
+    print("[%s]" % strftime("%H:%M:%S %p"))
+
+    # print sequence for each inspected process
     for p, s in seq_hash.items()[:args.top]:
         pid = p.value >> 32
         names = map(syscall_name, s.seq);
         calls = map(str, s.seq);
 
+        # separator
         print()
         print("----------------------------------------------------------")
         print()
 
-        print("%-12s %-15s" % ("Process","Sequence Length"))
-        print("%-12s %-15s" % (pid, s.count));
+        # print the process and the sequence length
+        print("%-8s %-8s" % ("PID","S-Length"))
+        print("%-8s %-8s" % (pid, s.count));
 
-        print('Sequence {Call(Number)}:')
+        # list of sequences by "Call Name(Call Number),"
+        print('Sequence <Call Name>(<Call Number>):')
         for call,name in zip(calls,names):
             if call == "9999":
                 break
             print("%s(%s), " % (name.decode('utf-8'), call), end="");
         print()
+    # clear the BPF hashmap
     seq_hash.clear()
 
 print("Tracing syscall sequences, printing %d... Ctrl+C to quit." % (args.top))
 exiting = 0
 seconds = 0
 while True:
+    # update the hashmap every 2 seconds
     try:
         sleep(2)
         seconds += 2
         seq_hash = bpf["seq"]
         l = len(seq_hash.items())
         print("%d processes" % l)
+    # handle exiting gracefully
     except KeyboardInterrupt:
         exiting = 1
         signal.signal(signal.SIGINT, signal_ignore)
 
+    # print the sequences before exiting
     if exiting:
         print_sequences()
         print("Detaching...")
