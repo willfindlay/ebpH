@@ -40,9 +40,12 @@ def handle_errno(errstr):
 
 parser = argparse.ArgumentParser(
     description="Per-process syscall counts.")
-parser.add_argument("-p", "--pid", type=int, help="trace only this pid")
+parser.add_argument("-p", "--pid", type=int,
+                    help="trace only this pid")
 parser.add_argument("-t", "--top", type=int, default=10,
                     help="print only the top syscalls by count or latency")
+parser.add_argument("-s", "--seqlen", type=int, default=8,
+                    help="print call sequences of max length <seqlen>")
 parser.add_argument("--ebpf", action="store_true",
                     help=argparse.SUPPRESS)
 args = parser.parse_args()
@@ -50,10 +53,10 @@ args = parser.parse_args()
 # hash for sequences per process
 # hash for profiles per executable
 
-SEQLEN = 8
+SEQLEN = args.seqlen
 
 text = """
-#define SEQLEN %d
+#define SEQLEN ARG_SEQLEN
 #define SYS_EXIT 60
 #define SYS_EXIT_GROUP 231
 
@@ -95,7 +98,10 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
 
     return 0;
 }
-""" % (SEQLEN)
+"""
+
+# sub in args
+text = text.replace("ARG_SEQLEN", str(SEQLEN))
 
 if args.ebpf:
     print(text)
@@ -127,6 +133,7 @@ def print_sequences():
         print("%-8s %-8s" % (pid, s.count));
 
         # list of sequences by "Call Name(Call Number),"
+        print()
         print('Sequence <Call Name>(<Call Number>):')
         for call,name in zip(calls,names):
             if call == "9999":
@@ -155,5 +162,6 @@ while True:
     # print the sequences before exiting
     if exiting:
         print_sequences()
+        print()
         print("Detaching...")
         exit()
