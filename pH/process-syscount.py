@@ -50,7 +50,7 @@ args = parser.parse_args()
 # hash for sequences per process
 # hash for profiles per executable
 
-SEQLEN = 20
+SEQLEN = 400
 
 text = """
 #define SEQLEN %d
