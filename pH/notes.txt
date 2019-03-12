@@ -1,0 +1,16 @@
+# Changing Number of Syscalls to Trace
+
+- tracing 100 syscalls
+  - "error: <unknown>:0:0: in function tracepoint__raw_syscalls__sys_enter i32 (%struct.tracepoint__raw_syscalls__sys_enter*): Looks like the BPF stack limit of 512 bytes is exceeded. Please move large on stack variables into BPF per-cpu array map."
+  - need to use per-cpu array map instead? look into this
+
+# Preliminary Tests of the Software
+
+- what did I notice a lot of?
+  - 202 (futex), used for blocking?
+  - running ls
+    - a lot of 45
+    - some 7
+    - some 3
+    - some 1
+    - some 202

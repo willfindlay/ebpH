@@ -41,7 +41,7 @@ def handle_errno(errstr):
 parser = argparse.ArgumentParser(
     description="Per-process syscall counts.")
 parser.add_argument("-p", "--pid", type=int, help="trace only this pid")
-parser.add_argument("-T", "--top", type=int, default=10,
+parser.add_argument("-t", "--top", type=int, default=10,
                     help="print only the top syscalls by count or latency")
 parser.add_argument("--ebpf", action="store_true",
                     help=argparse.SUPPRESS)
@@ -50,10 +50,10 @@ args = parser.parse_args()
 # hash for sequences per process
 # hash for profiles per executable
 
-
+SEQLEN = 20
 
 text = """
-#define SEQLEN 8
+#define SEQLEN %d
 #define SYS_EXIT 60
 #define SYS_EXIT_GROUP 231
 
@@ -62,15 +62,19 @@ typedef struct {
    u64 count;
 } pH_seq;
 
-typedef u64 pH_seq2[8];
+typedef u64 pH_seq2[SEQLEN];
 
 BPF_HASH(seq, u64, pH_seq);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
-    pH_seq lseq = {.seq = {9999,9999,9999,9999,9999,9999,9999,9999}, .count = 0};
+    pH_seq lseq = {.count = 0};
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
     int i;
+
+    for(int i = 0; i < SEQLEN; i++) {
+        lseq.seq[i] = 9999;
+    }
 
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
@@ -91,7 +95,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
 
     return 0;
 }
-"""
+""" % (SEQLEN)
 
 if args.ebpf:
     print(text)
@@ -99,19 +103,28 @@ if args.ebpf:
 
 bpf = BPF(text=text)
 
-SEQLEN = 8
-
 def print_sequences():
     seq_hash = bpf["seq"]
     print("[%s]" % strftime("%H:%M:%S"))
-    print("%-22s %-8s" % ("Process", "Sequence"))
+    #print("%-22s %-8s" % ("Process", "Sequence"))
     for p, s in seq_hash.items()[:args.top]:
         pid = p.value >> 32
         names = map(syscall_name, s.seq);
         calls = map(str, s.seq);
-        print(pid, s.count);
-        print(",".join(calls));
-        print(",".join(names));
+
+        print()
+        print("----------------------------------------------------------")
+        print()
+
+        print("%-12s %-15s" % ("Process","Sequence Length"))
+        print("%-12s %-15s" % (pid, s.count));
+
+        print('Sequence {Call(Number)}:')
+        for call,name in zip(calls,names):
+            if call == "9999":
+                break
+            print("%s(%s), " % (name.decode('utf-8'), call), end="");
+        print()
     seq_hash.clear()
 
 print("Tracing syscall sequences, printing %d... Ctrl+C to quit." % (args.top))
