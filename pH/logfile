@@ -1,0 +1,1106 @@
+
+[01:24:22 AM]
+
+----------------------------------------------------------
+
+PID      S-Length
+16923    54      
+
+Sequence:
+futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39), getpid(39), getpid(39), ioctl(16),
+poll(7), ioctl(16), getpid(39), getpid(39), getpid(39), getpid(39),
+getpid(39), getpid(39), recvmsg(47), poll(7), writev(20), poll(7),
+getpid(39), getpid(39), getpid(39), futex(202), futex(202), write(1),
+recvmsg(47), poll(7), writev(20), poll(7), sched_yield(24),
+getpid(39), getpid(39), getpid(39), ioctl(16), poll(7), ioctl(16),
+getpid(39), getpid(39), getpid(39), getpid(39), getpid(39),
+getpid(39), recvmsg(47), poll(7), writev(20), poll(7), getpid(39),
+getpid(39), getpid(39), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30344    3       
+
+Sequence:
+poll(7), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30344    1       
+
+Sequence:
+nanosleep(35),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17674    31      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+futex(202), poll(7), recvmsg(47), read(0), poll(7), recvmsg(47),
+write(1), read(0), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), write(1), write(1),
+read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18931    207     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), write(1), poll(7), recvmsg(47), recvmsg(47), write(1),
+write(1), read(0), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      4       
+
+Sequence:
+futex(202), nanosleep(35), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30344    3       
+
+Sequence:
+futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      8       
+
+Sequence:
+futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18931    54      
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+write(1), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16923    319     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), write(1), getpid(39), getpid(39),
+getpid(39), getpid(39), getpid(39), getpid(39), write(1),
+sched_yield(24), sched_yield(24), sched_yield(24), sched_yield(24),
+ioctl(16), poll(7), getpid(39), getpid(39), getpid(39), getpid(39),
+getpid(39), getpid(39), read(0), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), getpid(39), getpid(39), getpid(39),
+getpid(39), read(0), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+872      12      
+
+Sequence:
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+924      3       
+
+Sequence:
+futex(202), clone(56), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      7       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17494    51      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), read(0), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+883      292     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), recvmsg(47), epoll_wait(232),
+recvmsg(47), poll(7), writev(20), poll(7), getpid(39), getpid(39),
+getpid(39), sched_yield(24), sched_yield(24), ioctl(16),
+sched_yield(24), sched_yield(24), ioctl(16), poll(7), getpid(39),
+getpid(39), getpid(39), getpid(39), getpid(39), getpid(39),
+recvmsg(47), poll(7), writev(20), poll(7), getpid(39), getpid(39),
+getpid(39), sched_yield(24), recvmsg(47), poll(7), writev(20),
+poll(7), recvmsg(47), poll(7), writev(20), poll(7), getpid(39),
+getpid(39), getpid(39), recvmsg(47), poll(7), writev(20), poll(7),
+getpid(39), getpid(39), getpid(39), recvmsg(47), poll(7), writev(20),
+poll(7), recvmsg(47), poll(7), writev(20), poll(7), recvmsg(47),
+poll(7),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      4       
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+553      381     
+
+Sequence:
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), writev(20),
+writev(20), recvmsg(47), setitimer(38), epoll_wait(232), writev(20),
+read(0), read(0), read(0), read(0), epoll_wait(232), epoll_wait(232),
+read(0), read(0), read(0), epoll_wait(232), epoll_wait(232),
+ioctl(16), epoll_wait(232), setitimer(38), recvmsg(47), writev(20),
+recvmsg(47), setitimer(38), ioctl(16), epoll_wait(232), setitimer(38),
+recvmsg(47), writev(20), recvmsg(47), setitimer(38), epoll_wait(232),
+setitimer(38), recvmsg(47), writev(20), recvmsg(47), setitimer(38),
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), recvmsg(47),
+setitimer(38), epoll_wait(232), setitimer(38), recvmsg(47),
+writev(20), recvmsg(47), setitimer(38), epoll_wait(232),
+setitimer(38), recvmsg(47), writev(20), recvmsg(47), setitimer(38),
+epoll_wait(232),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17565    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+24156    1       
+
+Sequence:
+poll(7),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17674    8       
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17674    6       
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+26363    57      
+
+Sequence:
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), lseek(8), ioctl(16), lseek(8), lseek(8),
+ioctl(16), fstat(5), openat(257), rt_sigaction(13), rt_sigreturn(15),
+getpid(39), select(23), write(1), ioctl(16),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18931    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30262    14      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16923    143     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186),
+gettid(186), gettid(186), write(1), gettid(186), gettid(186),
+recvmsg(47), epoll_wait(232), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), gettid(186), gettid(186), recvmsg(47),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), gettid(186), gettid(186), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), read(0), epoll_wait(232),
+epoll_wait(232), sendto(44),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+21444    4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+934      837     
+
+Sequence:
+ppoll(271), ioctl(16), futex(202), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), read(0), ppoll(271), ioctl(16),
+futex(202), ioctl(16), read(0), ppoll(271), ioctl(16), futex(202),
+ioctl(16), ioctl(16), ioctl(16), read(0), ppoll(271), ioctl(16),
+futex(202), ioctl(16), read(0), ppoll(271), ioctl(16), futex(202),
+ioctl(16), read(0), ppoll(271), ioctl(16), read(0), futex(202),
+ioctl(16), ioctl(16), write(1), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), read(0), ppoll(271), ioctl(16),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    345     
+
+Sequence:
+poll(7), futex(202), getpid(39), futex(202), write(1), getpid(39),
+getpid(39), getpid(39), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), getpid(39), getpid(39), write(1), getpid(39),
+futex(202), getpid(39), futex(202), write(1), write(1), getpid(39),
+getpid(39), getpid(39), poll(7), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), poll(7), futex(202), getpid(39),
+futex(202), write(1), getpid(39), getpid(39), getpid(39), write(1),
+getpid(39), futex(202), getpid(39), futex(202), write(1), getpid(39),
+getpid(39), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), getpid(39), getpid(39), poll(7),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    172     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), write(1), gettid(186), gettid(186), recvmsg(47),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), read(0), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), sendto(44), gettid(186),
+read(0), epoll_wait(232), epoll_wait(232), epoll_wait(232),
+recvmsg(47), epoll_wait(232), epoll_wait(232), write(1), gettid(186),
+recvmsg(47), recvmsg(47), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), write(1), gettid(186),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18100    66      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), write(1), read(0), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), read(0), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), read(0),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      6       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+555      2       
+
+Sequence:
+poll(7), inotify_add_watch(254),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+934      1107    
+
+Sequence:
+ppoll(271), read(0), read(0), write(1), write(1), futex(202),
+write(1), read(0), ppoll(271), read(0), read(0), write(1), write(1),
+futex(202), write(1), read(0), ppoll(271), read(0), read(0), write(1),
+write(1), futex(202), write(1), read(0), ppoll(271), read(0), read(0),
+write(1), write(1), futex(202), write(1), read(0), ppoll(271),
+read(0), read(0), write(1), write(1), futex(202), write(1), read(0),
+ppoll(271), read(0), read(0), write(1), write(1), futex(202),
+write(1), read(0), ppoll(271), read(0), read(0), write(1), write(1),
+futex(202), read(0), ppoll(271), read(0), write(1), read(0), write(1),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    20      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+11475    16      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), writev(20), poll(7), recvmsg(47), poll(7),
+writev(20), poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    140     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
+gettid(186), gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), read(0), gettid(186), gettid(186),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), read(0), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), sendto(44), gettid(186),
+read(0), epoll_wait(232), epoll_wait(232), epoll_wait(232),
+futex(202), gettid(186), gettid(186), gettid(186), recvmsg(47),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
+gettid(186), gettid(186), gettid(186),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+24084    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17565    53      
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), write(1),
+futex(202), futex(202), write(1), futex(202), futex(202), write(1),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+write(1), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17494    12      
+
+Sequence:
+epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
+recvmsg(47), write(1), recvmsg(47), epoll_wait(232), recvmsg(47),
+write(1), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      8       
+
+Sequence:
+futex(202), futex(202), futex(202), accept4(288), futex(202),
+futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      8       
+
+Sequence:
+futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      6       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+24084    19      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16), close(3), recvmsg(47), recvmsg(47),
+recvmsg(47), sendto(44), recvmsg(47), recvmsg(47), recvmsg(47),
+sendto(44), getsockname(51), bind(49), socket(41), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16422    4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    412     
+
+Sequence:
+nanosleep(35), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), futex(202), getpid(39), futex(202),
+write(1), write(1), getpid(39), nanosleep(35), getpid(39), futex(202),
+getpid(39), futex(202), futex(202), write(1), write(1), getpid(39),
+futex(202), getpid(39), futex(202), write(1), write(1), getpid(39),
+futex(202), getpid(39), futex(202), write(1), write(1), getpid(39),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    16      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+gettid(186), gettid(186), gettid(186), futex(202), futex(202),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    26      
+
+Sequence:
+futex(202), gettid(186), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), gettid(186), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), futex(202), futex(202),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30344    5       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17674    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      59      
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18931    6       
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17183    4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    4       
+
+Sequence:
+futex(202), sendto(44), gettid(186), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    176     
+
+Sequence:
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+sendto(44), sendto(44), futex(202), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), clock_gettime(228),
+sendto(44), clock_gettime(228), futex(202), gettid(186), gettid(186),
+sendto(44), futex(202), futex(202), write(1), gettid(186),
+gettid(186), write(1), gettid(186), gettid(186), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), close(3), munmap(11), write(1), futex(202),
+futex(202), gettid(186), gettid(186), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    488     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), read(0),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), read(0),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), read(0), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), write(1),
+write(1), sendto(44), write(1), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      4       
+
+Sequence:
+epoll_wait(232), futex(202), read(0), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      4       
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+26362    7       
+
+Sequence:
+ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
+rt_sigreturn(15), write(1),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16), close(3), recvmsg(47), recvmsg(47),
+recvmsg(47), sendto(44), recvmsg(47), recvmsg(47), recvmsg(47),
+sendto(44), getsockname(51), bind(49), socket(41), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16787    64      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+read(0), poll(7), recvmsg(47), write(1), read(0), read(0), read(0),
+write(1), poll(7), recvmsg(47), writev(20), poll(7), write(1),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), writev(20), recvmsg(47), poll(7), poll(7), recvmsg(47),
+poll(7), recvmsg(47), writev(20), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), writev(20), poll(7), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), writev(20),
+poll(7), poll(7), recvmsg(47), poll(7), recvmsg(47), read(0), poll(7),
+recvmsg(47), read(0), poll(7), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      4       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      44      
+
+Sequence:
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), nanosleep(35), nanosleep(35),
+nanosleep(35), nanosleep(35), futex(202), nanosleep(35), futex(202),
+nanosleep(35), futex(202), nanosleep(35),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16906    868     
+
+Sequence:
+poll(7), read(0), futex(202), read(0), poll(7), read(0), write(1),
+futex(202), poll(7), read(0), futex(202), read(0), poll(7), read(0),
+write(1), futex(202), poll(7), read(0), futex(202), read(0), poll(7),
+read(0), write(1), poll(7), read(0), futex(202), read(0), poll(7),
+read(0), write(1), poll(7), read(0), futex(202), read(0), poll(7),
+read(0), write(1), poll(7), read(0), futex(202), read(0), poll(7),
+read(0), write(1), poll(7), read(0), read(0), poll(7), read(0),
+read(0), poll(7), read(0), write(1), read(0), write(1), write(1),
+write(1), getpid(39), poll(7), read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18100    12      
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+979      35      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), read(0), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), write(1),
+write(1), recvmsg(47), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    130     
+
+Sequence:
+futex(202), gettid(186), gettid(186), gettid(186), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), gettid(186), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), futex(202), futex(202), futex(202), gettid(186),
+gettid(186), gettid(186), gettid(186), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), futex(202), gettid(186),
+gettid(186), gettid(186), gettid(186), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), gettid(186), gettid(186),
+gettid(186), gettid(186), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), gettid(186), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17565    3       
+
+Sequence:
+epoll_wait(232), sendmsg(46), read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      7       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+18100    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+924      6       
+
+Sequence:
+futex(202), stat(4), futex(202), futex(202), stat(4), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+924      4       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17824    2       
+
+Sequence:
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+24084    3       
+
+Sequence:
+futex(202), write(1), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    22      
+
+Sequence:
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17565    145     
+
+Sequence:
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), futex(202), read(0), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+write(1), poll(7), recvmsg(47), read(0), poll(7), recvmsg(47),
+write(1), read(0), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), read(0), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), futex(202), read(0), poll(7), recvmsg(47), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), read(0), poll(7), recvmsg(47), write(1), read(0),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+912      6       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+16938    33      
+
+Sequence:
+futex(202), futex(202), gettid(186), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), futex(202), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+30344    2       
+
+Sequence:
+poll(7), poll(7),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+312      5       
+
+Sequence:
+epoll_wait(232), timerfd_settime(286), ftruncate(77), read(0),
+clock_gettime(228),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+924      5       
+
+Sequence:
+futex(202), prctl(157), sigaltstack(131), sched_getaffinity(204),
+set_robust_list(273),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+913      59      
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17824    63      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+mprotect(10), mprotect(10), read(0), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+mprotect(10), mprotect(10), read(0), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), read(0), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+517      1       
+
+Sequence:
+futex(202),
+
+
+----------------------------------------------------------
+
+PID      S-Length
+17824    14      
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+write(1), futex(202),
+

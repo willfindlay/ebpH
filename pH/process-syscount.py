@@ -13,6 +13,7 @@
 
 from time import sleep, strftime
 import argparse
+import textwrap
 import errno
 import itertools
 import sys
@@ -40,20 +41,20 @@ def handle_errno(errstr):
 
 parser = argparse.ArgumentParser(
     description="Per-process syscall counts.")
-parser.add_argument("-p", "--pid", type=int,
+parser.add_argument("-p", "--pid", type=int, default=-1,
                     help="trace only this pid")
 parser.add_argument("-t", "--top", type=int, default=10,
                     help="print only the top syscalls by count or latency")
 parser.add_argument("-s", "--seqlen", type=int, default=8,
                     help="print call sequences of max length <seqlen>")
+parser.add_argument("-o", "--output", type=str, default=None,
+                    help="write to a log file specified by <output>")
 parser.add_argument("--ebpf", action="store_true",
                     help=argparse.SUPPRESS)
 args = parser.parse_args()
 
 # hash for sequences per process
 # hash for profiles per executable
-
-SEQLEN = args.seqlen
 
 text = """
 #define SEQLEN ARG_SEQLEN
@@ -65,7 +66,7 @@ typedef struct {
    u64 count;
 } pH_seq;
 
-typedef u64 pH_seq2[SEQLEN];
+//typedef u64 pH_seq2[SEQLEN];
 
 BPF_HASH(seq, u64, pH_seq);
 
@@ -73,7 +74,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
     pH_seq lseq = {.count = 0};
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
+    int pid     = ARG_PID;
     int i;
+
+    if(pid != -1 && pid != (u32)bpf_get_current_pid_tgid())
+        return 0;
 
     for(int i = 0; i < SEQLEN; i++) {
         lseq.seq[i] = 9999;
@@ -101,7 +106,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
 """
 
 # sub in args
-text = text.replace("ARG_SEQLEN", str(SEQLEN))
+text = text.replace("ARG_SEQLEN", str(args.seqlen))
+text = text.replace("ARG_PID", str(args.pid))
 
 if args.ebpf:
     print(text)
@@ -134,16 +140,18 @@ def print_sequences():
 
         # list of sequences by "Call Name(Call Number),"
         print()
-        print('Sequence <Call Name>(<Call Number>):')
+        print('Sequence:')
+        s = ""
         for call,name in zip(calls,names):
             if call == "9999":
                 break
-            print("%s(%s), " % (name.decode('utf-8'), call), end="");
+            s+= "%s(%s), " % (name.decode('utf-8'), call);
+        print(textwrap.fill(s))
         print()
     # clear the BPF hashmap
     seq_hash.clear()
 
-print("Tracing syscall sequences, printing %d... Ctrl+C to quit." % (args.top))
+print("Tracing syscall sequences of length %d, for top %d processes... Ctrl+C to quit." % (args.seqlen, args.top))
 exiting = 0
 seconds = 0
 while True:
@@ -161,7 +169,17 @@ while True:
 
     # print the sequences before exiting
     if exiting:
+        # maybe redirect output
+        if args.output is not None:
+            sys.stdout = open(args.output,"w+")
+
         print_sequences()
+
+        # reset stdout
+        if args.output is not None:
+            sys.stdout.close()
+            sys.stdout = sys.__stdout__
+
         print()
         print("Detaching...")
         exit()
