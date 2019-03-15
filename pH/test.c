@@ -3,15 +3,24 @@
 
 int main(int argc, char **argv, char** envp)
 {
-  printf("My PID is %d\n",getpid());
-  printf("Sleeping for 10 seconds...\n");
-  sleep(10);
-  printf("Invoking syncs...\n");
+    if(argc < 2) {
+        fprintf(stderr,"ERROR: Please supply a program to run.\n");
+        return -1;
+    }
 
-  for(int i = 0; i < 300; i++) {
-      sync();
-      sleep(1);
-  }
+    char *prog = argv[1];
 
-  return 0;
+    for(int i = argc-2; i > 0; i--) {
+        argv[i] = argv[i+1];
+    }
+    argv[--argc] = NULL;
+
+    printf("My PID is %8d\n",getpid());
+    printf("Sleeping for 10 seconds...\n");
+    sleep(10);
+    printf("Launching %s...\n",prog);
+
+    execvp(prog, argv);
+
+    return 0;
 }

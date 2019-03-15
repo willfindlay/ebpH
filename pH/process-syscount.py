@@ -42,9 +42,9 @@ def handle_errno(errstr):
 parser = argparse.ArgumentParser(
     description="Per-process syscall counts.")
 parser.add_argument("-p", "--pid", type=int, default=-1,
-                    help="trace only this pid")
+                    help="trace only this pid; supercedes --top option")
 parser.add_argument("-t", "--top", type=int, default=10,
-                    help="print only the top syscalls by count or latency")
+                    help="print only the top processes by syscall count or latency")
 parser.add_argument("-s", "--seqlen", type=int, default=8,
                     help="print call sequences of max length <seqlen>")
 parser.add_argument("-o", "--output", type=str, default=None,
@@ -58,6 +58,7 @@ args = parser.parse_args()
 
 text = """
 #define SEQLEN ARG_SEQLEN
+#define PID    ARG_PID
 #define SYS_EXIT 60
 #define SYS_EXIT_GROUP 231
 
@@ -74,16 +75,18 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
     pH_seq lseq = {.count = 0};
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
-    int pid     = ARG_PID;
     int i;
 
-    if(pid != -1 && pid != (u32)bpf_get_current_pid_tgid())
+    // only trace one PID if specified
+    if(PID != -1 && PID != (u32)pid_tgid)
         return 0;
 
+    // initialize data
     for(int i = 0; i < SEQLEN; i++) {
         lseq.seq[i] = 9999;
     }
 
+    //
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
     lseq = *s;
