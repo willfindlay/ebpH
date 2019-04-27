@@ -56,57 +56,8 @@ args = parser.parse_args()
 # hash for sequences per process
 # hash for profiles per executable
 
-text = """
-#define SEQLEN ARG_SEQLEN
-#define PID    ARG_PID
-#define SYS_EXIT 60
-#define SYS_EXIT_GROUP 231
-
-typedef struct {
-   u64 seq[SEQLEN];
-   u64 count;
-} pH_seq;
-
-//typedef u64 pH_seq2[SEQLEN];
-
-BPF_HASH(seq, u64, pH_seq);
-
-TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
-    pH_seq lseq = {.count = 0};
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    long syscall = args->id;
-    int i;
-
-    // only trace one PID if specified
-    if(PID != -1 && PID != (u32)pid_tgid)
-        return 0;
-
-    // initialize data
-    for(int i = 0; i < SEQLEN; i++) {
-        lseq.seq[i] = 9999;
-    }
-
-    //
-    pH_seq *s;
-    s = seq.lookup_or_init(&pid_tgid, &lseq);
-    lseq = *s;
-
-    lseq.count++;
-    for (i = SEQLEN-1; i > 0; i--) {
-       lseq.seq[i] = lseq.seq[i-1];
-    }
-    lseq.seq[0] = syscall;
-
-
-    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP)) {
-      seq.delete(&pid_tgid);
-    } else {
-      seq.update(&pid_tgid, &lseq);
-    }
-
-    return 0;
-}
-"""
+with open("./bpf.c", "r") as f:
+    text = f.read()
 
 # sub in args
 text = text.replace("ARG_SEQLEN", str(args.seqlen))
@@ -154,35 +105,36 @@ def print_sequences():
     # clear the BPF hashmap
     seq_hash.clear()
 
-print("Tracing syscall sequences of length %d, for top %d processes... Ctrl+C to quit." % (args.seqlen, args.top))
-exiting = 0
-seconds = 0
-while True:
-    # update the hashmap every 2 seconds
-    try:
-        sleep(2)
-        seconds += 2
-        seq_hash = bpf["seq"]
-        l = len(seq_hash.items())
-        print("%d processes" % l)
-    # handle exiting gracefully
-    except KeyboardInterrupt:
-        exiting = 1
-        signal.signal(signal.SIGINT, signal_ignore)
+if __name__ == "__main__":
+    print("Tracing syscall sequences of length %d, for top %d processes... Ctrl+C to quit." % (args.seqlen, args.top))
+    exiting = 0
+    seconds = 0
+    while True:
+        # update the hashmap every 2 seconds
+        try:
+            sleep(2)
+            seconds += 2
+            seq_hash = bpf["seq"]
+            l = len(seq_hash.items())
+            print("%d processes" % l)
+        # handle exiting gracefully
+        except KeyboardInterrupt:
+            exiting = 1
+            signal.signal(signal.SIGINT, signal_ignore)
 
-    # print the sequences before exiting
-    if exiting:
-        # maybe redirect output
-        if args.output is not None:
-            sys.stdout = open(args.output,"w+")
+        # print the sequences before exiting
+        if exiting:
+            # maybe redirect output
+            if args.output is not None:
+                sys.stdout = open(args.output,"w+")
 
-        print_sequences()
+            print_sequences()
 
-        # reset stdout
-        if args.output is not None:
-            sys.stdout.close()
-            sys.stdout = sys.__stdout__
+            # reset stdout
+            if args.output is not None:
+                sys.stdout.close()
+                sys.stdout = sys.__stdout__
 
-        print()
-        print("Detaching...")
-        exit()
+            print()
+            print("Detaching...")
+            exit()
