@@ -1,14 +1,15 @@
-#!/usr/bin/python
+#! /usr/bin/env python3
 
-# ebpH --  monitor syscall sequences and detect anomalies
-# Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca)
+# ebpH --  Monitor syscall sequences and detect anomalies
+# Copyright 2019 Anil Somayaji (soma@scs.carleton.ca) and
+# William Findlay (williamfindlay@cmail.carleton.ca)
 #
-# based on Sasha Goldshtein's syscount
+# Based on Sasha Goldshtein's syscount
 #  https://github.com/iovisor/bcc/blob/master/tools/syscount.py
 #  Copyright 2017, Sasha Goldshtein.
-# and on Anil Somayaji's pH
+# And on Anil Somayaji's pH
 #  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
-#  Copyright 2002 Anil Somayaji
+#  Copyright 2003 Anil Somayaji
 #
 # USAGE: ebpH.py <COMMAND>
 #
@@ -42,88 +43,37 @@ args = parser.parse_args()
 # check command
 command = args.command
 
-# hash for sequences per process
-# hash for profiles per executable
-
 with open("./bpf.c", "r") as f:
     text = f.read()
 
 # sub in args
-text = text.replace("ARG_SEQLEN", str(8))
-text = text.replace("ARG_PID", str(-1))
+# since I removed the args for now, these are hardcoded as 8 and -1 respectively
+args.seqlen = 8
+args.pid = -1
+text = text.replace("ARG_SEQLEN", str(args.seqlen))
+text = text.replace("ARG_PID", str(args.pid))
 
-if args.ebpf:
-    print(text)
-    exit()
-
+# compile ebpf code
 bpf = BPF(text=text)
 
-def print_sequences():
-    # fetch BPF hashmap
-    seq_hash = bpf["seq"]
-
-    # print system time
-    print()
-    print("[%s]" % strftime("%H:%M:%S %p"))
-
-    # print sequence for each inspected process
-    for p, s in seq_hash.items()[:args.top]:
-        pid = p.value >> 32
-        names = map(syscall_name, s.seq);
-        calls = map(str, s.seq);
-
-        # separator
-        print()
-        print("----------------------------------------------------------")
-        print()
-
-        # print the process and the sequence length
-        print("%-8s %-8s" % ("PID","S-Length"))
-        print("%-8s %-8s" % (pid, s.count));
-
-        # list of sequences by "Call Name(Call Number),"
-        print()
-        print('Sequence:')
-        s = ""
-        for call,name in zip(calls,names):
-            if call == "9999":
-                break
-            s+= "%s(%s), " % (name.decode('utf-8'), call);
-        print(textwrap.fill(s))
-        print()
-    # clear the BPF hashmap
-    seq_hash.clear()
-
+# main control flow
 if __name__ == "__main__":
-    print("Tracing syscall sequences of length %d, for top %d processes... Ctrl+C to quit." % (args.seqlen, args.top))
+    print(f"Tracing syscall sequences of length {args.seqlen}... Ctrl+C to quit.")
     exiting = 0
     seconds = 0
     while True:
-        # update the hashmap every 2 seconds
+        # update the hashmap of sequences
         try:
-            sleep(2)
-            seconds += 2
+            # sleep(2)
+            # seconds += 2
             seq_hash = bpf["seq"]
-            l = len(seq_hash.items())
-            print("%d processes" % l)
-        # handle exiting gracefully
-        except KeyboardInterrupt:
+            sleep(1)
+        except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)
 
-        # print the sequences before exiting
+        # exit control flow
         if exiting:
-            # maybe redirect output
-            if args.output is not None:
-                sys.stdout = open(args.output,"w+")
-
-            print_sequences()
-
-            # reset stdout
-            if args.output is not None:
-                sys.stdout.close()
-                sys.stdout = sys.__stdout__
-
             print()
             print("Detaching...")
             exit()
