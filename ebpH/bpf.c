@@ -95,9 +95,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     s = seq.lookup_or_init(&pid_tgid, &lseq);
     lseq = *s;
 
-    if(lseq.count >= SEQLEN)
-        return 0;
-
     lseq.count++;
     for (i = SEQLEN-1; i > 0; i--)
     {
@@ -106,7 +103,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     lseq.seq[0] = syscall;
 
     // TODO: implement me!
-    // we we just execve
+    // if we just EXECVE'd, we need to wipe the sequence
     if(syscall == SYS_EXECVE)
     {
 

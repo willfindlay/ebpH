@@ -33,7 +33,7 @@ from pprint import pprint
 def signal_ignore(signal, frame):
     print()
 
-def print_sequences():
+def print_sequences(seqlen):
     # fetch BPF hashmap
     seq_hash = bpf["seq"]
 
@@ -46,7 +46,6 @@ def print_sequences():
         pid = p.value >> 32
         names = map(syscall_name, s.seq);
         calls = map(str, s.seq);
-        count = s.count
 
         # separator
         print()
@@ -54,18 +53,18 @@ def print_sequences():
         print()
 
         # print the process and the sequence length
-        print("%-8s %-8s" % ("PID","S-Length"))
+        print("%-8s %-8s" % ("PID","COUNT"))
         print("%-8s %-8s" % (pid, s.count));
 
         # list of sequences by "Call Name(Call Number),"
         print()
         print('Sequence:')
-        s = []
+        arr = []
         for i,(call,name) in enumerate(zip(calls,names)):
-            if i >= count:
+            if i >= seqlen or i >= s.count:
                 break;
-            s.append(f"{name.decode('utf-8')}({call})");
-        print(textwrap.fill(", ".join(s)))
+            arr.append(f"{name.decode('utf-8')}({call})");
+        print(textwrap.fill(", ".join(arr)))
         print()
     # clear the BPF hashmap
     seq_hash.clear()
@@ -87,7 +86,7 @@ with open("./bpf.c", "r") as f:
 
 # sub in args
 # since I removed the args for now, these are hardcoded as 8 and -1 respectively
-args.seqlen = 20
+args.seqlen = 8
 args.pid    = -1
 args.lap    = 0
 text = text.replace("ARG_SEQLEN", str(args.seqlen))
@@ -115,7 +114,7 @@ if __name__ == "__main__":
         if exiting:
             for seq in seq_hash.items():
                 pass
-                print_sequences()
+                print_sequences(args.seqlen)
             print()
             print("Detaching...")
             exit()
