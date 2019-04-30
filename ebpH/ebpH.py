@@ -33,6 +33,42 @@ from pprint import pprint
 def signal_ignore(signal, frame):
     print()
 
+def print_sequences():
+    # fetch BPF hashmap
+    seq_hash = bpf["seq"]
+
+    # print system time
+    print()
+    print("[%s]" % strftime("%H:%M:%S %p"))
+
+    # print sequence for each inspected process
+    for p, s in seq_hash.items():
+        pid = p.value >> 32
+        names = map(syscall_name, s.seq);
+        calls = map(str, s.seq);
+
+        # separator
+        print()
+        print("----------------------------------------------------------")
+        print()
+
+        # print the process and the sequence length
+        print("%-8s %-8s" % ("PID","S-Length"))
+        print("%-8s %-8s" % (pid, s.count));
+
+        # list of sequences by "Call Name(Call Number),"
+        print()
+        print('Sequence:')
+        s = ""
+        for call,name in zip(calls,names):
+            if call == "9999":
+                break
+            s+= "%s(%s), " % (name.decode('utf-8'), call);
+        print(textwrap.fill(s))
+        print()
+    # clear the BPF hashmap
+    seq_hash.clear()
+
 commands = ["start", "stop"]
 
 parser = argparse.ArgumentParser(description="Monitor system call sequences and detect anomalies.")
@@ -40,9 +76,11 @@ parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=comman
                     help=f"Command to run. Possible commands are {', '.join(commands)}.")
 args = parser.parse_args()
 
-# check command
+# TODO: daemonize the process
+# TODO: use command to control daemonized process
 command = args.command
 
+# read BPF embedded C from bpf.c
 with open("./bpf.c", "r") as f:
     text = f.read()
 
@@ -64,16 +102,15 @@ if __name__ == "__main__":
     while True:
         # update the hashmap of sequences
         try:
-            # sleep(2)
-            # seconds += 2
             seq_hash = bpf["seq"]
-            sleep(1)
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)
 
         # exit control flow
         if exiting:
+            for seq in seq_hash.items():
+                print_sequences()
             print()
             print("Detaching...")
             exit()

@@ -3,14 +3,45 @@
 #define SYS_EXIT       60
 #define SYS_EXIT_GROUP 231
 
-typedef struct {
-   u64 seq[SEQLEN];
-   u64 count;
-} pH_seq;
+// a standard sequence
+typedef struct
+{
+    u64 seq[SEQLEN];
+    u64 count;
+}
+pH_seq;
 
-//typedef u64 pH_seq2[SEQLEN];
+// a lookahead pair
+typedef struct
+{
+    u64 s1;
+    u64 s2;
+}
+pH_lap;
+
+// a pH profile consisting of sequences of lookahead pairs
+// and a pid
+typedef struct
+{
+    pH_lap seq[SEQLEN];
+    u64 count;
+}
+pH_lap_profile;
+
+// function to be called when a fork systemcall is detected
+// effectively deep copies the profile of the forking process to the child's profile
+static void fork_lap_profile(pH_lap_profile* parent, pH_lap_profile* child)
+{
+    for(int i = 0; i < SEQLEN; i++)
+    {
+        child->seq[i] = parent->seq[i];
+    }
+
+    child->count = parent-> count;
+}
 
 BPF_HASH(seq, u64, pH_seq);
+BPF_HASH(lap, u64, pH_lap_profile);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
