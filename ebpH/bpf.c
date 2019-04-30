@@ -73,7 +73,6 @@ static void execve_lap_profile(pH_lap_profile *pro)
 
 BPF_HASH(seq, u64, pH_seq);
 BPF_HASH(lap, u64, pH_lap_profile);
-//BPF_PERF_OUTPUT(debug);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
@@ -86,9 +85,18 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     if(PID != -1 && PID != (u32)pid_tgid)
         return 0;
 
+    // initialize data
+    for(int i = 0; i < SEQLEN; i++)
+    {
+        lseq.seq[i] = 9999;
+    }
+
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
     lseq = *s;
+
+    if(lseq.count >= SEQLEN)
+        return 0;
 
     lseq.count++;
     for (i = SEQLEN-1; i > 0; i--)
@@ -103,10 +111,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
 
     }
-
-    bpf_trace_printk(KERN_ALERT "The PPID of %d is: %d\n", my_get_pid(), get_ppid());
-    u32 ppid = get_ppid();
-    //debug.perf_submit(args, &ppid, sizeof(ppid));
 
     // TODO: implement me
     // if we just forked, copy everything from the previous process to us
