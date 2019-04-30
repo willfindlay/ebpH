@@ -1,7 +1,12 @@
+#include <linux/sched.h>
+
 #define SEQLEN         ARG_SEQLEN
 #define PID            ARG_PID
+#define USE_LAP        ARG_LAP
 #define SYS_EXIT       60
 #define SYS_EXIT_GROUP 231
+#define SYS_EXECVE     59
+#define SYS_FORK       57
 
 // a standard sequence
 typedef struct
@@ -20,13 +25,32 @@ typedef struct
 pH_lap;
 
 // a pH profile consisting of sequences of lookahead pairs
-// and a pid
 typedef struct
 {
     pH_lap seq[SEQLEN];
     u64 count;
 }
 pH_lap_profile;
+
+// function that returns the PPID of a process
+static u32 get_ppid()
+{
+    u32 ppid = -1;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    ppid = (u32)task->real_parent->pid;
+
+    return ppid;
+}
+
+// function that returns the PID of a process
+static u32 my_get_pid()
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    return (u32)pid_tgid;
+}
 
 // function to be called when a fork systemcall is detected
 // effectively deep copies the profile of the forking process to the child's profile
@@ -40,8 +64,16 @@ static void fork_lap_profile(pH_lap_profile* parent, pH_lap_profile* child)
     child->count = parent-> count;
 }
 
+// function to be called when an execve systemcall is detected
+// effectively discards current profile for a process
+static void execve_lap_profile(pH_lap_profile *pro)
+{
+    pro->count = 0;
+}
+
 BPF_HASH(seq, u64, pH_seq);
 BPF_HASH(lap, u64, pH_lap_profile);
+//BPF_PERF_OUTPUT(debug);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
@@ -54,12 +86,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     if(PID != -1 && PID != (u32)pid_tgid)
         return 0;
 
-    // initialize data
-    for(int i = 0; i < SEQLEN; i++)
-    {
-        lseq.seq[i] = 9999;
-    }
-
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
     lseq = *s;
@@ -71,6 +97,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
     lseq.seq[0] = syscall;
 
+    // TODO: implement me!
+    // we we just execve
+    if(syscall == SYS_EXECVE)
+    {
+
+    }
+
+    bpf_trace_printk(KERN_ALERT "The PPID of %d is: %d\n", my_get_pid(), get_ppid());
+    u32 ppid = get_ppid();
+    //debug.perf_submit(args, &ppid, sizeof(ppid));
+
+    // TODO: implement me
+    // if we just forked, copy everything from the previous process to us
+    if (syscall == SYS_FORK)
+    {
+
+    }
 
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {

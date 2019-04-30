@@ -46,6 +46,7 @@ def print_sequences():
         pid = p.value >> 32
         names = map(syscall_name, s.seq);
         calls = map(str, s.seq);
+        count = s.count
 
         # separator
         print()
@@ -60,9 +61,9 @@ def print_sequences():
         print()
         print('Sequence:')
         s = ""
-        for call,name in zip(calls,names):
-            if call == "9999":
-                break
+        for i,(call,name) in enumerate(zip(calls,names)):
+            if i >= count:
+                break;
             s+= "%s(%s), " % (name.decode('utf-8'), call);
         print(textwrap.fill(s))
         print()
@@ -87,9 +88,11 @@ with open("./bpf.c", "r") as f:
 # sub in args
 # since I removed the args for now, these are hardcoded as 8 and -1 respectively
 args.seqlen = 8
-args.pid = -1
+args.pid    = -1
+args.lap    = 0
 text = text.replace("ARG_SEQLEN", str(args.seqlen))
 text = text.replace("ARG_PID", str(args.pid))
+text = text.replace("ARG_LAP", str(args.lap))
 
 # compile ebpf code
 bpf = BPF(text=text)
