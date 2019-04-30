@@ -6,7 +6,7 @@ title: |
   | Honours Thesis Pre-Proposal
 subtitle: |
   | Implementing Process Homeostasis Using
-  | Enhanced Berkeley Packet Filtering
+  | Extended Berkeley Packet Filtering
 date: \today
 bibliography: /home/housedhorse/.bibs/uni.bib
 csl: /home/housedhorse/.bibs/ieee.csl
@@ -235,6 +235,9 @@ library(lubridate)
 
 # Overview of Thesis
 
+This section presents an overview of the thesis including motivation, objectives, equipment requirements,
+and expected deliverables.
+
 ## Motivation
 
 ## Main Objectives
@@ -248,6 +251,8 @@ library(lubridate)
 \autoref{fall-sched} presents a bi-weekly schedule for the fall 2019 term. This term will be used
 primarily for background research on Process Homeostasis and Extended Berkeley Packet Filtering in
 the Linux Kernel.
+
+<!-- print table for bi-weekly fall schedule -->
 
 ```{r}
 # weekly
