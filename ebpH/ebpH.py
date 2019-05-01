@@ -29,6 +29,9 @@ from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
 from pprint import pprint
 
+# TODO: change this to a directory in root somewhere
+PROFILES_DIR = "./profiles"
+
 # signal handler
 def signal_ignore(signal, frame):
     print()
@@ -74,11 +77,15 @@ def print_sequences(seqlen):
         for i,(call,name) in enumerate(zip(calls,names)):
             if i >= seqlen or i >= s.count:
                 break;
-            arr.append(f"{name.decode('utf-8')}({call})");
+            arr.append("%s(%s)" % (name.decode('utf-8'), call))
         print(textwrap.fill(", ".join(arr)))
         print()
     # clear the BPF hashmap
     seq_hash.clear()
+
+# TODO: implement me!
+def save_profiles():
+    pass
 
 # main control flow
 if __name__ == "__main__":
@@ -114,6 +121,10 @@ if __name__ == "__main__":
 
     # compile ebpf code
     bpf = BPF(text=text)
+
+    # create PROFILES_DIR if it does not exist
+    if not os.path.exists(PROFILES_DIR):
+        os.mkdir(PROFILES_DIR)
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
     exiting = 0
