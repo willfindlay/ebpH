@@ -19,6 +19,7 @@ typedef struct
 }
 pH_seq;
 
+// TODO: finish implementing
 // a lookahead pair
 typedef struct
 {
@@ -27,6 +28,7 @@ typedef struct
 }
 pH_lap;
 
+// TODO: finish implementing
 // a pH profile
 typedef struct
 {
@@ -56,6 +58,7 @@ static u32 ph_get_pid()
     return (u32)pid_tgid;
 }
 
+// TODO: integrate with above data structures and Python script
 // function that returns the process command
 static char *ph_get_command()
 {
@@ -129,13 +132,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         lseq.count = 1;
     }
 
-    // TODO: implement me
-    // if we are forking, we need to copy our profile to the next
-    if (syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
-    {
-
-    }
-
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
         // FIXME: had to comment this out for testing purposes
@@ -143,7 +139,42 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
     else
     {
-      seq.update(&pid_tgid, &lseq);
+        seq.update(&pid_tgid, &lseq);
+    }
+
+    return 0;
+}
+
+// we need the return value from fork syscalls in order to copy profiles over
+TRACEPOINT_PROBE(raw_syscalls, sys_exit)
+{
+    pH_seq lseq = {.count = 0};
+    pH_seq *parent_seq;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    long syscall = args->id;
+
+    // TODO: implement me
+    // if we are forking, we need to copy our profile to the next
+    if (syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    {
+        // get child pid from return value
+        u64 child_pid_tgid = (u64)args->ret;
+
+        // fetch parent sequence
+        parent_seq = seq.lookup(&pid_tgid);
+
+        if(parent_seq == NULL)
+            return 0;
+
+        // copy data to child sequence
+        lseq.count = parent_seq->count;
+        for(int i = 0; i < SEQLEN; i++)
+        {
+            lseq.seq[i] = parent_seq->seq[i];
+        }
+
+        // init child sequence
+        seq.lookup_or_init(&child_pid_tgid, &lseq);
     }
 
     return 0;
