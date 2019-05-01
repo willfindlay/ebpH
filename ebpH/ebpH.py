@@ -33,6 +33,17 @@ from pprint import pprint
 def signal_ignore(signal, frame):
     print()
 
+def handle_errno(errstr):
+    try:
+        return abs(int(errstr))
+    except ValueError:
+        pass
+
+    try:
+        return getattr(errno, errstr)
+    except AttributeError:
+        raise argparse.ArgumentTypeError("couldn't map %s to an errno" % errstr)
+
 def print_sequences(seqlen):
     # fetch BPF hashmap
     seq_hash = bpf["seq"]
@@ -100,21 +111,17 @@ bpf = BPF(text=text)
 if __name__ == "__main__":
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
     exiting = 0
-    seconds = 0
     while True:
         # update the hashmap of sequences
         try:
             seq_hash = bpf["seq"]
-            sleep(1)
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)
 
         # exit control flow
         if exiting:
-            for seq in seq_hash.items():
-                pass
-                print_sequences(args.seqlen)
+            print_sequences(args.seqlen)
             print()
             print("Detaching...")
             exit()

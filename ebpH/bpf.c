@@ -7,6 +7,7 @@
 #define SYS_EXIT_GROUP 231
 #define SYS_EXECVE     59
 #define SYS_FORK       57
+#define EMPTY          9999
 
 // a standard sequence
 typedef struct
@@ -30,10 +31,10 @@ typedef struct
     pH_lap seq[SEQLEN];
     u64 count;
 }
-pH_lap_profile;
+pH_profile;
 
 // function that returns the PPID of a process
-static u32 get_ppid()
+static u32 ph_get_ppid()
 {
     u32 ppid = -1;
     struct task_struct *task;
@@ -45,11 +46,23 @@ static u32 get_ppid()
 }
 
 // function that returns the PID of a process
-static u32 my_get_pid()
+static u32 ph_get_pid()
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     return (u32)pid_tgid;
+}
+
+// function that returns the process command
+static char *ph_get_command()
+{
+    char *command = NULL;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    command = (u32)task->comm;
+
+    return command;
 }
 
 // function to be called when a fork systemcall is detected
@@ -88,7 +101,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     // initialize data
     for(int i = 0; i < SEQLEN; i++)
     {
-        lseq.seq[i] = 9999;
+        lseq.seq[i] = EMPTY;
     }
 
     pH_seq *s;
@@ -102,11 +115,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
     lseq.seq[0] = syscall;
 
-    // TODO: implement me!
     // if we just EXECVE'd, we need to wipe the sequence
     if(syscall == SYS_EXECVE)
     {
-
+        // leave the EXECVE call, wipe the rest
+        for(int i = 1; i < SEQLEN; i++)
+        {
+            lseq.seq[i] = EMPTY;
+        }
+        lseq.count = 1;
     }
 
     // TODO: implement me
