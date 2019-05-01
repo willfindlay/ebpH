@@ -16,27 +16,13 @@ typedef struct
 {
     u64 seq[SEQLEN];
     u64 count;
+    char comm[TASK_COMM_LEN];
 }
 pH_seq;
 
-// TODO: finish implementing
-// a lookahead pair
-typedef struct
-{
-    u64 curr;
-    u64 prev;
-}
-pH_lap;
+// TODO: add a structure for a lookahead pair
 
-// TODO: finish implementing
-// a pH profile
-typedef struct
-{
-    pH_lap seq[SEQLEN];
-    u64 count;
-    char comm[TASK_COMM_LEN];
-}
-pH_profile;
+// TODO: add a structure for profiles
 
 // function that returns the pid_tgid of a process' parent
 static u64 pH_get_ppid_tgid()
@@ -50,40 +36,8 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-// TODO: integrate with above data structures and Python script
-// function that returns the process command
-static char *pH_get_command()
-{
-    char* command;
-    struct task_struct *task;
-
-    task = (struct task_struct *)bpf_get_current_task();
-    command = task->comm;
-
-    return command;
-}
-
-// function to be called when a fork systemcall is detected
-// effectively deep copies the profile of the forking process to the child's profile
-static void fork_profile(pH_profile* parent, pH_profile* child)
-{
-    for(int i = 0; i < SEQLEN; i++)
-    {
-        child->seq[i] = parent->seq[i];
-    }
-
-    child->count = parent-> count;
-}
-
-// function to be called when an execve systemcall is detected
-// effectively discards current profile for a process
-static void execve_profile(pH_profile *pro)
-{
-    pro->count = 0;
-}
-
+// TODO: convert this to a profile hashmap
 BPF_HASH(seq, u64, pH_seq);
-BPF_HASH(lap, u64, pH_profile);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
@@ -97,6 +51,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         lseq.seq[i] = EMPTY;
     }
+
+    bpf_get_current_comm(&lseq.comm, sizeof(lseq.comm));
 
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
