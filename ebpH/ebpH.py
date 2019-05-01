@@ -110,6 +110,11 @@ if __name__ == "__main__":
     # TODO: use command to control daemonized process
     #command = args.command
 
+    # check privileges
+    if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
+        print("This script must be run with root privileges! Exiting.")
+        exit()
+
     # read BPF embedded C from bpf.c
     with open("./bpf.c", "r") as f:
         text = f.read()
