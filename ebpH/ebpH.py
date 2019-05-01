@@ -87,9 +87,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Monitor system call sequences and detect anomalies.")
     #parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=commands,
     #                    help="Command to run. Possible commands are %s." % ', '.join(commands))
+    # TODO: implement this functionality (or perhaps remove it since it's only useful for testing)
     parser.add_argument("-p", "--pid", type=int, default=-1,
                         help="trace only the specified pid")
-    # TODO: implement this functionality (or perhaps remove it since it's only useful for testing)
     parser.add_argument("-s", "--seqlen", type=int, default=8,
                         help="print call sequences of max length <seqlen>")
     # TODO: implement this functionality
