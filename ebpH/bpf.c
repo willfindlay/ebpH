@@ -38,29 +38,21 @@ typedef struct
 }
 pH_profile;
 
-// function that returns the PPID of a process
-static u32 ph_get_ppid()
+// function that returns the pid_tgid of a process' parent
+static u64 pH_get_ppid_tgid()
 {
-    u32 ppid = -1;
+    u64 ppid_tgid;
     struct task_struct *task;
 
     task = (struct task_struct *)bpf_get_current_task();
-    ppid = (u32)task->real_parent->pid;
+    ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
 
-    return ppid;
-}
-
-// function that returns the PID of a process
-static u32 ph_get_pid()
-{
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-
-    return (u32)pid_tgid;
+    return ppid_tgid;
 }
 
 // TODO: integrate with above data structures and Python script
 // function that returns the process command
-static char *ph_get_command()
+static char *pH_get_command()
 {
     char* command;
     struct task_struct *task;
@@ -99,10 +91,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
     int i;
-
-    // only trace one PID if specified
-    if(PID != -1 && PID != (u32)pid_tgid)
-        return 0;
 
     // initialize data
     for(int i = 0; i < SEQLEN; i++)
@@ -153,16 +141,21 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
 
-    // TODO: implement me
     // if we are forking, we need to copy our profile to the next
-    if (syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
-        // get child pid from return value
-        u64 child_pid_tgid = (u64)args->ret;
+        // get return value of function
+        u64 retval = (u64)args->ret;
+
+        // we want to be inside the child process
+        if(retval != 0)
+            return 0;
+
+        // get parent PID
+        u64 ppid_tgid = pH_get_ppid_tgid();
 
         // fetch parent sequence
-        parent_seq = seq.lookup(&pid_tgid);
-
+        parent_seq = seq.lookup(&ppid_tgid);
         if(parent_seq == NULL)
             return 0;
 
@@ -174,7 +167,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         }
 
         // init child sequence
-        seq.lookup_or_init(&child_pid_tgid, &lseq);
+        seq.lookup_or_init(&pid_tgid, &lseq);
     }
 
     return 0;
