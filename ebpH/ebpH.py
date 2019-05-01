@@ -64,8 +64,8 @@ def print_sequences(seqlen):
         print()
 
         # print the process and the sequence length
-        print("%-8s %-8s" % ("PID","COUNT"))
-        print("%-8s %-8s" % (pid, s.count));
+        print("%-8s %-20s %-8s" % ("PID","COMM","COUNT"))
+        print("%-8d %-20s %-8s" % (pid, s.comm.decode('utf-8'), s.count));
 
         # list of sequences by "Call Name(Call Number),"
         print()
@@ -111,8 +111,6 @@ if __name__ == "__main__":
     text = text.replace("ARG_SEQLEN", str(args.seqlen))
     text = text.replace("ARG_PID", str(args.pid))
     text = text.replace("ARG_LAP", str(args.lap))
-
-    print(args)
 
     # compile ebpf code
     bpf = BPF(text=text)
