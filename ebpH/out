@@ -1,399 +1,194 @@
-Tracing syscall sequences of length 8... Ctrl+C to quit.
+Tracing syscall sequences of length 44... Ctrl+C to quit.
 
-[22:08:18 PM]
+[22:19:19 PM]
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1240     21      
+24549    20      
 
 Sequence:
-futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
-openat(257), ioctl(16)
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27435    335     
+1180     96      
 
 Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), writev(20), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), poll(7), writev(20), poll(7), writev(20), poll(7),
+recvmsg(47), epoll_wait(232), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1496     1458    
+9057     22      
 
 Sequence:
-poll(7), read(0), write(1), poll(7), read(0), futex(202), read(0),
-poll(7)
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1), write(1), write(1), getpid(39), poll(7), read(0), read(0),
+poll(7), read(0), write(1), read(0), write(1), write(1), write(1),
+getpid(39)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-21328    87      
-
-Sequence:
-pselect6(270), write(1), rt_sigaction(13), rt_sigprocmask(14),
-rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), rt_sigaction(13)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1496     662     
-
-Sequence:
-nanosleep(35), getpid(39), write(1), getpid(39), getpid(39),
-futex(202), futex(202), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9774     795     
+9774     1643    
 
 Sequence:
 futex(202), recvmsg(47), poll(7), writev(20), poll(7),
-sched_yield(24), getpid(39), getpid(39)
+sched_yield(24), getpid(39), getpid(39), getpid(39), sched_yield(24),
+sched_yield(24), sched_yield(24), sched_yield(24), ioctl(16), poll(7),
+getpid(39), getpid(39), getpid(39), getpid(39), getpid(39),
+getpid(39), recvmsg(47), poll(7), writev(20), poll(7), getpid(39),
+getpid(39), getpid(39), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39), getpid(39), getpid(39), sched_yield(24),
+ioctl(16), ioctl(16), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+sched_yield(24)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1496     538     
+1240     6       
 
 Sequence:
-poll(7), poll(7), futex(202), getpid(39), futex(202), write(1),
-getpid(39), getpid(39)
+select(23), recvmsg(47), recvmsg(47), select(23), recvmsg(47),
+recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2428     4       
+30262    41      
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202)
+close(3), close(3), write(1), fstat(5), getcwd(79), close(3), mmap(9),
+fstat(5), openat(257), brk(12), brk(12), munmap(11), mprotect(10),
+mprotect(10), mprotect(10), arch_prctl(158), close(3), mmap(9),
+mmap(9), mmap(9), mmap(9), mprotect(10), mmap(9), read(0), lseek(8),
+read(0), lseek(8), mmap(9), fstat(5), read(0), lseek(8), read(0),
+openat(257), close(3), mmap(9), fstat(5), openat(257), access(21),
+arch_prctl(158), brk(12), execve(59)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27430    107     
-
-Sequence:
-close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27410    40      
-
-Sequence:
-write(1), write(1), write(1), write(1), clone(56), write(1), brk(12),
-brk(12)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     35      
-
-Sequence:
-futex(202), futex(202), futex(202), gettid(186), gettid(186),
-futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1219     1855    
-
-Sequence:
-epoll_wait(232), epoll_wait(232), recvmsg(47), epoll_wait(232),
-recvmsg(47), poll(7), writev(20), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27407    39      
-
-Sequence:
-bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
-bpf(321)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1513     260     
-
-Sequence:
-epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
-epoll_wait(232), epoll_wait(232), sendto(44)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27414    79      
-
-Sequence:
-close(3), write(1), read(0), fstat(5), read(0), fstat(5), close(3),
-read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27411    228     
+30263    233     
 
 Sequence:
 write(1), rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16),
 rt_sigprocmask(14), rt_sigaction(13), rt_sigaction(13),
-rt_sigprocmask(14)
+rt_sigprocmask(14), rt_sigreturn(15), wait4(61), wait4(61), close(3),
+read(0), read(0), close(3), close(3), close(3), rt_sigaction(13),
+rt_sigprocmask(14), setpgid(109), clone(56), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16),
+rt_sigprocmask(14), rt_sigaction(13), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigreturn(15), wait4(61), wait4(61), close(3),
+read(0), read(0), close(3), close(3), close(3), rt_sigaction(13)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3498     99      
+2243     6       
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
-recvmsg(47), read(0)
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2083     119     
+1496     1325    
 
 Sequence:
-poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
-poll(7), recvmsg(47)
+nanosleep(35), futex(202), getpid(39), write(1), getpid(39),
+futex(202), getpid(39), futex(202), write(1), write(1), getpid(39),
+getpid(39), getpid(39), futex(202), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7410     4       
+1241     12      
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202)
+futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
+stat(4), futex(202), futex(202), stat(4), stat(4), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1251     1356    
+30269    378     
 
 Sequence:
-ppoll(271), ioctl(16), ioctl(16), ioctl(16), read(0), ppoll(271),
-ioctl(16), ioctl(16)
+write(1), getpid(39), fstat(5), stat(4), lstat(6), stat(4), lstat(6),
+stat(4), lstat(6), stat(4), lstat(6), close(3), read(0), read(0),
+openat(257), lstat(6), stat(4), lstat(6), stat(4), lstat(6), stat(4),
+lstat(6), stat(4), lstat(6), close(3), read(0), read(0), openat(257),
+lstat(6), close(3), read(0), read(0), openat(257), lstat(6), close(3),
+read(0), read(0), openat(257), lstat(6), close(3), read(0), read(0),
+openat(257), lstat(6)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1223     12      
-
-Sequence:
-poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
-poll(7), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27433    107     
-
-Sequence:
-close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2163     4       
-
-Sequence:
-futex(202), futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2470     16      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
-recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27426    257     
-
-Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2386     184     
-
-Sequence:
-futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27413    207     
-
-Sequence:
-write(1), fstat(5), fstat(5), close(3), read(0), read(0), openat(257),
-lstat(6)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9057     11      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27440    58      
-
-Sequence:
-write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
-ioctl(16), close(3)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27432    304     
-
-Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2083     14      
-
-Sequence:
-epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
-sendmsg(46), read(0), epoll_wait(232)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27418    54      
-
-Sequence:
-close(3), close(3), close(3), read(0), write(1), read(0), openat(257),
-openat(257)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1586     56      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), poll(7), writev(20)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9774     12      
+8263     21      
 
 Sequence:
 poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
-poll(7), write(1)
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27434    332     
+21328    91      
 
 Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
+pselect6(270), write(1), rt_sigaction(13), rt_sigprocmask(14),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigprocmask(14), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+fcntl(72), rt_sigaction(13), rt_sigprocmask(14), ioctl(16),
+rt_sigprocmask(14), rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), rt_sigreturn(15),
+wait4(61), wait4(61), read(0), read(0), close(3), close(3), close(3),
+rt_sigaction(13), rt_sigprocmask(14), setpgid(109), clone(56)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-24549    18      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1180     54      
-
-Sequence:
-epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
-epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1240     14      
-
-Sequence:
-futex(202), futex(202), close(3), read(0), read(0), openat(257),
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27427    107     
-
-Sequence:
-close(3), close(3), read(0), read(0), lseek(8), fstat(5), brk(12),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1496     30      
+2428     8       
 
 Sequence:
 futex(202), futex(202), futex(202), futex(202), futex(202),
@@ -403,151 +198,47 @@ futex(202), futex(202), futex(202)
 ----------------------------------------------------------
 
 PID      COUNT   
-1659     12      
+1496     18      
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
-recvmsg(47), recvmsg(47)
+epoll_wait(232), timerfd_settime(286), timerfd_settime(286),
+epoll_wait(232), timerfd_settime(286), getpid(39), futex(202),
+futex(202), write(1), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1), write(1), getpid(39), timerfd_settime(286)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-716      2558    
+1223     21      
 
 Sequence:
-epoll_wait(232), setitimer(38), recvmsg(47), writev(20), writev(20),
-writev(20), recvmsg(47), setitimer(38)
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27415    294     
-
-Sequence:
-write(1), rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16),
-rt_sigprocmask(14), rt_sigaction(13), rt_sigaction(13),
-rt_sigprocmask(14)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     33      
-
-Sequence:
-futex(202), futex(202), futex(202), gettid(186), futex(202),
-gettid(186), gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     42      
-
-Sequence:
-futex(202), gettid(186), gettid(186), gettid(186), gettid(186),
-futex(202), futex(202), gettid(186)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2243     40      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1241     8       
-
-Sequence:
-futex(202), writev(20), poll(7), futex(202), futex(202), writev(20),
-poll(7), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27419    207     
-
-Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1513     560     
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
-recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-7410     40      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2386     512     
-
-Sequence:
-poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
-poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-7410     5       
-
-Sequence:
-futex(202), futex(202), futex(202), write(1), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27422    232     
-
-Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27421    107     
-
-Sequence:
-close(3), close(3), splice(275), brk(12), read(0), lseek(8), fstat(5),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9054     11      
+2083     22      
 
 Sequence:
 poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
+write(1), write(1), write(1), getpid(39), poll(7), read(0), read(0),
+poll(7), read(0), write(1), read(0), write(1), write(1), write(1),
+getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30259    7       
+
+Sequence:
+ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
+rt_sigreturn(15), write(1)
 
 
 ----------------------------------------------------------
@@ -563,240 +254,220 @@ gettid(186), futex(202)
 ----------------------------------------------------------
 
 PID      COUNT   
-27417    377     
+2083     22      
 
 Sequence:
-write(1), getpid(39), fstat(5), stat(4), lstat(6), stat(4), lstat(6),
-stat(4)
+epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
+sendmsg(46), read(0), epoll_wait(232), sendmsg(46), read(0),
+epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
+recvmsg(47), write(1), recvmsg(47), epoll_wait(232), recvmsg(47),
+write(1), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2428     265     
+1223     199     
+
+Sequence:
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+read(0), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), read(0), poll(7), write(1),
+write(1), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30271    213     
+
+Sequence:
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+7410     101     
 
 Sequence:
 poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+futex(202), poll(7), recvmsg(47), recvmsg(47), read(0), poll(7),
+recvmsg(47), recvmsg(47), write(1), read(0), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1240     6       
+30276    107     
 
 Sequence:
-futex(202), futex(202), close(3), read(0), openat(257), futex(202)
+close(3), close(3), splice(275), read(0), lseek(8), fstat(5), brk(12),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1240     90      
+30283    306     
 
 Sequence:
-poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
-poll(7), futex(202)
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27429    284     
+9774     22      
 
 Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1), write(1), write(1), getpid(39), poll(7), read(0), read(0),
+poll(7), read(0), write(1), read(0), write(1), write(1), write(1),
+getpid(39)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1240     3       
+2083     9       
 
 Sequence:
-select(23), recvmsg(47), recvmsg(47)
+poll(7), recvfrom(45), write(1), recvfrom(45), recvfrom(45), poll(7),
+write(1), sendto(44), read(0)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27424    107     
-
-Sequence:
-close(3), close(3), read(0), read(0), lseek(8), fstat(5), brk(12),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-21323    226     
+2470     28      
 
 Sequence:
 poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
-writev(20), poll(7)
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2386     4       
+30292    58      
 
 Sequence:
+write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+ioctl(16), close(3), read(0), read(0), fstat(5), openat(257),
+access(21), stat(4), stat(4), brk(12), brk(12), ioctl(16), munmap(11),
+mprotect(10), mprotect(10), mprotect(10), mprotect(10),
+arch_prctl(158), mmap(9), close(3), mmap(9), mmap(9), mmap(9),
+mmap(9), mprotect(10), mmap(9), read(0), lseek(8), read(0), lseek(8),
+fstat(5), read(0), lseek(8), read(0), openat(257), close(3), mmap(9),
+mmap(9)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1240     16      
+
+Sequence:
+futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), writev(20), poll(7),
 futex(202), futex(202), futex(202), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2243     2       
+1240     12      
 
 Sequence:
-futex(202), futex(202)
+futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
+stat(4), futex(202), futex(202), stat(4), stat(4), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27436    107     
-
-Sequence:
-close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
-stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9774     11      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2428     77      
+7410     15      
 
 Sequence:
 futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
-futex(202), futex(202)
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27438    58      
+1219     20424   
 
 Sequence:
-write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
-ioctl(16), close(3)
+epoll_wait(232), epoll_wait(232), recvmsg(47), epoll_wait(232),
+recvmsg(47), poll(7), writev(20), poll(7), getpid(39), getpid(39),
+getpid(39), sched_yield(24), sched_yield(24), ioctl(16),
+sched_yield(24), sched_yield(24), ioctl(16), poll(7), getpid(39),
+getpid(39), getpid(39), getpid(39), getpid(39), getpid(39),
+recvmsg(47), poll(7), writev(20), poll(7), getpid(39), getpid(39),
+getpid(39), sched_yield(24), recvmsg(47), poll(7), writev(20),
+poll(7), recvmsg(47), poll(7), writev(20), poll(7), getpid(39),
+getpid(39), getpid(39), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-9063     11      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1241     13      
-
-Sequence:
-futex(202), futex(202), close(3), read(0), read(0), openat(257),
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2163     596     
+2243     674     
 
 Sequence:
 poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), write(1), read(0), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), futex(202), poll(7),
+recvmsg(47), recvmsg(47), read(0)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2386     10      
-
-Sequence:
-epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
-recvmsg(47), recvmsg(47), epoll_wait(232)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27428    282     
-
-Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-9774     8       
-
-Sequence:
-poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7), read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2083     6       
-
-Sequence:
-futex(202), write(1), futex(202), futex(202), write(1), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     38      
-
-Sequence:
-futex(202), gettid(186), futex(202), gettid(186), gettid(186),
-futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1513     54      
-
-Sequence:
-futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
-sched_yield(24), getpid(39)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-8263     78      
-
-Sequence:
-poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2428     6       
+2163     6       
 
 Sequence:
 epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
@@ -806,67 +477,646 @@ read(0)
 ----------------------------------------------------------
 
 PID      COUNT   
-1241     6       
+3498     225     
 
 Sequence:
-futex(202), futex(202), close(3), read(0), openat(257), futex(202)
+poll(7), recvmsg(47), recvmsg(47), read(0), poll(7), recvmsg(47),
+recvmsg(47), write(1), read(0), read(0), read(0), write(1), poll(7),
+recvmsg(47), writev(20), poll(7), write(1), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), writev(20), poll(7), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2083     13      
+30275    243     
 
 Sequence:
-poll(7), recvfrom(45), poll(7), read(0), poll(7), recvfrom(45),
-write(1), recvfrom(45)
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), clone(56),
+rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1223     90      
+1241     8       
 
 Sequence:
-poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), read(0), poll(7)
+futex(202), futex(202), close(3), statfs(137), read(0), read(0),
+openat(257), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27409    37      
+2083     91      
 
 Sequence:
-write(1), clone(56), write(1), brk(12), brk(12), fstat(5), getpid(39),
-munmap(11)
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), read(0), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), write(1),
+read(0), poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), poll(7)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-8263     12      
+30285    107     
+
+Sequence:
+close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     88      
+
+Sequence:
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2386     195     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2386     17      
+
+Sequence:
+epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
+recvmsg(47), write(1), recvmsg(47), epoll_wait(232), sendmsg(46),
+read(0), epoll_wait(232), read(0), epoll_wait(232), sendmsg(46),
+sendmsg(46), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1513     522     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186),
+gettid(186), gettid(186), write(1), gettid(186), gettid(186),
+recvmsg(47), epoll_wait(232), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), gettid(186), gettid(186), recvmsg(47),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30274    238     
+
+Sequence:
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1659     20      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+9063     22      
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1), write(1), write(1), getpid(39), poll(7), read(0), read(0),
+poll(7), read(0), write(1), read(0), write(1), write(1), write(1),
+getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     88      
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), gettid(186), gettid(186), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), gettid(186), gettid(186), gettid(186),
+futex(202), futex(202), gettid(186), gettid(186), gettid(186),
+futex(202), gettid(186), gettid(186), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1240     21      
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202), futex(202), futex(202), close(3), read(0), read(0),
+openat(257), futex(202), futex(202), futex(202), close(3), read(0),
+read(0), openat(257), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2163     25      
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), write(1),
+futex(202), futex(202), write(1), futex(202), futex(202), write(1),
+futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+9774     21      
 
 Sequence:
 poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     494     
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186), futex(202),
+futex(202), futex(202), gettid(186), gettid(186), gettid(186),
+gettid(186), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), futex(202), gettid(186), gettid(186), gettid(186),
+gettid(186), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), gettid(186)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     681     
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+sendto(44), sendto(44), futex(202), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+futex(202), futex(202), gettid(186), gettid(186), futex(202),
+futex(202), futex(202), gettid(186), gettid(186), sendto(44),
+futex(202), futex(202), write(1), gettid(186), gettid(186), write(1),
+gettid(186), gettid(186), futex(202), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), gettid(186)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+7410     6       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1241     21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16), close(3), recvmsg(47), recvmsg(47),
+recvmsg(47), sendto(44), recvmsg(47), recvmsg(47), recvmsg(47),
+sendto(44), getsockname(51), bind(49), socket(41), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+716      4820    
+
+Sequence:
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), writev(20),
+writev(20), recvmsg(47), setitimer(38), epoll_wait(232), writev(20),
+read(0), read(0), read(0), read(0), epoll_wait(232), epoll_wait(232),
+setitimer(38), recvmsg(47), writev(20), recvmsg(47), setitimer(38),
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), recvmsg(47),
+setitimer(38), epoll_wait(232), setitimer(38), recvmsg(47),
+writev(20), recvmsg(47), setitimer(38), epoll_wait(232),
+setitimer(38), recvmsg(47), writev(20), recvmsg(47), setitimer(38),
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30291    58      
+
+Sequence:
+write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+ioctl(16), close(3), read(0), read(0), fstat(5), openat(257),
+access(21), stat(4), stat(4), brk(12), brk(12), ioctl(16), munmap(11),
+mprotect(10), mprotect(10), mprotect(10), mprotect(10),
+arch_prctl(158), mmap(9), close(3), mmap(9), mmap(9), mmap(9),
+mmap(9), mprotect(10), mmap(9), read(0), lseek(8), read(0), lseek(8),
+fstat(5), read(0), lseek(8), read(0), openat(257), close(3), mmap(9),
+mmap(9)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30270    54      
+
+Sequence:
+close(3), close(3), close(3), read(0), write(1), read(0), openat(257),
+openat(257), openat(257), openat(257), openat(257), openat(257),
+close(3), read(0), read(0), fstat(5), openat(257), fadvise64(221),
+close(3), mmap(9), fstat(5), openat(257), brk(12), brk(12),
+munmap(11), mprotect(10), mprotect(10), mprotect(10), arch_prctl(158),
+close(3), mmap(9), mmap(9), mmap(9), mmap(9), mprotect(10), mmap(9),
+read(0), lseek(8), read(0), lseek(8), mmap(9), fstat(5), read(0),
+lseek(8)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     72      
+
+Sequence:
+futex(202), gettid(186), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), gettid(186), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+futex(202), futex(202), gettid(186), futex(202), gettid(186),
+gettid(186), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30288    107     
+
+Sequence:
+close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     62      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30272    214     
+
+Sequence:
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1241     189     
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1240     189     
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     11      
+
+Sequence:
+epoll_wait(232), epoll_wait(232), read(0), epoll_wait(232), write(1),
+read(0), epoll_wait(232), write(1), read(0), epoll_wait(232), write(1)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     1884    
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), read(0),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), read(0),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), write(1), write(1)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+9054     22      
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1), write(1), write(1), getpid(39), poll(7), read(0), read(0),
+poll(7), read(0), write(1), read(0), write(1), write(1), write(1),
+getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30278    268     
+
+Sequence:
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), clone(56),
+rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     680     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), write(1), gettid(186), gettid(186), recvmsg(47),
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), read(0), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), sendto(44), gettid(186), sendto(44), gettid(186),
+read(0), epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1253     2       
+
+Sequence:
 poll(7), write(1)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1241     4       
+21323    402     
 
 Sequence:
-futex(202), stat(4), stat(4), futex(202)
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+writev(20), poll(7), recvmsg(47), writev(20), poll(7), recvmsg(47),
+writev(20), poll(7), poll(7), recvmsg(47), writev(20), poll(7),
+recvmsg(47), writev(20), poll(7), recvmsg(47), writev(20), poll(7),
+poll(7), recvmsg(47), writev(20), poll(7), recvmsg(47), writev(20),
+poll(7), recvmsg(47), writev(20), poll(7), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+writev(20), poll(7), recvmsg(47)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1241     3       
+30281    293     
 
 Sequence:
-select(23), recvmsg(47), recvmsg(47)
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), clone(56),
+rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2386     6       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+717      2       
+
+Sequence:
+poll(7), inotify_add_watch(254)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1852     20      
+
+Sequence:
+epoll_pwait(281), epoll_pwait(281), write(1), epoll_pwait(281),
+epoll_pwait(281), stat(4), getcwd(79), stat(4), stat(4), getcwd(79),
+epoll_pwait(281), close(3), read(0), read(0), fstat(5), openat(257),
+access(21), stat(4), epoll_pwait(281), epoll_pwait(281)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30260    168     
+
+Sequence:
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321), bpf(321)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     1056    
+
+Sequence:
+poll(7), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), futex(202), futex(202), read(0), futex(202), futex(202),
+poll(7), futex(202), getpid(39), futex(202), write(1), getpid(39),
+getpid(39), getpid(39), write(1), getpid(39), futex(202), getpid(39),
+futex(202), write(1)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1253     2       
+
+Sequence:
+poll(7), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2428     275     
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), write(1),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+write(1), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202)
 
 
 ----------------------------------------------------------
@@ -875,98 +1125,508 @@ PID      COUNT
 2163     157     
 
 Sequence:
-futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
-write(1), futex(202)
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+futex(202), poll(7), recvmsg(47), recvmsg(47), read(0), poll(7),
+recvmsg(47), recvmsg(47), write(1), read(0), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), write(1),
+write(1), read(0), poll(7)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1529     337     
+30290    58      
 
 Sequence:
-futex(202), gettid(186), gettid(186), sendto(44), sendto(44),
+write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+ioctl(16), close(3), read(0), read(0), fstat(5), openat(257),
+access(21), stat(4), stat(4), brk(12), brk(12), ioctl(16), munmap(11),
+mprotect(10), mprotect(10), mprotect(10), mprotect(10),
+arch_prctl(158), mmap(9), close(3), mmap(9), mmap(9), mmap(9),
+mmap(9), mprotect(10), mmap(9), read(0), lseek(8), read(0), lseek(8),
+fstat(5), read(0), lseek(8), read(0), openat(257), close(3), mmap(9),
+mmap(9)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1852     2       
+
+Sequence:
+epoll_pwait(281), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1513     1152    
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), write(1), read(0), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), futex(202), getpid(39), getpid(39),
+getpid(39), getpid(39), write(1), sched_yield(24), sched_yield(24),
+sched_yield(24)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30287    342     
+
+Sequence:
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), rt_sigprocmask(14),
+close(3), close(3), rt_sigprocmask(14), setpgid(109), clone(56),
+pipe(22), rt_sigprocmask(14), pipe(22), rt_sigprocmask(14),
+rt_sigprocmask(14), close(3), close(3), dup2(33), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1240     12      
+
+Sequence:
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+futex(202), futex(202), close(3), read(0), openat(257), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+9774     14      
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7),
+read(0), poll(7), read(0), poll(7), read(0), poll(7), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2428     1084    
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+futex(202), read(0), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), futex(202), read(0), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2163     6       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1241     28      
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202), futex(202), futex(202), close(3), read(0), read(0),
+openat(257), futex(202), futex(202), futex(202), close(3), read(0),
+read(0), openat(257), futex(202), futex(202), futex(202), close(3),
+read(0), read(0), openat(257), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1513     135     
+
+Sequence:
+futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39), getpid(39), getpid(39), ioctl(16),
+poll(7), ioctl(16), getpid(39), getpid(39), getpid(39), getpid(39),
+getpid(39), getpid(39), recvmsg(47), poll(7), writev(20), poll(7),
+getpid(39), getpid(39), getpid(39), futex(202), futex(202), write(1),
+recvmsg(47), poll(7), writev(20), poll(7), sched_yield(24),
+getpid(39), getpid(39), getpid(39), ioctl(16), poll(7), ioctl(16),
+getpid(39), getpid(39), getpid(39), getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30284    311     
+
+Sequence:
+write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), rt_sigprocmask(14), close(3),
+close(3), pipe(22), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), close(3), dup2(33), close(3),
+close(3), close(3), setpgid(109), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigprocmask(14), getpid(39), clone(56),
+rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1241     6       
+
+Sequence:
+select(23), recvmsg(47), recvmsg(47), select(23), recvmsg(47),
+recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30264    128     
+
+Sequence:
+rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3),
+close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1586     96      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), writev(20), poll(7), recvmsg(47), poll(7),
+writev(20), poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+poll(7), writev(20), poll(7), recvmsg(47), poll(7), writev(20),
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30289    58      
+
+Sequence:
+write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
+ioctl(16), close(3), read(0), read(0), fstat(5), openat(257),
+access(21), stat(4), stat(4), brk(12), brk(12), ioctl(16), munmap(11),
+mprotect(10), mprotect(10), mprotect(10), mprotect(10),
+arch_prctl(158), mmap(9), close(3), mmap(9), mmap(9), mmap(9),
+mmap(9), mprotect(10), mmap(9), read(0), lseek(8), read(0), lseek(8),
+fstat(5), read(0), lseek(8), read(0), openat(257), close(3), mmap(9),
+mmap(9)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30266    79      
+
+Sequence:
+close(3), write(1), read(0), fstat(5), read(0), fstat(5), close(3),
+read(0), read(0), brk(12), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), fstat(5), openat(257), openat(257), close(3),
+mmap(9), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10), mprotect(10), mprotect(10), mprotect(10), mprotect(10),
+arch_prctl(158), mmap(9), close(3), mmap(9), mprotect(10), mmap(9)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30268    180     
+
+Sequence:
+rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3),
+close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     554     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
+gettid(186), gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), gettid(186), recvmsg(47), epoll_wait(232),
+epoll_wait(232), epoll_wait(232), futex(202), gettid(186),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), read(0), epoll_wait(232), epoll_wait(232),
+sendto(44), gettid(186), read(0), epoll_wait(232), epoll_wait(232),
+epoll_wait(232), futex(202), gettid(186), gettid(186), gettid(186),
+recvmsg(47), epoll_wait(232), epoll_wait(232), epoll_wait(232)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+7410     6       
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30267    300     
+
+Sequence:
+write(1), rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16),
+rt_sigprocmask(14), rt_sigaction(13), rt_sigaction(13),
+rt_sigprocmask(14), close(3), rt_sigreturn(15), wait4(61), wait4(61),
+read(0), read(0), close(3), close(3), close(3), rt_sigaction(13),
+rt_sigprocmask(14), setpgid(109), clone(56), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), rt_sigaction(13), rt_sigprocmask(14), close(3),
+rt_sigreturn(15), wait4(61), wait4(61), read(0), read(0), close(3),
+close(3), close(3), rt_sigaction(13), rt_sigprocmask(14)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1496     2822    
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), futex(202), read(0),
+poll(7), read(0), write(1), poll(7), read(0), futex(202), read(0),
+poll(7), read(0), write(1), poll(7), read(0), futex(202), read(0),
+poll(7), read(0), write(1), poll(7), read(0), futex(202), read(0),
+poll(7), read(0), write(1), poll(7), read(0), write(1), poll(7),
+read(0), futex(202), read(0), poll(7), read(0), write(1), poll(7),
+read(0), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1241     18      
+
+Sequence:
+futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), writev(20), poll(7),
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30280    288     
+
+Sequence:
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1529     74      
+
+Sequence:
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+gettid(186), futex(202), gettid(186), gettid(186), futex(202),
+futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+1240     21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16), close(3), recvmsg(47), recvmsg(47),
+recvmsg(47), sendto(44), recvmsg(47), recvmsg(47), recvmsg(47),
+sendto(44), getsockname(51), bind(49), socket(41), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2386     608     
+
+Sequence:
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47), futex(202), poll(7), recvmsg(47), read(0),
+poll(7), recvmsg(47), write(1), futex(202), read(0), poll(7),
+recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7),
+recvmsg(47), futex(202), poll(7), recvmsg(47), read(0), poll(7),
+recvmsg(47), write(1), futex(202), read(0), poll(7), recvmsg(47),
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+futex(202), poll(7)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+30265    207     
+
+Sequence:
+write(1), fstat(5), fstat(5), close(3), read(0), read(0), openat(257),
+lstat(6), close(3), read(0), read(0), openat(257), lstat(6),
+ioctl(16), openat(257), close(3), getdents64(217), close(3), read(0),
+read(0), openat(257), lstat(6), stat(4), close(3), read(0), read(0),
+openat(257), lstat(6), stat(4), getdents64(217), fstat(5),
+openat(257), close(3), getdents64(217), stat(4), stat(4), stat(4),
+getdents64(217), fstat(5), openat(257), ioctl(16), close(3), read(0),
+read(0)
+
+
+----------------------------------------------------------
+
+PID      COUNT   
+2243     188     
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), write(1), futex(202), futex(202), futex(202),
 futex(202), futex(202), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27425    255     
+1251     2782    
 
 Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
+ppoll(271), ioctl(16), ioctl(16), write(1), ioctl(16), read(0),
+ppoll(271), ioctl(16), futex(202), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), read(0), ppoll(271), ioctl(16),
+futex(202), ioctl(16), read(0), ppoll(271), ioctl(16), futex(202),
+ioctl(16), read(0), ppoll(271), ioctl(16), ioctl(16), read(0),
+ppoll(271), ioctl(16), futex(202), ioctl(16), read(0), ppoll(271),
+ioctl(16), futex(202), ioctl(16), ioctl(16), ioctl(16), read(0),
+ppoll(271), ioctl(16)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27431    302     
+30279    107     
 
 Sequence:
-write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16)
+close(3), close(3), read(0), read(0), lseek(8), fstat(5), brk(12),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27416    178     
+1496     64      
 
 Sequence:
-rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14)
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27437    58      
+8263     153     
 
 Sequence:
-write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
-ioctl(16), close(3)
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), read(0),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7),
+poll(7), poll(7)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1251     1787    
+30282    107     
 
 Sequence:
-ppoll(271), read(0), write(1), read(0), ppoll(271), read(0), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     200     
-
-Sequence:
-futex(202), gettid(186), gettid(186), futex(202), futex(202),
-gettid(186), gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27406    7       
-
-Sequence:
-ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
-rt_sigreturn(15), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27420    210     
-
-Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
+close(3), close(3), read(0), brk(12), read(0), lseek(8), fstat(5),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
 
 
 ----------------------------------------------------------
@@ -975,117 +1635,85 @@ PID      COUNT
 1240     8       
 
 Sequence:
-futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
-stat(4), futex(202)
+futex(202), futex(202), close(3), statfs(137), read(0), read(0),
+openat(257), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1240     9       
+1241     12      
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202), futex(202),
-writev(20), poll(7), futex(202)
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+futex(202), futex(202), close(3), read(0), openat(257), futex(202)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-27412    123     
+30277    263     
 
 Sequence:
-rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
-rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14)
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-2083     11      
+1251     3628    
 
 Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
+ppoll(271), read(0), write(1), read(0), write(1), read(0), ppoll(271),
+read(0), read(0), write(1), write(1), futex(202), write(1), read(0),
+ppoll(271), read(0), read(0), write(1), write(1), futex(202),
+write(1), read(0), ppoll(271), read(0), read(0), write(1), write(1),
+futex(202), write(1), read(0), ppoll(271), read(0), read(0), write(1),
+write(1), futex(202), write(1), read(0), ppoll(271), read(0),
+write(1), read(0), ppoll(271), read(0)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1        25      
+30273    107     
 
 Sequence:
-epoll_wait(232), waitid(247), clock_gettime(228), epoll_wait(232),
-waitid(247), close(3), read(0), read(0)
+close(3), close(3), splice(275), brk(12), read(0), lseek(8), fstat(5),
+stat(4), fstat(5), rt_sigaction(13), openat(257), openat(257),
+openat(257), openat(257), openat(257), openat(257), close(3), read(0),
+read(0), fstat(5), openat(257), sigaltstack(131), futex(202),
+close(3), read(0), read(0), brk(12), read(0), read(0), read(0),
+read(0), read(0), read(0), read(0), read(0), read(0), read(0),
+read(0), read(0), read(0), fstat(5), openat(257), openat(257),
+close(3)
 
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1241     90      
+30286    338     
 
 Sequence:
-poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
-poll(7), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1496     359     
-
-Sequence:
-epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
-futex(202), futex(202), futex(202), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1529     299     
-
-Sequence:
-epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
-gettid(186), gettid(186), gettid(186), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1496     1021    
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), recvmsg(47), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2243     5       
-
-Sequence:
-futex(202), futex(202), futex(202), write(1), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27439    58      
-
-Sequence:
-write(1), fstat(5), ioctl(16), ioctl(16), ioctl(16), ioctl(16),
-ioctl(16), close(3)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-27423    231     
-
-Sequence:
-write(1), write(1), close(3), dup2(33), openat(257), rt_sigaction(13),
-rt_sigaction(13), rt_sigprocmask(14)
+write(1), rt_sigreturn(15), wait4(61), rt_sigprocmask(14), close(3),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14),
+rt_sigaction(13), wait4(61), wait4(61), rt_sigaction(13),
+rt_sigprocmask(14), rt_sigprocmask(14), ioctl(16), close(3), close(3),
+rt_sigprocmask(14), close(3), rt_sigprocmask(14), setpgid(109),
+clone(56), rt_sigprocmask(14), close(3), close(3), rt_sigprocmask(14),
+setpgid(109), clone(56), pipe(22), rt_sigprocmask(14), pipe(22),
+rt_sigprocmask(14), rt_sigprocmask(14), close(3), close(3), dup2(33),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), close(3)
 
 
 Detaching...
