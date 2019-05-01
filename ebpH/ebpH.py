@@ -80,35 +80,43 @@ def print_sequences(seqlen):
     # clear the BPF hashmap
     seq_hash.clear()
 
-commands = ["start", "stop"]
-
-parser = argparse.ArgumentParser(description="Monitor system call sequences and detect anomalies.")
-parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=commands,
-                    help="Command to run. Possible commands are %s." % ', '.join(commands))
-args = parser.parse_args()
-
-# TODO: daemonize the process
-# TODO: use command to control daemonized process
-command = args.command
-
-# read BPF embedded C from bpf.c
-with open("./bpf.c", "r") as f:
-    text = f.read()
-
-# sub in args
-# since I removed the args for now, these are hardcoded as 8 and -1 respectively
-args.seqlen = 8
-args.pid    = -1
-args.lap    = 0
-text = text.replace("ARG_SEQLEN", str(args.seqlen))
-text = text.replace("ARG_PID", str(args.pid))
-text = text.replace("ARG_LAP", str(args.lap))
-
-# compile ebpf code
-bpf = BPF(text=text)
-
 # main control flow
 if __name__ == "__main__":
+    commands = ["start", "stop"]
+
+    parser = argparse.ArgumentParser(description="Monitor system call sequences and detect anomalies.")
+    #parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=commands,
+    #                    help="Command to run. Possible commands are %s." % ', '.join(commands))
+    parser.add_argument("-p", "--pid", type=int, default=-1,
+                        help="trace only the specified pid")
+    # TODO: implement this functionality (or perhaps remove it since it's only useful for testing)
+    parser.add_argument("-s", "--seqlen", type=int, default=8,
+                        help="print call sequences of max length <seqlen>")
+    # TODO: implement this functionality
+    parser.add_argument("-l", "--lap", dest="lap", action="store_const", const=1, default=0,
+                        help="use lookahead pairs instead of syscall sequences")
+    parser.add_argument("-o", "--output", type=str, default=None,
+                        help="write to a log file specified by <output>")
+    args = parser.parse_args()
+
+    # TODO: daemonize the process
+    # TODO: use command to control daemonized process
+    #command = args.command
+
+    # read BPF embedded C from bpf.c
+    with open("./bpf.c", "r") as f:
+        text = f.read()
+
+    # sub in args
+    text = text.replace("ARG_SEQLEN", str(args.seqlen))
+    text = text.replace("ARG_PID", str(args.pid))
+    text = text.replace("ARG_LAP", str(args.lap))
+
+    print(args)
+
+    # compile ebpf code
+    bpf = BPF(text=text)
+
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
     exiting = 0
     while True:
@@ -121,7 +129,17 @@ if __name__ == "__main__":
 
         # exit control flow
         if exiting:
+            # maybe redirect output
+            if args.output is not None:
+                sys.stdout = open(args.output,"w+")
+
             print_sequences(args.seqlen)
+
+            # reset stdout
+            if args.output is not None:
+                sys.stdout.close()
+                sys.stdout = sys.__stdout__
+
             print()
             print("Detaching...")
             exit()
