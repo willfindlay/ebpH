@@ -114,7 +114,7 @@ if __name__ == "__main__":
     while True:
         # update the hashmap of sequences
         try:
-            seq_hash = bpf["seq"]
+            sleep(1)
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)

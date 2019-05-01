@@ -6,7 +6,9 @@
 #define SYS_EXIT       60
 #define SYS_EXIT_GROUP 231
 #define SYS_EXECVE     59
+#define SYS_CLONE      56
 #define SYS_FORK       57
+#define SYS_VFORK       57
 #define EMPTY          9999
 
 // a standard sequence
@@ -20,16 +22,17 @@ pH_seq;
 // a lookahead pair
 typedef struct
 {
-    u64 s1;
-    u64 s2;
+    u64 curr;
+    u64 prev;
 }
 pH_lap;
 
-// a pH profile consisting of sequences of lookahead pairs
+// a pH profile
 typedef struct
 {
     pH_lap seq[SEQLEN];
     u64 count;
+    char comm[TASK_COMM_LEN];
 }
 pH_profile;
 
@@ -56,18 +59,18 @@ static u32 ph_get_pid()
 // function that returns the process command
 static char *ph_get_command()
 {
-    char *command = NULL;
+    char* command;
     struct task_struct *task;
 
     task = (struct task_struct *)bpf_get_current_task();
-    command = (u32)task->comm;
+    command = task->comm;
 
     return command;
 }
 
 // function to be called when a fork systemcall is detected
 // effectively deep copies the profile of the forking process to the child's profile
-static void fork_lap_profile(pH_lap_profile* parent, pH_lap_profile* child)
+static void fork_profile(pH_profile* parent, pH_profile* child)
 {
     for(int i = 0; i < SEQLEN; i++)
     {
@@ -79,13 +82,13 @@ static void fork_lap_profile(pH_lap_profile* parent, pH_lap_profile* child)
 
 // function to be called when an execve systemcall is detected
 // effectively discards current profile for a process
-static void execve_lap_profile(pH_lap_profile *pro)
+static void execve_profile(pH_profile *pro)
 {
     pro->count = 0;
 }
 
 BPF_HASH(seq, u64, pH_seq);
-BPF_HASH(lap, u64, pH_lap_profile);
+BPF_HASH(lap, u64, pH_profile);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
@@ -127,15 +130,16 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
 
     // TODO: implement me
-    // if we just forked, copy everything from the previous process to us
-    if (syscall == SYS_FORK)
+    // if we are forking, we need to copy our profile to the next
+    if (syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
 
     }
 
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
-      seq.delete(&pid_tgid);
+        // FIXME: had to comment this out for testing purposes
+        //seq.delete(&pid_tgid);
     }
     else
     {
