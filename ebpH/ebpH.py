@@ -30,7 +30,7 @@ import ctypes as ct
 from pprint import pprint
 
 # TODO: change this to a directory in root somewhere
-PROFILES_DIR = "./profiles"
+PROFILEDIR = "./profiles"
 
 # signal handler
 def signal_ignore(signal, frame):
@@ -87,6 +87,38 @@ def print_sequences(seqlen):
 def save_profiles():
     pass
 
+# load profiles from disk
+def load_profiles(args):
+    for profile in os.listdir(PROFILEDIR):
+        text = load_bpf("./load_profile.c", args)
+
+        # load the profile
+        with open(os.path.join(PROFILEDIR, profile), "r") as f:
+            data = f.read()
+            data = data.split('\n')
+            for i,line in enumerate(data[:-1]):
+                data[i] = line + "\\"
+            data = '\n'.join(data)
+            print(data)
+        text = text.replace("ARG_PROFILE", data)
+
+        bpf = BPF(text=text)
+
+# load a bpf program from a file and sub in args
+def load_bpf(code, args):
+    with open(code, "r") as f:
+        text = f.read()
+    with open("./shared.c", "r") as f:
+        shared = f.read()
+
+    # sub in args
+    text = shared + text
+    text = text.replace("ARG_SEQLEN", str(args.seqlen))
+    text = text.replace("ARG_PID", str(args.pid))
+    text = text.replace("ARG_LAP", str(args.lap))
+
+    return text
+
 # main control flow
 if __name__ == "__main__":
     commands = ["start", "stop"]
@@ -106,6 +138,10 @@ if __name__ == "__main__":
                         help="write to a log file specified by <output>")
     args = parser.parse_args()
 
+
+    # FIXME: remove this, just for testing
+    load_profiles(args)
+
     # TODO: daemonize the process
     # TODO: use command to control daemonized process
     #command = args.command
@@ -116,20 +152,14 @@ if __name__ == "__main__":
         exit()
 
     # read BPF embedded C from bpf.c
-    with open("./bpf.c", "r") as f:
-        text = f.read()
-
-    # sub in args
-    text = text.replace("ARG_SEQLEN", str(args.seqlen))
-    text = text.replace("ARG_PID", str(args.pid))
-    text = text.replace("ARG_LAP", str(args.lap))
+    text = load_bpf("./bpf.c", args)
 
     # compile ebpf code
     bpf = BPF(text=text)
 
-    # create PROFILES_DIR if it does not exist
-    if not os.path.exists(PROFILES_DIR):
-        os.mkdir(PROFILES_DIR)
+    # create PROFILEDIR if it does not exist
+    if not os.path.exists(PROFILEDIR):
+        os.mkdir(PROFILEDIR)
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
     exiting = 0
