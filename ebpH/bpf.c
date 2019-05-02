@@ -121,12 +121,24 @@ static u64 pH_hash_comm_str(char *comm)
     return hash;
 }
 
+// *** BPF hashmaps ***
+
 // sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
-BPF_HASH(pro, u64, pH_profile); // hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
+
+// profiles hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
+BPF_HASH(pro, u64, pH_profile);
+
+// profiles hashed by sequences
 BPF_HASH(seq_to_pro, pH_seq *, pH_profile);
+
+// test data hashed by profiles
 BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
+
+// training data hashed by profiles
 BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
+
+// *** BPF tracepoints ***
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
