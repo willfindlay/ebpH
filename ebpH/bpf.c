@@ -1,28 +1,97 @@
+/*
+ * ebpH --  Monitor syscall sequences and detect anomalies
+ * Copyright 2019 Anil Somayaji (soma@scs.carleton.ca) and
+ * William Findlay (williamfindlay@cmail.carleton.ca)
+ *
+ * Based on Sasha Goldshtein's syscount
+ *  https://github.com/iovisor/bcc/blob/master/tools/syscount.py
+ *  Copyright 2017, Sasha Goldshtein.
+ * And on Anil Somayaji's pH
+ *  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
+ *  Copyright 2003 Anil Somayaji
+ *
+ * USAGE: ebpH.py <COMMAND>
+ *
+ * Licensed under MIT License */
+
+// if we are running Linux 4.13 we need the two definitions below
+//#define randomized_struct_fields_start  struct {
+//#define randomized_struct_fields_end    };
+
 #include <linux/sched.h>
 
+// arguments
 #define SEQLEN         ARG_SEQLEN
 #define PID            ARG_PID
 #define USE_LAP        ARG_LAP
+
+// table size to use for hashmaps
+// set to BPF default for now
+#define TABLE_SIZE 10240
+
+// pH_task definitions
+#define PH_LOCALITY_WIN 128
+
+// pH_profile definitions
+#define PH_NUM_SYSCALLS 512
+
+// important syscall definitions
 #define SYS_EXIT       60
 #define SYS_EXIT_GROUP 231
 #define SYS_EXECVE     59
 #define SYS_CLONE      56
 #define SYS_FORK       57
-#define SYS_VFORK       57
+#define SYS_VFORK      58
 #define EMPTY          9999
+
+// *** pH task data structures ***
+
+typedef struct pH_profile pH_profile;
+
+// a locality
+// TODO: implement me
+typedef struct
+{
+    unsigned char win[PH_LOCALITY_WIN];
+    int first, lfc, max_lfc;
+}
+pH_locality;
 
 // a standard sequence
 typedef struct
 {
+    pH_locality lf;
     u64 seq[SEQLEN];
     u64 count;
+    int delay;
     char comm[TASK_COMM_LEN];
 }
 pH_seq;
 
-// TODO: add a structure for a lookahead pair
+// *** pH profile data structures ***
 
-// TODO: add a structure for profiles
+// profile data
+// TODO: implement me
+typedef struct
+{
+    u64 last_mod_count;
+    u64 train_count;
+    unsigned char entry[PH_NUM_SYSCALLS][PH_NUM_SYSCALLS];
+}
+pH_profile_data;
+
+// per executable profile
+// TODO: implement me
+struct pH_profile
+{
+    int normal;
+    int frozen;
+    time_t normal_time;
+    u64 window_size;
+    u64 count;
+    u64 anomalies;
+    char comm[TASK_COMM_LEN];
+};
 
 // function that returns the pid_tgid of a process' parent
 static u64 pH_get_ppid_tgid()
@@ -36,8 +105,28 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-// TODO: convert this to a profile hashmap
+// function to hash a comm string
+// this is necessary for the pro BPF_HASH
+static u64 pH_hash_comm_str(char *comm)
+{
+    u64 hash = 0;
+
+    for(int i = 0; i < TASK_COMM_LEN; i++)
+    {
+        hash = 37 * hash + (u64) comm[i];
+    }
+
+    hash %= TABLE_SIZE;
+
+    return hash;
+}
+
+// sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
+BPF_HASH(pro, u64, pH_profile); // hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
+BPF_HASH(seq_to_pro, pH_seq *, pH_profile);
+BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
+BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
