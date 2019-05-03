@@ -23,22 +23,20 @@
 void save_profile(char *path)
 {
     // TODO: change this to be profile instead of seq
-    char c;
-    int  i;
-    FILE *f = fopen(path, "r");
+    FILE *f = fopen(path, "w");
     if(f == NULL)
-        return NULL;
+        return;
 
-    while(fread(&seq, sizeof(seq), 1, f))
+    pH_seq s = {.count = 4, .comm = "test"};
+
+    for(int i = 0; i < 4; i++)
     {
-
+        s.seq[i] = i+1;
     }
 
-    printf("Profile loaded!\n");
+    fwrite(&s, sizeof(s), 1, f);
 
-    printf("%s, %d", seq.comm, seq.count);
-
-    return seq;
+    printf("Profile written!\n");
 }
 
 int main(int argc, char **argv)
@@ -48,7 +46,7 @@ int main(int argc, char **argv)
 
     // open the profile
     char *path = argv[1];
-    load_profile(path);
+    save_profile(path);
 
     return 0;
 }

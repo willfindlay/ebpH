@@ -17,7 +17,7 @@
 #include "defs.h"
 #include "profiles.h"
 
-// *** shared functions ***
+// *** helper functions ***
 
 // initialize a pH profile
 static void pH_init_profile(pH_profile *p)
@@ -190,17 +190,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 // load a profile
 int load_profile(struct pt_regs *ctx)
 {
-    // TODO: make this work for real
+    // TODO: make this work for profiles instead of sequences
     //       below is just test code
+    pH_seq s;
 
-    pH_seq s = (pH_seq) PT_REGS_RC(ctx);
-    for(int i = 0; i < SEQLEN; i++)
-    {
-        s.seq[i] = 8888;
-    }
-    bpf_get_current_comm(&s.comm, sizeof(s.comm));
+    // read return of profile load function from userspace
+    bpf_probe_read(&s, sizeof(s), (void *)PT_REGS_RC(ctx));
 
-    u64 x = (u64)2 << 32;
+    // a sentinel PID for test purposes
+    u64 x = (u64)1337 << 32;
     seq.lookup_or_init(&x, &s);
 
     return 0;

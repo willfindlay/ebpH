@@ -17,30 +17,29 @@
 #define USERSPACE
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "defs.h"
 #include "profiles.h"
 
-#define BUFSIZE 1024
-
-pH_seq load_profile(char *path)
+pH_seq *load_profile(char *path)
 {
     // TODO: change this to be profile instead of seq
-    pH_seq seq;
-    char buf[BUFSIZE];
-    char c;
-    int  i;
+    pH_seq *seq;
+    seq = malloc(sizeof(pH_seq));
+
+    // open profile for reading
     FILE *f = fopen(path, "r");
     if(f == NULL)
         return NULL;
 
-    while(fread(&seq, sizeof(seq), 1, f))
+    while(fread(seq, sizeof(pH_seq), 1, f))
     {
 
     }
 
     printf("Profile loaded!\n");
 
-    printf("%s, %d", seq.comm, seq.count);
+    printf("%s, %d", seq->comm, seq->count);
 
     return seq;
 }
