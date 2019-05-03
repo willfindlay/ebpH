@@ -11,7 +11,7 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under MIT License */
+ * Licensed under GPL v3 License */
 
 #include <linux/sched.h>
 #include "defs.h"

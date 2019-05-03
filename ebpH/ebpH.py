@@ -13,7 +13,7 @@
 #
 # USAGE: ebpH.py <COMMAND>
 #
-# Licensed under MIT License
+# Licensed under GPL v3 License
 
 from time import sleep, strftime
 import subprocess
