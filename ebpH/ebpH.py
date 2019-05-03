@@ -86,17 +86,22 @@ def print_sequences():
             arr.append("%s(%s)" % (name.decode('utf-8'), call))
         print(textwrap.fill(", ".join(arr)))
         print()
-    # clear the BPF hashmap
-    seq_hash.clear()
 
-# TODO: implement me!
-def save_profiles():
-    pass
+# save profiles to disk
+# TODO: replace comm with /proc/<PID>/exe contents
+def save_profiles(profiles):
+    for k,profile in profiles:
+        comm = profile.comm.decode('utf-8')
+        comm = comm.replace(r'/',r'')
+        profile_path = os.path.join(PROFILE_DIR, comm)
+        with open(profile_path, "w") as f:
+            printb(profile,file=f)
 
 # load profiles from disk
 def load_profiles():
     for profile in os.listdir(PROFILE_DIR):
         profile_path = os.path.join(PROFILE_DIR, profile)
+        # run the profile_loader which is registered with a uretprobe
         subprocess.run([LOADER_PATH,profile_path])
 
 # load a bpf program from a file
@@ -159,6 +164,11 @@ if __name__ == "__main__":
                 sys.stdout = open(args.output,"w+")
 
             print_sequences()
+            seq_hash = bpf["seq"]
+            save_profiles(seq_hash.items())
+
+            # clear the BPF hashmap
+            seq_hash.clear()
 
             # reset stdout
             if args.output is not None:

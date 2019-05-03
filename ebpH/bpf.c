@@ -133,11 +133,14 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
             lseq.seq[i] = EMPTY;
         }
         lseq.count = 1;
+
+        // and set comm
+        bpf_probe_read(&lseq.comm, sizeof(lseq.comm), ((char *)args->args[0]));
     }
 
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
-        seq.delete(&pid_tgid);
+        //seq.delete(&pid_tgid);
     }
     else
     {
@@ -175,6 +178,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
         // copy data to child sequence
         lseq.count = parent_seq->count;
+        bpf_probe_read(&lseq.comm, sizeof(lseq.comm), &parent_seq->comm);
         for(int i = 0; i < SEQLEN; i++)
         {
             lseq.seq[i] = parent_seq->seq[i];
