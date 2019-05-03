@@ -13,6 +13,71 @@
  *
  * Licensed under MIT License */
 
+#include <linux/sched.h>
+#include "defs.h"
+#include "profiles.h"
+
+// *** helper functions ***
+
+// initialize a pH profile
+static void pH_init_profile(pH_profile *p)
+{
+    p->normal = 0;
+    p->frozen = 0;
+    p->normal_time = 0;
+    p->window_size = 0;
+    p->count = 0;
+    p->anomalies = 0;
+    bpf_get_current_comm(&p->comm, sizeof(p->comm));
+}
+
+// reset a locality for a task
+static inline void pH_reset_locality(pH_seq *s)
+{
+    for(int i = 0; i < PH_LOCALITY_WIN; i++)
+    {
+        s->lf.win[i] = 0;
+    }
+
+    s->lf.total = 0;
+    s->lf.max = 0;
+    s->lf.first = PH_LOCALITY_WIN - 1;
+}
+
+// intialize a pH sequence
+static void pH_init_sequence(pH_seq *s)
+{
+    pH_reset_locality(s);
+}
+
+// function that returns the pid_tgid of a process' parent
+static u64 pH_get_ppid_tgid()
+{
+    u64 ppid_tgid;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
+
+    return ppid_tgid;
+}
+
+// function to hash a comm string
+// this is necessary for the pro BPF_HASH
+static u64 pH_hash_comm_str(char *comm)
+{
+    u64 hash = 0;
+
+    for(int i = 0; i < TASK_COMM_LEN; i++)
+    {
+        hash = 37 * hash + (u64) comm[i];
+    }
+
+    hash %= TABLE_SIZE;
+
+    return hash;
+}
+
 // *** BPF hashmaps ***
 
 // sequences hashed by pid_tgid
@@ -118,6 +183,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         // init child sequence
         seq.lookup_or_init(&pid_tgid, &lseq);
     }
+
+    return 0;
+}
+
+// load a profile
+int load_profile(struct pt_regs *ctx)
+{
+    // TODO: make this work for profiles instead of sequences
+    //       below is just test code
+    pH_seq s;
+
+    // read return of profile load function from userspace
+    bpf_probe_read(&s, sizeof(s), (void *)PT_REGS_RC(ctx));
+
+    // a sentinel PID for test purposes
+    u64 x = (u64)1337 << 32;
+    seq.lookup_or_init(&x, &s);
 
     return 0;
 }
