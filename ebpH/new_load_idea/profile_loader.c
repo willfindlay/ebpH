@@ -13,14 +13,8 @@
  *
  * Licensed under MIT License */
 
-BPF_HASH(seq, u64, pH_seq);
-
-TRACEPOINT_PROBE(raw_syscalls, sys_enter)
+int main(int argc, char **argv)
 {
-    PROFILE
-
-    u64 x = (u64)2 << 32;
-    seq.lookup_or_init(&x, &s);
 
     return 0;
 }

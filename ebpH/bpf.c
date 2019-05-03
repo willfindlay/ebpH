@@ -35,6 +35,7 @@ BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     pH_seq lseq = {.count = 0};
+    //u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
     int i;

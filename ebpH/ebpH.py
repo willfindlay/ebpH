@@ -99,8 +99,7 @@ def load_profiles(args):
             for i,line in enumerate(data[:-1]):
                 data[i] = line + "\\"
             data = '\n'.join(data)
-            print(data)
-        text = text.replace("ARG_PROFILE", data)
+        text = text.replace("PROFILE", data)
 
         bpf = BPF(text=text)
 
@@ -138,10 +137,6 @@ if __name__ == "__main__":
                         help="write to a log file specified by <output>")
     args = parser.parse_args()
 
-
-    # FIXME: remove this, just for testing
-    load_profiles(args)
-
     # TODO: daemonize the process
     # TODO: use command to control daemonized process
     #command = args.command
@@ -160,6 +155,8 @@ if __name__ == "__main__":
     # create PROFILEDIR if it does not exist
     if not os.path.exists(PROFILEDIR):
         os.mkdir(PROFILEDIR)
+
+    load_profiles(args)
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
     exiting = 0
