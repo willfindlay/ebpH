@@ -37,10 +37,6 @@ pH_seq *load_profile(char *path)
 
     }
 
-    printf("Profile loaded!\n");
-
-    printf("%s, %d", seq->comm, seq->count);
-
     return seq;
 }
 

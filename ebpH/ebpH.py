@@ -99,12 +99,10 @@ def load_profiles():
         profile_path = os.path.join(PROFILE_DIR, profile)
         subprocess.run([LOADER_PATH,profile_path])
 
-# load a bpf program from a file and sub in args
-def load_bpf(code, args):
+# load a bpf program from a file
+def load_bpf(code):
     with open(code, "r") as f:
         text = f.read()
-    with open("./shared.c", "r") as f:
-        shared = f.read()
 
     return text
 
@@ -130,7 +128,7 @@ if __name__ == "__main__":
         exit()
 
     # read BPF embedded C from bpf.c
-    text = load_bpf("./bpf.c", args)
+    text = load_bpf("./bpf.c")
 
     # compile ebpf code
     bpf = BPF(text=text)
