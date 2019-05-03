@@ -1,28 +1,54 @@
+/* ebpH --  Monitor syscall sequences and detect anomalies
+ * Copyright 2019 Anil Somayaji (soma@scs.carleton.ca) and
+ * William Findlay (williamfindlay@cmail.carleton.ca)
+ *
+ * Based on Sasha Goldshtein's syscount
+ *  https://github.com/iovisor/bcc/blob/master/tools/syscount.py
+ *  Copyright 2017, Sasha Goldshtein.
+ * And on Anil Somayaji's pH
+ *  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
+ *  Copyright 2003 Anil Somayaji
+ *
+ * USAGE: ebpH.py <COMMAND>
+ *
+ * Licensed under MIT License */
+
 #include <linux/sched.h>
+#include "defs.h"
+#include "profiles.h"
 
-#define SEQLEN         ARG_SEQLEN
-#define PID            ARG_PID
-#define USE_LAP        ARG_LAP
-#define SYS_EXIT       60
-#define SYS_EXIT_GROUP 231
-#define SYS_EXECVE     59
-#define SYS_CLONE      56
-#define SYS_FORK       57
-#define SYS_VFORK       57
-#define EMPTY          9999
+// *** helper functions ***
 
-// a standard sequence
-typedef struct
+// initialize a pH profile
+static void pH_init_profile(pH_profile *p)
 {
-    u64 seq[SEQLEN];
-    u64 count;
-    char comm[TASK_COMM_LEN];
+    p->normal = 0;
+    p->frozen = 0;
+    p->normal_time = 0;
+    p->window_size = 0;
+    p->count = 0;
+    p->anomalies = 0;
+    bpf_get_current_comm(&p->comm, sizeof(p->comm));
 }
-pH_seq;
 
-// TODO: add a structure for a lookahead pair
+// reset a locality for a task
+static inline void pH_reset_locality(pH_seq *s)
+{
+    for(int i = 0; i < PH_LOCALITY_WIN; i++)
+    {
+        s->lf.win[i] = 0;
+    }
 
-// TODO: add a structure for profiles
+    s->lf.total = 0;
+    s->lf.max = 0;
+    s->lf.first = PH_LOCALITY_WIN - 1;
+}
+
+// intialize a pH sequence
+static void pH_init_sequence(pH_seq *s)
+{
+    pH_reset_locality(s);
+}
 
 // function that returns the pid_tgid of a process' parent
 static u64 pH_get_ppid_tgid()
@@ -36,12 +62,45 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-// TODO: convert this to a profile hashmap
+// function to hash a comm string
+// this is necessary for the pro BPF_HASH
+static u64 pH_hash_comm_str(char *comm)
+{
+    u64 hash = 0;
+
+    for(int i = 0; i < TASK_COMM_LEN; i++)
+    {
+        hash = 37 * hash + (u64) comm[i];
+    }
+
+    hash %= TABLE_SIZE;
+
+    return hash;
+}
+
+// *** BPF hashmaps ***
+
+// sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
+
+// profiles hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
+BPF_HASH(pro, u64, pH_profile);
+
+// profiles hashed by sequences
+BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
+
+// test data hashed by profiles
+BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
+
+// training data hashed by profiles
+BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
+
+// *** BPF tracepoints ***
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     pH_seq lseq = {.count = 0};
+    //u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
     int i;
@@ -78,8 +137,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
-        // FIXME: had to comment this out for testing purposes
-        //seq.delete(&pid_tgid);
+        seq.delete(&pid_tgid);
     }
     else
     {
@@ -125,6 +183,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         // init child sequence
         seq.lookup_or_init(&pid_tgid, &lseq);
     }
+
+    return 0;
+}
+
+// load a profile
+int load_profile(struct pt_regs *ctx)
+{
+    // TODO: make this work for profiles instead of sequences
+    //       below is just test code
+    pH_seq s;
+
+    // read return of profile load function from userspace
+    bpf_probe_read(&s, sizeof(s), (void *)PT_REGS_RC(ctx));
+
+    // a sentinel PID for test purposes
+    u64 x = (u64)1337 << 32;
+    seq.lookup_or_init(&x, &s);
 
     return 0;
 }
