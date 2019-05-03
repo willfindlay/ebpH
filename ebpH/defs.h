@@ -16,6 +16,13 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+// we need some extra definitions if we are including this file from userspace
+#ifdef USERSPACE
+#define TASK_COMM_LEN 16
+typedef unsigned long u64;
+typedef long time_t;
+#endif
+
 // arguments
 #define SEQLEN  8
 
@@ -37,5 +44,12 @@
 #define SYS_FORK       57
 #define SYS_VFORK      58
 #define EMPTY          9999
+
+// structure to help map pids to executables
+typedef struct
+{
+    u64 pid;
+    char *filename;
+} pH_exe_mapping;
 
 #endif // DEFS_H

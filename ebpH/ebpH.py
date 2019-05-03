@@ -32,9 +32,11 @@ from pprint import pprint
 
 # TODO: change this to a directory in root somewhere
 # directory in which profiles are stored
-PROFILE_DIR = "./profiles"
+PROFILE_DIR = "/var/lib/pH/profiles"
 # path of profile loader executable
 LOADER_PATH = os.path.abspath("profile_loader")
+# path of exe finder executable
+EXE_FINDER_PATH = os.path.abspath("exe_finder")
 # length of sequences
 SEQLEN = 8
 
@@ -92,8 +94,19 @@ def print_sequences():
 def save_profiles(profiles):
     for k,profile in profiles:
         comm = profile.comm.decode('utf-8')
-        comm = comm.replace(r'/',r'')
+
+        # get rid of slash if it is the first character
+        if comm[0] == r'/':
+            comm = comm[1:]
         profile_path = os.path.join(PROFILE_DIR, comm)
+
+        # create path if it doesn't exist
+        if not os.path.exists(os.path.dirname(profile_path)):
+            try:
+                os.makedirs(os.path.dirname(profile_path))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
         with open(profile_path, "w") as f:
             printb(profile,file=f)
 
@@ -132,27 +145,27 @@ if __name__ == "__main__":
         print("This script must be run with root privileges! Exiting.")
         exit()
 
+    # create PROFILE_DIR if it does not exist
+    if not os.path.exists(PROFILE_DIR):
+        os.makedirs(PROFILE_DIR)
+
     # read BPF embedded C from bpf.c
     text = load_bpf("./bpf.c")
 
     # compile ebpf code
     bpf = BPF(text=text)
     # register callback to load profiles
-    bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='load_profile')
+    bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
 
     # load in any profiles
     load_profiles()
-
-    # create PROFILE_DIR if it does not exist
-    if not os.path.exists(PROFILE_DIR):
-        os.mkdir(PROFILE_DIR)
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
     while True:
         # update the hashmap of sequences
         try:
-            sleep(1)
+            bpf.perf_buffer_poll()
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)

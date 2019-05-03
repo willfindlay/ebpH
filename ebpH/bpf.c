@@ -17,10 +17,30 @@
 #include "defs.h"
 #include "profiles.h"
 
+// *** BPF hashmaps ***
+
+// sequences hashed by pid_tgid
+BPF_HASH(seq, u64, pH_seq);
+
+// profiles hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
+BPF_HASH(pro, u64, pH_profile);
+
+// profiles hashed by sequences
+BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
+
+// test data hashed by profiles
+BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
+
+// training data hashed by profiles
+BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
+
+// map pids to executables for profile generation
+BPF_HASH(pid_to_exe, u64, char *);
+
 // *** helper functions ***
 
 // initialize a pH profile
-static void pH_init_profile(pH_profile *p)
+static void pH_init_profile(pH_profile *p, char *fn)
 {
     p->normal = 0;
     p->frozen = 0;
@@ -28,11 +48,11 @@ static void pH_init_profile(pH_profile *p)
     p->window_size = 0;
     p->count = 0;
     p->anomalies = 0;
-    bpf_get_current_comm(&p->comm, sizeof(p->comm));
+    bpf_probe_read(p->filename, sizeof(p->filename), fn);
 }
 
 // reset a locality for a task
-static inline void pH_reset_locality(pH_seq *s)
+static void pH_reset_locality(pH_seq *s)
 {
     for(int i = 0; i < PH_LOCALITY_WIN; i++)
     {
@@ -62,15 +82,15 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-// function to hash a comm string
-// this is necessary for the pro BPF_HASH
-static u64 pH_hash_comm_str(char *comm)
+// function to hash a string
+// this is necessary for the profiles hashmap
+static u64 pH_hash_str(char *s)
 {
     u64 hash = 0;
 
     for(int i = 0; i < TASK_COMM_LEN; i++)
     {
-        hash = 37 * hash + (u64) comm[i];
+        hash = 37 * hash + (u64) s[i];
     }
 
     hash %= TABLE_SIZE;
@@ -78,22 +98,30 @@ static u64 pH_hash_comm_str(char *comm)
     return hash;
 }
 
-// *** BPF hashmaps ***
+// create a profile and append it to the appropriate maps
+// if it does not already exist
+static void pH_maybe_create_profile(char *fn)
+{
+    pH_profile p;
 
-// sequences hashed by pid_tgid
-BPF_HASH(seq, u64, pH_seq);
+    if(fn == NULL)
+        return;
 
-// profiles hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
-BPF_HASH(pro, u64, pH_profile);
+    // create or update the profile in the hashmap
+    u64 hash = pH_hash_str(fn);
+    pH_profile *temp;
+    temp = pro.lookup(&hash);
 
-// profiles hashed by sequences
-BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
+    if(temp == NULL) // profile does not exist
+    {
+        // initialize the filename
+        pH_init_profile(&p, fn);
 
-// test data hashed by profiles
-BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
+        pro.insert(&hash, &p);
 
-// training data hashed by profiles
-BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
+        // TODO: create test and training data
+    }
+}
 
 // *** BPF tracepoints ***
 
@@ -124,22 +152,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
     lseq.seq[0] = syscall;
 
-    // if we just EXECVE'd, we need to wipe the sequence
-    if(syscall == SYS_EXECVE)
-    {
-        // leave the EXECVE call, wipe the rest
-        for(int i = 1; i < SEQLEN; i++)
-        {
-            lseq.seq[i] = EMPTY;
-        }
-        lseq.count = 1;
-
-        // and set comm
-        bpf_probe_read(&lseq.comm, sizeof(lseq.comm), ((char *)args->args[0]));
-    }
-
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
+        // FIXME: this is commented out for test purposes
         //seq.delete(&pid_tgid);
     }
     else
@@ -188,11 +203,32 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         seq.lookup_or_init(&pid_tgid, &lseq);
     }
 
+    if(syscall == SYS_EXECVE) // if we just EXECVE'd, we need to wipe the sequence
+    {
+        // leave the EXECVE call, wipe the rest
+        for(int i = 1; i < SEQLEN; i++)
+        {
+            lseq.seq[i] = EMPTY;
+        }
+        lseq.count = 1;
+
+        u64 pid = pid_tgid >> 32;
+
+        // find the filename of the executable
+        char fn[TASK_COMM_LEN];
+        struct task_struct *ts = (struct task_struct*) bpf_get_current_task();
+        bpf_get_current_comm(fn, sizeof(fn));
+        bpf_probe_read(lseq.comm, sizeof(lseq.comm), ts->comm);
+
+        // now we create a new profile if necessary
+        //pH_maybe_create_profile(fn);
+    }
+
     return 0;
 }
 
 // load a profile
-int load_profile(struct pt_regs *ctx)
+int pH_load_profile(struct pt_regs *ctx)
 {
     // TODO: make this work for profiles instead of sequences
     //       below is just test code
