@@ -88,9 +88,12 @@ def print_sequences():
         print()
 
 # save profiles to disk
+# TODO: replace comm with /proc/<PID>/exe contents
 def save_profiles(profiles):
     for k,profile in profiles:
-        profile_path = os.path.join(PROFILE_DIR, profile.comm.decode('utf-8'))
+        comm = profile.comm.decode('utf-8')
+        comm = comm.replace(r'/',r'')
+        profile_path = os.path.join(PROFILE_DIR, comm)
         with open(profile_path, "w") as f:
             printb(profile,file=f)
 
