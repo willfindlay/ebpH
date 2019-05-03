@@ -16,6 +16,7 @@
 # Licensed under MIT License
 
 from time import sleep, strftime
+import subprocess
 import argparse
 import textwrap
 import errno
@@ -30,7 +31,12 @@ import ctypes as ct
 from pprint import pprint
 
 # TODO: change this to a directory in root somewhere
-PROFILEDIR = "./profiles"
+# directory in which profiles are stored
+PROFILE_DIR = "./profiles"
+# path of profile loader executable
+LOADER_PATH = os.path.abspath("profile_loader")
+# length of sequences
+SEQLEN = 8
 
 # signal handler
 def signal_ignore(signal, frame):
@@ -47,7 +53,7 @@ def handle_errno(errstr):
     except AttributeError:
         raise argparse.ArgumentTypeError("couldn't map %s to an errno" % errstr)
 
-def print_sequences(seqlen):
+def print_sequences():
     # fetch BPF hashmap
     seq_hash = bpf["seq"]
 
@@ -75,7 +81,7 @@ def print_sequences(seqlen):
         print('Sequence:')
         arr = []
         for i,(call,name) in enumerate(zip(calls,names)):
-            if i >= seqlen or i >= s.count:
+            if i >= SEQLEN or i >= s.count:
                 break;
             arr.append("%s(%s)" % (name.decode('utf-8'), call))
         print(textwrap.fill(", ".join(arr)))
@@ -88,20 +94,10 @@ def save_profiles():
     pass
 
 # load profiles from disk
-def load_profiles(args):
-    for profile in os.listdir(PROFILEDIR):
-        text = load_bpf("./load_profile.c", args)
-
-        # load the profile
-        with open(os.path.join(PROFILEDIR, profile), "r") as f:
-            data = f.read()
-            data = data.split('\n')
-            for i,line in enumerate(data[:-1]):
-                data[i] = line + "\\"
-            data = '\n'.join(data)
-        text = text.replace("PROFILE", data)
-
-        bpf = BPF(text=text)
+def load_profiles():
+    for profile in os.listdir(PROFILE_DIR):
+        profile_path = os.path.join(PROFILE_DIR, profile)
+        subprocess.run([LOADER_PATH,profile_path])
 
 # load a bpf program from a file and sub in args
 def load_bpf(code, args):
@@ -109,12 +105,6 @@ def load_bpf(code, args):
         text = f.read()
     with open("./shared.c", "r") as f:
         shared = f.read()
-
-    # sub in args
-    text = shared + text
-    text = text.replace("ARG_SEQLEN", str(args.seqlen))
-    text = text.replace("ARG_PID", str(args.pid))
-    text = text.replace("ARG_LAP", str(args.lap))
 
     return text
 
@@ -126,13 +116,6 @@ if __name__ == "__main__":
     #parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=commands,
     #                    help="Command to run. Possible commands are %s." % ', '.join(commands))
     # TODO: implement this functionality (or perhaps remove it since it's only useful for testing)
-    parser.add_argument("-p", "--pid", type=int, default=-1,
-                        help="trace only the specified pid")
-    parser.add_argument("-s", "--seqlen", type=int, default=8,
-                        help="print call sequences of max length <seqlen>")
-    # TODO: implement this functionality
-    parser.add_argument("-l", "--lap", dest="lap", action="store_const", const=1, default=0,
-                        help="use lookahead pairs instead of syscall sequences")
     parser.add_argument("-o", "--output", type=str, default=None,
                         help="write to a log file specified by <output>")
     args = parser.parse_args()
@@ -151,14 +134,17 @@ if __name__ == "__main__":
 
     # compile ebpf code
     bpf = BPF(text=text)
+    # register callback to load profiles
+    bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='load_profile')
 
-    # create PROFILEDIR if it does not exist
-    if not os.path.exists(PROFILEDIR):
-        os.mkdir(PROFILEDIR)
+    # load in any profiles
+    load_profiles()
 
-    load_profiles(args)
+    # create PROFILE_DIR if it does not exist
+    if not os.path.exists(PROFILE_DIR):
+        os.mkdir(PROFILE_DIR)
 
-    print("Tracing syscall sequences of length %s... Ctrl+C to quit." % args.seqlen)
+    print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
     while True:
         # update the hashmap of sequences
@@ -174,7 +160,7 @@ if __name__ == "__main__":
             if args.output is not None:
                 sys.stdout = open(args.output,"w+")
 
-            print_sequences(args.seqlen)
+            print_sequences()
 
             # reset stdout
             if args.output is not None:
