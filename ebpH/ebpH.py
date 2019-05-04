@@ -30,7 +30,6 @@ from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
 from pprint import pprint
 
-# TODO: change this to a directory in root somewhere
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
 # path of profile loader executable
@@ -75,8 +74,8 @@ def print_sequences():
         print()
 
         # print the process and the sequence length
-        print("%-8s %-20s %-8s" % ("PID","COMM","COUNT"))
-        print("%-8d %-20s %-8s" % (pid, s.comm.decode('utf-8'), s.count));
+        print("%-8s %-8s" % ("PID","COUNT"))
+        print("%-8d %-8s" % (pid, s.count));
 
         # list of sequences by "Call Name(Call Number),"
         print()
@@ -178,7 +177,8 @@ if __name__ == "__main__":
 
             print_sequences()
             seq_hash = bpf["seq"]
-            save_profiles(seq_hash.items())
+            # FIXME: uncomment this when it is working with profiles rather than sequences
+            #save_profiles(seq_hash.items())
 
             # clear the BPF hashmap
             seq_hash.clear()

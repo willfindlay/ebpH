@@ -45,11 +45,7 @@ typedef long time_t;
 #define SYS_VFORK      58
 #define EMPTY          9999
 
-// structure to help map pids to executables
-typedef struct
-{
-    u64 pid;
-    char *filename;
-} pH_exe_mapping;
+// size of a filename string
+#define FILENAME_LEN 256
 
 #endif // DEFS_H

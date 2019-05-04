@@ -17,13 +17,16 @@
 #include "defs.h"
 #include "profiles.h"
 
+#define BPF_LICENSE GPL
+
 // *** BPF hashmaps ***
 
 // sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
 
-// profiles hashed by a function of comm string -- see pH_hash_comm_str(char *comm)
-BPF_HASH(pro, u64, pH_profile);
+// profiles
+BPF_HASH(profilename, pH_profile *, char *);
+BPF_HASH(profile, u64, pH_profile);
 
 // profiles hashed by sequences
 BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
@@ -33,9 +36,6 @@ BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
 
 // training data hashed by profiles
 BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
-
-// map pids to executables for profile generation
-BPF_HASH(pid_to_exe, u64, char *);
 
 // *** helper functions ***
 
@@ -48,7 +48,8 @@ static void pH_init_profile(pH_profile *p, char *fn)
     p->window_size = 0;
     p->count = 0;
     p->anomalies = 0;
-    bpf_probe_read(p->filename, sizeof(p->filename), fn);
+    // initialize the filename
+    bpf_probe_read_str(p->filename, FILENAME_LEN, fn);
 }
 
 // reset a locality for a task
@@ -98,37 +99,11 @@ static u64 pH_hash_str(char *s)
     return hash;
 }
 
-// create a profile and append it to the appropriate maps
-// if it does not already exist
-static void pH_maybe_create_profile(char *fn)
-{
-    pH_profile p;
-
-    if(fn == NULL)
-        return;
-
-    // create or update the profile in the hashmap
-    u64 hash = pH_hash_str(fn);
-    pH_profile *temp;
-    temp = pro.lookup(&hash);
-
-    if(temp == NULL) // profile does not exist
-    {
-        // initialize the filename
-        pH_init_profile(&p, fn);
-
-        pro.insert(&hash, &p);
-
-        // TODO: create test and training data
-    }
-}
-
 // *** BPF tracepoints ***
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     pH_seq lseq = {.count = 0};
-    //u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
     int i;
@@ -138,8 +113,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         lseq.seq[i] = EMPTY;
     }
-
-    bpf_get_current_comm(&lseq.comm, sizeof(lseq.comm));
 
     pH_seq *s;
     s = seq.lookup_or_init(&pid_tgid, &lseq);
@@ -151,6 +124,26 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
        lseq.seq[i] = lseq.seq[i-1];
     }
     lseq.seq[0] = syscall;
+
+    if(syscall == SYS_EXECVE) // if we just EXECVE'd, we need to wipe the sequence
+    {
+        // leave the EXECVE call, wipe the rest
+        for(int i = 1; i < SEQLEN; i++)
+        {
+            lseq.seq[i] = EMPTY;
+        }
+        lseq.count = 1;
+
+        // now we create a new profile if necessary
+        pH_profile p;
+        u64 pid_tgid = bpf_get_current_pid_tgid();
+
+        pH_init_profile(&p, (char *) args->args[0]);
+
+        // TODO: create test and training data
+
+        profile.lookup_or_init(&p.filename, &p);
+    }
 
     if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
     {
@@ -193,7 +186,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
         // copy data to child sequence
         lseq.count = parent_seq->count;
-        bpf_probe_read(&lseq.comm, sizeof(lseq.comm), &parent_seq->comm);
         for(int i = 0; i < SEQLEN; i++)
         {
             lseq.seq[i] = parent_seq->seq[i];
@@ -201,27 +193,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
         // init child sequence
         seq.lookup_or_init(&pid_tgid, &lseq);
-    }
-
-    if(syscall == SYS_EXECVE) // if we just EXECVE'd, we need to wipe the sequence
-    {
-        // leave the EXECVE call, wipe the rest
-        for(int i = 1; i < SEQLEN; i++)
-        {
-            lseq.seq[i] = EMPTY;
-        }
-        lseq.count = 1;
-
-        u64 pid = pid_tgid >> 32;
-
-        // find the filename of the executable
-        char fn[TASK_COMM_LEN];
-        struct task_struct *ts = (struct task_struct*) bpf_get_current_task();
-        bpf_get_current_comm(fn, sizeof(fn));
-        bpf_probe_read(lseq.comm, sizeof(lseq.comm), ts->comm);
-
-        // now we create a new profile if necessary
-        //pH_maybe_create_profile(fn);
     }
 
     return 0;

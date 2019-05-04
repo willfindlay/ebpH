@@ -41,7 +41,6 @@ typedef struct
     u64 seq[SEQLEN];
     u64 count;
     int delay;
-    char comm[TASK_COMM_LEN]; // TODO: remove this, it's useless
 }
 pH_seq;
 
@@ -67,7 +66,7 @@ struct pH_profile
     u64 window_size;
     u64 count;
     u64 anomalies;
-    char *filename;
+    char filename[FILENAME_LEN];
 };
 
 #endif // PROFILES_H
