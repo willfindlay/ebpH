@@ -2,8 +2,8 @@
 #define USERSPACE
 
 #include <stdio.h>
-#include "defs.h"
 #include "profiles.h"
+#include "defs.h"
 
 void save_profile(char *path)
 {
@@ -12,7 +12,7 @@ void save_profile(char *path)
     if(f == NULL)
         return;
 
-    pH_seq s = {.count = 4, .comm = "test"};
+    pH_seq s = {.count = 4};
 
     for(int i = 0; i < 4; i++)
     {
