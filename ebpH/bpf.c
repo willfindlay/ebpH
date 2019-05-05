@@ -24,17 +24,17 @@
 // sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
 
-// profiles
+// profiles hashed by executable filename
 BPF_HASH(profile, u64, pH_profile);
+
+// test data hashed by executable filename
+BPF_HASH(pro_to_test_data,  u64, pH_profile_data);
+
+// training data hashed by executable filename
+BPF_HASH(pro_to_train_data, u64, pH_profile_data);
 
 // profiles hashed by sequences
 BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
-
-// test data hashed by profiles
-BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
-
-// training data hashed by profiles
-BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
 
 // *** helper functions ***
 
@@ -250,20 +250,32 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 }
 
 // load a profile
+// TODO: finish this to load profile test and training data as well
 int pH_load_profile(struct pt_regs *ctx)
 {
-    // TODO: make this work for profiles instead of sequences
-    //       below is just test code
     pH_profile p;
+    pH_profile *temp;
     u64 hash = 0;
 
     // read return of profile load function from userspace
     bpf_probe_read(&p, sizeof(p), (void *)PT_REGS_RC(ctx));
 
+    // calculate the hash and lookup the profile
     hash = pH_hash_str(p.filename);
 
-    // a sentinel PID for test purposes
-    profile.lookup_or_init(&hash, &p);
+    // check to see if profile exists in memory
+    temp = profile.lookup(&hash);
+
+    // if it does, update it
+    if(temp != NULL)
+    {
+        profile.update(&hash, &p);
+    }
+    // otherwise, create it
+    else
+    {
+        profile.lookup_or_init(&hash, &p);
+    }
 
     return 0;
 }

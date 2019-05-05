@@ -17,7 +17,6 @@
 #define USERSPACE
 
 #define PROC_PREFIX "/proc"
-#define BUF_SIZE    1024
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,15 +37,15 @@ void setup_exe_fn(char *pid_str, char* fn)
     strcpy(c, "/cmdline");
 }
 
-pH_exe_mapping *find_exe(char *pid_str)
+pH_exe_path_mapping *find_exe(char *pid_str)
 {
-    pH_exe_mapping *mapping;
-    char path[BUF_SIZE];
-    char buf[BUF_SIZE];
-    char byte;
+    char path[FILENAME_LEN];
+    char byte = 0;
     int i;
+    pH_exe_path_mapping *mapping;
 
-    mapping = malloc(sizeof(pH_exe_mapping));
+    mapping = malloc(sizeof(pH_exe_path_mapping));
+
     setup_exe_fn(pid_str, path);
 
     // open profile for reading
@@ -55,22 +54,20 @@ pH_exe_mapping *find_exe(char *pid_str)
         return NULL;
 
     // read the contents of the file
-    for(i = 0; i < BUF_SIZE-1 && fread(&byte, 1, 1, f); i++)
+    for(i = 0; i < FILENAME_LEN - 1 && fread(&byte, 1, 1, f); i++)
     {
-        // we don't care about arguments
+        // we don't care about arguments, so break at spaces
         if(byte == ' ')
             break;
-        // change slashes to underscores
-        if(byte == '/')
-            byte = '_';
-        buf[i] = byte;
+        path[i] = byte;
     }
     // null terminate
-    buf[i] = 0;
+    path[i] = 0;
 
-    mapping->filename = malloc(strlen(buf));
-    strcpy(mapping->filename, buf);
+    strcpy(mapping->filename, path);
     mapping->pid = atoi(pid_str);
+
+    printf("I should be creating a profile for %s\n", mapping->filename);
 
     return mapping;
 }
@@ -80,16 +77,11 @@ int main(int argc, char **argv)
     if(argc != 2)
         return -1;
 
-    pH_exe_mapping *mapping;
-
     // map the exe to the pid
     char *pid_str = argv[1];
-    mapping = find_exe(pid_str);
+    pH_exe_path_mapping *temp = find_exe(pid_str);
 
-    if(mapping == NULL)
-        return -1;
-
-    free(mapping);
+    free(temp);
 
     return 0;
 }

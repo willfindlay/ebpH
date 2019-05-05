@@ -52,7 +52,6 @@ typedef struct
 {
     u64 last_mod_count;
     u64 train_count;
-    unsigned char entry[PH_NUM_SYSCALLS][PH_NUM_SYSCALLS];
 }
 pH_profile_data;
 
@@ -68,5 +67,13 @@ struct pH_profile
     u64 anomalies;
     char filename[FILENAME_LEN];
 };
+
+typedef struct
+{
+    pH_profile profile;
+    pH_profile_data test;
+    pH_profile_data train;
+}
+pH_profile_payload;
 
 #endif // PROFILES_H

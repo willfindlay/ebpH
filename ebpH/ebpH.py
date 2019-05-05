@@ -167,7 +167,6 @@ if __name__ == "__main__":
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
 
     # load in any profiles
-    # TODO: uncomment this when profile_loader has been fixed to work with actual profiles
     load_profiles()
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)

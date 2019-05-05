@@ -20,6 +20,7 @@
 #ifdef USERSPACE
 #define TASK_COMM_LEN 16
 typedef unsigned long u64;
+typedef unsigned int  u32;
 typedef long time_t;
 #endif
 
