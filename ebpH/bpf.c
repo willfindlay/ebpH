@@ -28,13 +28,13 @@ BPF_HASH(seq, u64, pH_seq);
 BPF_HASH(profile, u64, pH_profile);
 
 // test data hashed by executable filename
-BPF_HASH(pro_to_test_data,  u64, pH_profile_data);
+BPF_HASH(test_data,  u64, pH_profile_data);
 
 // training data hashed by executable filename
-BPF_HASH(pro_to_train_data, u64, pH_profile_data);
+BPF_HASH(train_data, u64, pH_profile_data);
 
 // profiles hashed by sequences
-BPF_HASH(seq_to_pro, pH_seq *, pH_profile *);
+BPF_HASH(seq_profile, pH_seq *, pH_profile *);
 
 // *** helper functions ***
 
@@ -249,16 +249,77 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     return 0;
 }
 
-// load a profile
-// TODO: finish this to load profile test and training data as well
-int pH_load_profile(struct pt_regs *ctx)
+// load a profile's test data from userspace
+static int pH_load_test_data(pH_profile_payload *payload)
+{
+    pH_profile_data d;
+    pH_profile_data *temp;
+    pH_profile *p;
+    u64 hash = 0;
+
+    // lookup original profile from hashmap
+    hash = pH_hash_str(payload->profile.filename);
+    p = profile.lookup(&hash);
+
+    // read in the test data
+    bpf_probe_read(&d, sizeof(d), &payload->test);
+
+    // check to see if test data exists in memory
+    temp = test_data.lookup(&hash);
+
+    // if it does, update it
+    if(temp != NULL)
+    {
+        test_data.update(&hash, &d);
+    }
+    // otherwise, create it
+    else
+    {
+        test_data.lookup_or_init(&hash, &d);
+    }
+
+    return 0;
+}
+
+// load a profile's train data from userspace
+static int pH_load_train_data(pH_profile_payload *payload)
+{
+    pH_profile_data d;
+    pH_profile_data *temp;
+    pH_profile *p;
+    u64 hash = 0;
+
+    // lookup original profile from hashmap
+    hash = pH_hash_str(payload->profile.filename);
+    p = profile.lookup(&hash);
+
+    // read in the train data
+    bpf_probe_read(&d, sizeof(d), &payload->train);
+
+    // check to see if train data exists in memory
+    temp = train_data.lookup(&hash);
+
+    // if it does, update it
+    if(temp != NULL)
+    {
+        train_data.update(&hash, &d);
+    }
+    // otherwise, create it
+    else
+    {
+        train_data.lookup_or_init(&hash, &d);
+    }
+
+    return 0;
+}
+
+static int pH_load_base_profile(pH_profile_payload *payload)
 {
     pH_profile p;
     pH_profile *temp;
     u64 hash = 0;
 
-    // read return of profile load function from userspace
-    bpf_probe_read(&p, sizeof(p), (void *)PT_REGS_RC(ctx));
+    bpf_probe_read(&p, sizeof(p), &payload->profile);
 
     // calculate the hash and lookup the profile
     hash = pH_hash_str(p.filename);
@@ -276,6 +337,23 @@ int pH_load_profile(struct pt_regs *ctx)
     {
         profile.lookup_or_init(&hash, &p);
     }
+    return 0;
+}
+
+// load a profile
+int pH_load_profile(struct pt_regs *ctx)
+{
+    pH_profile_payload *payload = (pH_profile_payload *)PT_REGS_RC(ctx);
+
+    if(payload == NULL)
+        return 0;
+
+    if(payload->profile.filename[0] == 0)
+        return 0;
+
+    pH_load_base_profile(payload);
+    pH_load_test_data(payload);
+    pH_load_train_data(payload);
 
     return 0;
 }

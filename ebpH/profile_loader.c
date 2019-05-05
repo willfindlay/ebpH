@@ -23,10 +23,10 @@
 
 // TODO: get this working with the training data as well
 //       may need a separate structure to submit to eBPF program
-pH_profile *load_profile(char *path)
+pH_profile_payload *load_profile(char *path)
 {
-    pH_profile *p;
-    p = malloc(sizeof(pH_profile));
+    pH_profile_payload *p;
+    p = malloc(sizeof(pH_profile_payload));
 
     // open profile for reading
     FILE *f = fopen(path, "r");
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     // open the profile
     char *path = argv[1];
-    pH_profile *p = load_profile(path);
+    pH_profile_payload *p = load_profile(path);
 
     free(p);
 
