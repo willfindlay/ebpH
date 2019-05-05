@@ -88,6 +88,14 @@ def print_sequences():
         print(textwrap.fill(", ".join(arr)))
         print()
 
+def print_profiles():
+    # fetch hashmap
+    profile_hash = bpf["profile"]
+
+    for h, p in profile_hash.items():
+        filename = p.filename.decode('utf-8')
+        print(filename)
+
 # save profiles to disk
 # TODO: replace comm with /proc/<PID>/exe contents
 def save_profiles(profiles):
@@ -175,13 +183,17 @@ if __name__ == "__main__":
             if args.output is not None:
                 sys.stdout = open(args.output,"w+")
 
-            print_sequences()
             seq_hash = bpf["seq"]
+            pro_hash = bpf["profile"]
+
+            print_sequences()
+            print_profiles()
             # FIXME: uncomment this when it is working with profiles rather than sequences
             #save_profiles(seq_hash.items())
 
             # clear the BPF hashmap
             seq_hash.clear()
+            pro_hash.clear()
 
             # reset stdout
             if args.output is not None:

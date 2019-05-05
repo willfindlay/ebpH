@@ -183,14 +183,29 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_r
 // *** pH profile create/update subroutines ***
 
 // create or update a pH profile
-static int pH_create_or_update_profile(char *filename, u64 *pid_tgid)
+// TODO: finish this (right now it just creates a sequence with nothing in it)
+//       also -- need to create two sets of profile data and link it with separate hashmaps
+static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *syscall)
 {
     int i;
+    u64 hash;
     pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
                     .window_size = 0, .count = 0, .anomalies = 0};
+    pH_profile *temp;
 
-    // initialize the filename
-    bpf_probe_read_str(p.filename, FILENAME_LEN, filename);
+    if(filename == NULL || pid_tgid == NULL || syscall == NULL)
+        return -1;
+
+    if(*syscall == SYS_EXECVE)
+    {
+        // initialize the filename
+        bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
+
+        // hash the filename
+        hash = pH_hash_str(p.filename);
+        // either init the profile or copy it from the map if it exists
+        temp = profile.lookup_or_init(&hash, &p);
+    }
 
     return 0;
 }
@@ -199,13 +214,14 @@ static int pH_create_or_update_profile(char *filename, u64 *pid_tgid)
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
+    long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     // create or update the sequence for this pid_tgid
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
     // create or update the profile for this executable
-    pH_create_or_update_profile((char *) args->args[0], &pid_tgid);
+    pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
 
     return 0;
 }
