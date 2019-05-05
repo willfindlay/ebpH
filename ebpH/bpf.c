@@ -135,8 +135,7 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
 
     if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
     {
-        // FIXME: this is commented out for test purposes
-        //seq.delete(pid_tgid);
+        seq.delete(pid_tgid);
     }
     else
     {
@@ -201,7 +200,7 @@ static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *sysc
         // initialize the filename
         bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
 
-        // filter out execve calls wtih no filename
+        // filter out execve calls with no filename
         if(p.filename[0] == 0)
             return 0;
 
@@ -255,14 +254,16 @@ int pH_load_profile(struct pt_regs *ctx)
 {
     // TODO: make this work for profiles instead of sequences
     //       below is just test code
-    pH_seq s;
+    pH_profile p;
+    u64 hash = 0;
 
     // read return of profile load function from userspace
-    bpf_probe_read(&s, sizeof(s), (void *)PT_REGS_RC(ctx));
+    bpf_probe_read(&p, sizeof(p), (void *)PT_REGS_RC(ctx));
+
+    hash = pH_hash_str(p.filename);
 
     // a sentinel PID for test purposes
-    u64 x = (u64)1337 << 32;
-    seq.lookup_or_init(&x, &s);
+    profile.lookup_or_init(&hash, &p);
 
     return 0;
 }
