@@ -21,23 +21,24 @@
 #include "defs.h"
 #include "profiles.h"
 
-pH_seq *load_profile(char *path)
+// TODO: get this working with the training data as well
+//       may need a separate structure to submit to eBPF program
+pH_profile *load_profile(char *path)
 {
-    // TODO: change this to be profile instead of seq
-    pH_seq *seq;
-    seq = malloc(sizeof(pH_seq));
+    pH_profile *p;
+    p = malloc(sizeof(pH_profile));
 
     // open profile for reading
     FILE *f = fopen(path, "r");
     if(f == NULL)
         return NULL;
 
-    while(fread(seq, sizeof(pH_seq), 1, f))
+    while(fread(p, sizeof(pH_profile), 1, f))
     {
 
     }
 
-    return seq;
+    return p;
 }
 
 int main(int argc, char **argv)
@@ -47,7 +48,9 @@ int main(int argc, char **argv)
 
     // open the profile
     char *path = argv[1];
-    load_profile(path);
+    pH_profile *p = load_profile(path);
+
+    free(p);
 
     return 0;
 }

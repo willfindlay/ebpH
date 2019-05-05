@@ -120,10 +120,11 @@ def save_profiles():
 
 # load profiles from disk
 def load_profiles():
-    for profile in os.listdir(PROFILE_DIR):
-        profile_path = os.path.join(PROFILE_DIR, profile)
-        # run the profile_loader which is registered with a uretprobe
-        subprocess.run([LOADER_PATH,profile_path])
+    for dirpath, dirnames, files in os.walk(PROFILE_DIR):
+        for f in files:
+            profile_path = os.path.join(dirpath, f)
+            # run the profile_loader which is registered with a uretprobe
+            subprocess.run([LOADER_PATH,profile_path])
 
 # load a bpf program from a file
 def load_bpf(code):
@@ -167,7 +168,7 @@ if __name__ == "__main__":
 
     # load in any profiles
     # TODO: uncomment this when profile_loader has been fixed to work with actual profiles
-    #load_profiles()
+    load_profiles()
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
