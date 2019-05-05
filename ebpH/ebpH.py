@@ -88,24 +88,25 @@ def print_sequences():
         print(textwrap.fill(", ".join(arr)))
         print()
 
+# TODO: flesh this out... right now it just prints profile filenames
 def print_profiles():
     # fetch hashmap
     profile_hash = bpf["profile"]
 
-    for h, p in profile_hash.items():
-        filename = p.filename.decode('utf-8')
+    for k, profile in profile_hash.items():
+        filename = profile.filename.decode('utf-8')
         print(filename)
 
 # save profiles to disk
-# TODO: replace comm with /proc/<PID>/exe contents
-def save_profiles(profiles):
-    for k,profile in profiles:
-        comm = profile.comm.decode('utf-8')
+def save_profiles():
+    profile_hash = bpf["profile"]
+    for k,profile in profile_hash.items():
+        filename = profile.filename.decode('utf-8')
 
         # get rid of slash if it is the first character
-        if comm[0] == r'/':
-            comm = comm[1:]
-        profile_path = os.path.join(PROFILE_DIR, comm)
+        if filename[0] == r'/':
+            filename = filename[1:]
+        profile_path = os.path.join(PROFILE_DIR, filename)
 
         # create path if it doesn't exist
         if not os.path.exists(os.path.dirname(profile_path)):
@@ -165,7 +166,8 @@ if __name__ == "__main__":
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
 
     # load in any profiles
-    load_profiles()
+    # TODO: uncomment this when profile_loader has been fixed to work with actual profiles
+    #load_profiles()
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
@@ -188,8 +190,7 @@ if __name__ == "__main__":
 
             print_sequences()
             print_profiles()
-            # FIXME: uncomment this when it is working with profiles rather than sequences
-            #save_profiles(seq_hash.items())
+            save_profiles()
 
             # clear the BPF hashmap
             seq_hash.clear()

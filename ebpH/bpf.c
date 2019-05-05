@@ -201,11 +201,17 @@ static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *sysc
         // initialize the filename
         bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
 
+        // filter out execve calls wtih no filename
+        if(p.filename[0] == 0)
+            return 0;
+
         // hash the filename
         hash = pH_hash_str(p.filename);
         // either init the profile or copy it from the map if it exists
         temp = profile.lookup_or_init(&hash, &p);
     }
+
+    // TODO: update the profile with the correct sequence
 
     return 0;
 }
