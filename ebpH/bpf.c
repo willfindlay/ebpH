@@ -25,7 +25,6 @@
 BPF_HASH(seq, u64, pH_seq);
 
 // profiles
-BPF_HASH(profilename, pH_profile *, char *);
 BPF_HASH(profile, u64, pH_profile);
 
 // profiles hashed by sequences
@@ -38,19 +37,6 @@ BPF_HASH(pro_to_test_data,  pH_profile *, pH_profile_data);
 BPF_HASH(pro_to_train_data, pH_profile *, pH_profile_data);
 
 // *** helper functions ***
-
-// initialize a pH profile
-static void pH_init_profile(pH_profile *p, char *fn)
-{
-    p->normal = 0;
-    p->frozen = 0;
-    p->normal_time = 0;
-    p->window_size = 0;
-    p->count = 0;
-    p->anomalies = 0;
-    // initialize the filename
-    bpf_probe_read_str(p->filename, FILENAME_LEN, fn);
-}
 
 // reset a locality for a task
 static void pH_reset_locality(pH_seq *s)
@@ -99,61 +85,127 @@ static u64 pH_hash_str(char *s)
     return hash;
 }
 
+// *** pH sequence create/update subroutines ***
+
+// TODO: this could be a little more performant if we optimize for sequences
+//       that don't need to be initialized
+static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
+{
+    int i;
+    pH_seq s = {.count = 0};
+
+    if(syscall == NULL || pid_tgid == NULL)
+        return -1;
+
+    // intialize sequence data
+    for(i = 0; i < SEQLEN; i++)
+    {
+        s.seq[i] = EMPTY;
+    }
+
+    // either init this pid's sequence or copy it from the map
+    // if it already exists
+    pH_seq *temp;
+    temp = seq.lookup_or_init(pid_tgid, &s);
+    s = *temp;
+
+    // if we just execve'd we need to wipe the sequence
+    if(*syscall == SYS_EXECVE)
+    {
+        // leave the EXECVE call, wipe the rest
+        for(i = 1; i < SEQLEN; i++)
+        {
+            s.seq[i] = EMPTY;
+        }
+        s.count = 1;
+    }
+    // otherwise we simply shift everything over
+    else
+    {
+        // add the system call to the sequence of calls
+        s.count++;
+        for(i = SEQLEN - 1; i > 0; i--)
+        {
+            s.seq[i] = s.seq[i-1];
+        }
+    }
+
+    // insert the syscall at the beginning of the sequence
+    s.seq[0] = *syscall;
+
+    if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
+    {
+        // FIXME: this is commented out for test purposes
+        //seq.delete(pid_tgid);
+    }
+    else
+    {
+        seq.update(pid_tgid, &s);
+    }
+
+    return 0;
+}
+
+// called when pH detects a fork system call
+// we use this to copy the parent's sequence to the child
+static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_ret)
+{
+    // child sequence
+    pH_seq s = {.count = 0};
+    // parent sequence
+    pH_seq *parent_seq;
+
+    if(pid_tgid == NULL || ppid_tgid == NULL)
+        return -1;
+
+    // we want to be inside the child process
+    if(*execve_ret != 0)
+        return 0;
+
+    // fetch parent sequence
+    parent_seq = seq.lookup(ppid_tgid);
+    if(parent_seq == NULL)
+        return 0;
+
+    // copy data to child sequence
+    s.count = parent_seq->count;
+    for(int i = 0; i < SEQLEN; i++)
+    {
+        s.seq[i] = parent_seq->seq[i];
+    }
+
+    // init child sequence
+    seq.lookup_or_init(pid_tgid, &s);
+
+    return 0;
+}
+
+// *** pH profile create/update subroutines ***
+
+// create or update a pH profile
+static int pH_create_or_update_profile(char *filename, u64 *pid_tgid)
+{
+    int i;
+    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
+                    .window_size = 0, .count = 0, .anomalies = 0};
+
+    // initialize the filename
+    bpf_probe_read_str(p.filename, FILENAME_LEN, filename);
+
+    return 0;
+}
+
 // *** BPF tracepoints ***
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
-    pH_seq lseq = {.count = 0};
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    long syscall = args->id;
-    int i;
 
-    // initialize data
-    for(int i = 0; i < SEQLEN; i++)
-    {
-        lseq.seq[i] = EMPTY;
-    }
+    // create or update the sequence for this pid_tgid
+    pH_create_or_update_sequence(&args->id, &pid_tgid);
 
-    pH_seq *s;
-    s = seq.lookup_or_init(&pid_tgid, &lseq);
-    lseq = *s;
-
-    lseq.count++;
-    for (i = SEQLEN-1; i > 0; i--)
-    {
-       lseq.seq[i] = lseq.seq[i-1];
-    }
-    lseq.seq[0] = syscall;
-
-    if(syscall == SYS_EXECVE) // if we just EXECVE'd, we need to wipe the sequence
-    {
-        // leave the EXECVE call, wipe the rest
-        for(int i = 1; i < SEQLEN; i++)
-        {
-            lseq.seq[i] = EMPTY;
-        }
-        lseq.count = 1;
-
-        // now we create a new profile if necessary
-        pH_profile p;
-        u64 pid_tgid = bpf_get_current_pid_tgid();
-
-        pH_init_profile(&p, (char *) args->args[0]);
-
-        // TODO: create test and training data
-
-        profile.lookup_or_init(&p.filename, &p);
-    }
-
-    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
-    {
-        // FIXME: this is commented out for test purposes
-        //seq.delete(&pid_tgid);
-    }
-    else
-    {
-        seq.update(&pid_tgid, &lseq);
-    }
+    // create or update the profile for this executable
+    pH_create_or_update_profile((char *) args->args[0], &pid_tgid);
 
     return 0;
 }
@@ -161,38 +213,16 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 // we need the return value from fork syscalls in order to copy profiles over
 TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 {
-    pH_seq lseq = {.count = 0};
-    pH_seq *parent_seq;
-    u64 pid_tgid = bpf_get_current_pid_tgid();
     long syscall = args->id;
+    // get PID
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    // get parent's PID
+    u64 ppid_tgid = pH_get_ppid_tgid();
 
     // if we are forking, we need to copy our profile to the next
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
-        // get return value of function
-        u64 retval = (u64)args->ret;
-
-        // we want to be inside the child process
-        if(retval != 0)
-            return 0;
-
-        // get parent PID
-        u64 ppid_tgid = pH_get_ppid_tgid();
-
-        // fetch parent sequence
-        parent_seq = seq.lookup(&ppid_tgid);
-        if(parent_seq == NULL)
-            return 0;
-
-        // copy data to child sequence
-        lseq.count = parent_seq->count;
-        for(int i = 0; i < SEQLEN; i++)
-        {
-            lseq.seq[i] = parent_seq->seq[i];
-        }
-
-        // init child sequence
-        seq.lookup_or_init(&pid_tgid, &lseq);
+        pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
     }
 
     return 0;
