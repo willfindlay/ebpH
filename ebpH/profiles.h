@@ -19,13 +19,6 @@
 #include <linux/sched.h>
 #include "defs.h"
 
-// we need some extra definitions if we are including this file from userspace
-#ifdef USERSPACE
-#define TASK_COMM_LEN 16
-typedef unsigned long u64;
-typedef long time_t;
-#endif
-
 // *** pH task data structures ***
 
 typedef struct pH_profile pH_profile;
@@ -48,7 +41,6 @@ typedef struct
     u64 seq[SEQLEN];
     u64 count;
     int delay;
-    char comm[TASK_COMM_LEN];
 }
 pH_seq;
 
@@ -74,7 +66,7 @@ struct pH_profile
     u64 window_size;
     u64 count;
     u64 anomalies;
-    char comm[TASK_COMM_LEN];
+    char filename[FILENAME_LEN];
 };
 
 #endif // PROFILES_H

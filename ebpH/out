@@ -1,0 +1,1677 @@
+
+[15:51:10 PM]
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+12290    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            15      
+
+Sequence:
+futex(202), futex(202), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+18299    at-spi2-registr      16      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), writev(20)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+18047    pia                  65      
+
+Sequence:
+poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    CompositorTileW      29      
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), gettid(186),
+gettid(186), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+869      python3              232     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+8413     nvim                 2       
+
+Sequence:
+epoll_pwait(281), read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+894      python3              382     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    Compositor           308     
+
+Sequence:
+futex(202), sendto(44), sendto(44), futex(202), futex(202),
+gettid(186), gettid(186), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20055    polybar              21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+901      python3              424     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    PulseAudioDrive      334     
+
+Sequence:
+nanosleep(35), getpid(39), write(1), getpid(39), getpid(39),
+futex(202), futex(202), write(1)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+877      python3              280     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+867      python3              220     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+930      python3              598     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+903      python3              436     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+1253     rtkit-daemon         2       
+
+Sequence:
+poll(7), read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+889      python3              352     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+8413     nvim                 19      
+
+Sequence:
+epoll_pwait(281), epoll_pwait(281), write(1), epoll_pwait(281),
+epoll_pwait(281), stat(4), getcwd(79), stat(4)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+861      python3              184     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19847    Web Content          41      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+932      python3              610     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+906      python3              454     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+928      python3              586     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+851      python3              124     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+880      python3              298     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    GpuMemoryThread      11      
+
+Sequence:
+futex(202), futex(202), fcntl(72), futex(202), futex(202), sendto(44),
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20055    polybar              4       
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    Timer                3       
+
+Sequence:
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+875      python3              268     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+917      python3              520     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            6       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+17861    Xorg                 571     
+
+Sequence:
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), writev(20),
+writev(20), recvmsg(47), setitimer(38)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+899      python3              412     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20826    termite              4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+916      python3              514     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    Local File Scan      20      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+876      python3              274     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+863      python3              196     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20056    polybar              6       
+
+Sequence:
+futex(202), futex(202), futex(202), writev(20), poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+24516    termite              62      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19847    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+874      python3              262     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+883      python3              316     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            4       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+905      python3              448     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+852      python3              130     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19915    WebExtensions        33      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20289    spotify              377     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+26216    vlc                  476     
+
+Sequence:
+futex(202), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39), getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20289    Chrome_ChildIOT      186     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
+epoll_wait(232), epoll_wait(232), sendto(44)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    spotify              912     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+871      python3              244     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+907      python3              460     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+862      python3              190     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            5       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21162    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+879      python3              292     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+912      python3              490     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    CompositorTileW      13      
+
+Sequence:
+futex(202), gettid(186), gettid(186), gettid(186), futex(202),
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+878      python3              286     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+12290    Timer                169     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+10788    termite              4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21162    Web Content          27      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+848      python3              106     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    spotify              232     
+
+Sequence:
+futex(202), gettid(186), futex(202), gettid(186), gettid(186),
+gettid(186), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+884      python3              322     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+855      python3              148     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+870      python3              238     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+927      python3              580     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+914      python3              502     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+16078    termite              4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+900      python3              418     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20056    polybar              7       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+909      python3              472     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+845      python3              728     
+
+Sequence:
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+919      python3              532     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21162    Timer                3       
+
+Sequence:
+futex(202), write(1), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+920      python3              538     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20020    Web Content          28      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20056    polybar              21      
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+885      python3              328     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            8       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+898      python3              406     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+26216    QXcbEventQueue       3       
+
+Sequence:
+poll(7), write(1), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    CompositorTileW      26      
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), gettid(186),
+gettid(186), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+859      python3              172     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+847      python3              100     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+892      python3              370     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20055    polybar              7       
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20055    polybar              56      
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+923      python3              556     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    Chrome_IOThread      309     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+893      python3              376     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+17976    i3                   12      
+
+Sequence:
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+857      python3              160     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+908      python3              466     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+897      python3              400     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+921      python3              544     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+925      python3              568     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+864      python3              202     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+12290    thunderbird          568     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    Core Thread          17      
+
+Sequence:
+epoll_wait(232), timerfd_settime(286), futex(202), getpid(39),
+futex(202), futex(202), write(1), write(1)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    Network Thread       362     
+
+Sequence:
+poll(7), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+858      python3              166     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    Gecko_IOThread       4       
+
+Sequence:
+epoll_wait(232), recvmsg(47), write(1), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20272    threaded-ml          866     
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), futex(202), read(0),
+poll(7)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+924      python3              562     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    firefox              22      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+933      python3              616     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21205    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+26216    vlc                  2       
+
+Sequence:
+poll(7), read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+853      python3              136     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+860      python3              178     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+902      python3              430     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+866      python3              214     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+850      python3              118     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+887      python3              340     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+868      python3              226     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20289    SGI_video_sync       27      
+
+Sequence:
+futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+886      python3              334     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+904      python3              442     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+926      python3              574     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+913      python3              496     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+918      python3              526     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21205    Timer                8       
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            4       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19915    Timer                5       
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    DOM Worker           36      
+
+Sequence:
+futex(202), getrusage(98), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            5       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19778    JS Helper            5       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+882      python3              310     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+18043    compton              225     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), recvmsg(47), epoll_wait(232),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+915      python3              508     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20056    polybar              4       
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    Chrome_ChildIOT      259     
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
+gettid(186), gettid(186), gettid(186), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20354    notification-da      4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+888      python3              346     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+895      python3              388     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+14519    termite              4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+18047    QXcbEventReader      3       
+
+Sequence:
+poll(7), write(1), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19915    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+911      python3              484     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19847    Timer                8       
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+write(1), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+1253     rtkit-daemon         2       
+
+Sequence:
+poll(7), write(1)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+931      python3              604     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+856      python3              154     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+844      sudo                 7       
+
+Sequence:
+ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
+rt_sigreturn(15), write(1)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+910      python3              478     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+21205    Web Content          41      
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20303    CompositorTileW      20      
+
+Sequence:
+futex(202), futex(202), gettid(186), gettid(186), futex(202),
+futex(202), futex(202), gettid(186)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+890      python3              358     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20020    JS Watchdog          2       
+
+Sequence:
+futex(202), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+1251     alsa-sink-USB A      783     
+
+Sequence:
+ppoll(271), ioctl(16), ioctl(16), write(1), ioctl(16), read(0),
+ppoll(271), ioctl(16)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20055    polybar              6       
+
+Sequence:
+futex(202), futex(202), futex(202), writev(20), poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+865      python3              208     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+854      python3              142     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+19915    Chrome_~dThread      6       
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+922      python3              550     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+1337     pia-openvpn          1       
+
+Sequence:
+poll(7)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20020    Timer                5       
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+1251     pulseaudio           1040    
+
+Sequence:
+ppoll(271), read(0), write(1), read(0), write(1), read(0), ppoll(271),
+read(0)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+20056    polybar              56      
+
+Sequence:
+poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
+poll(7), futex(202)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+929      python3              592     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+872      python3              250     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+873      python3              256     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+10324    termite              4       
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+891      python3              364     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+896      python3              394     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+849      python3              112     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
+
+----------------------------------------------------------
+
+PID      COMM                 COUNT   
+881      python3              304     
+
+Sequence:
+read(0), read(0), fstat(5), openat(257), brk(12), brk(12), munmap(11),
+mprotect(10)
+
