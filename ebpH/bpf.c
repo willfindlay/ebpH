@@ -210,9 +210,17 @@ static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *sysc
         temp = profile.lookup_or_init(&hash, &p);
     }
 
-    // TODO: update the profile with the correct sequence
-
     return 0;
+}
+
+static int pH_create_or_update_train_data(char *filename, u64 *pid_tgid, long *syscall)
+{
+
+}
+
+static int pH_create_or_update_test_data(char *filename, u64 *pid_tgid, long *syscall)
+{
+
 }
 
 // *** BPF tracepoints ***

@@ -103,10 +103,7 @@ def save_profiles():
     test_hash = bpf["test_data"]
     train_hash = bpf["train_data"]
 
-    for t1, t2, t3 in zip(profile_hash.items(), test_hash.items(), train_hash.items()):
-        _, profile = t1
-        _, test = t2
-        _, train = t3
+    for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
         filename = profile.filename.decode('utf-8')
 
         # get rid of slash if it is the first character
@@ -122,9 +119,9 @@ def save_profiles():
                 if exc.errno != errno.EEXIST:
                     raise
         with open(profile_path, "w") as f:
-            printb(profile,file=f)
-            printb(test,file=f)
-            printb(train,file=f)
+            printb(profile,file=f,nl=0)
+            printb(test,file=f,nl=0)
+            printb(train,file=f,nl=0)
 
 # load profiles from disk
 def load_profiles():

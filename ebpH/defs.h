@@ -19,8 +19,11 @@
 // we need some extra definitions if we are including this file from userspace
 #ifdef USERSPACE
 #define TASK_COMM_LEN 16
-typedef unsigned long u64;
-typedef unsigned int  u32;
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t  u8;
+typedef long time_t;
 typedef long time_t;
 #endif
 
