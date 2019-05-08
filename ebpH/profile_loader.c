@@ -33,7 +33,7 @@ pH_profile_payload *load_profile(char *path)
     if(f == NULL)
         return NULL;
 
-    while(fread(p, sizeof(pH_profile), 1, f))
+    while(fread(p, sizeof(pH_profile_payload), 1, f))
     {
 
     }

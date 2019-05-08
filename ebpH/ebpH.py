@@ -119,9 +119,7 @@ def save_profiles():
                 if exc.errno != errno.EEXIST:
                     raise
         with open(profile_path, "w") as f:
-            printb(profile,file=f,nl=0)
-            printb(test,file=f,nl=0)
-            printb(train,file=f,nl=0)
+            printb(b"".join([profile,test,train]),file=f,nl=0)
 
 # load profiles from disk
 def load_profiles():
@@ -170,6 +168,8 @@ if __name__ == "__main__":
     bpf = BPF(text=text)
     # register callback to load profiles
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+    execve_fnname = bpf.get_syscall_fnname("execve")
+    bpf.attach_kprobe(event=execve_fnname, fn_name='pH_on_do_execve_file')
 
     # load in any profiles
     load_profiles()
@@ -180,6 +180,7 @@ if __name__ == "__main__":
         # update the hashmap of sequences
         try:
             bpf.perf_buffer_poll()
+            sleep(1)
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)

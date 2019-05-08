@@ -14,10 +14,18 @@
  * Licensed under GPL v3 License */
 
 #include <linux/sched.h>
+#include <linux/fs.h>
+#include <linux/path.h>
 #include "defs.h"
 #include "profiles.h"
 
 #define BPF_LICENSE GPL
+
+typedef struct
+{
+    char filename[FILENAME_LEN];
+}
+filename_t;
 
 // *** BPF hashmaps ***
 
@@ -75,7 +83,9 @@ static u64 pH_hash_str(char *s)
 {
     u64 hash = 0;
 
-    for(int i = 0; i < TASK_COMM_LEN; i++)
+    // FIXME: this should NOT be 16... Should be FILENAME_LEN
+    //        unfortunately this currently causes the verifier to complain....
+    for(int i = 0; i < 16; i++)
     {
         hash = 37 * hash + (u64) s[i];
     }
@@ -181,46 +191,104 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_r
 
 // *** pH profile create/update subroutines ***
 
-// create or update a pH profile
-// TODO: finish this (right now it just creates a sequence with nothing in it)
-//       also -- need to create two sets of profile data and link it with separate hashmaps
-static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *syscall)
-{
-    int i;
-    u64 hash;
-    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
-                    .window_size = 0, .count = 0, .anomalies = 0};
-    pH_profile *temp;
+//// FIXME: this is currently test code due to broken hash function
+//static int pH_create_or_update_base_profile(char *filename, u64 *pid_tgid, long *syscall)
+//{
+//    int i;
+//    u64 hash;
+//    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
+//                    .window_size = 0, .count = 0, .anomalies = 0};
+//    pH_profile *temp;
+//
+//    if(filename == NULL || pid_tgid == NULL || syscall == NULL)
+//        return -1;
+//
+//    if(*syscall == SYS_EXECVE)
+//    {
+//        // initialize the filename
+//        bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
+//
+//        // filter out execve calls with no filename
+//        if(p.filename[0] == 0)
+//            return 0;
+//
+//        // hash the filename
+//        hash = pH_hash_str(p.filename);
+//        // either init the profile or copy it from the map if it exists
+//        temp = profile.lookup_or_init(&hash, &p);
+//    }
+//
+//    return 0;
+//}
+//
+//// FIXME: this is currently test code due to broken hash function
+//static int pH_create_or_update_train_data(char *filename, u64 *pid_tgid, long *syscall)
+//{
+//    char test1[4] = "hi";
+//    u64 test = pH_hash_str(test1);
+//    pH_profile_data d;
+//
+//    d.last_mod_count = 0;
+//    d.train_count = 0;
+//
+//    train_data.lookup_or_init(&test, &d);
+//
+//    return 0;
+//}
+//
+//// FIXME: this is currently test code due to broken hash function
+//static int pH_create_or_update_test_data(char *filename, u64 *pid_tgid, long *syscall)
+//{
+//    char test1[4] = "hi";
+//    u64 test = pH_hash_str(test1);
+//    pH_profile_data d;
+//
+//    d.last_mod_count = 0;
+//    d.train_count = 0;
+//
+//    test_data.lookup_or_init(&test, &d);
+//    return 0;
+//}
+//
+//// create or update a pH profile
+//// TODO: finish this (right now it just creates a sequence with nothing in it)
+////       also -- need to create two sets of profile data and link it with separate hashmaps
+//static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *syscall)
+//{
+//    pH_create_or_update_base_profile(filename, pid_tgid, syscall);
+//    pH_create_or_update_train_data(filename, pid_tgid, syscall);
+//    pH_create_or_update_test_data(filename, pid_tgid, syscall);
+//
+//    return 0;
+//}
 
-    if(filename == NULL || pid_tgid == NULL || syscall == NULL)
+// FIXME: get this working
+// hooks onto execve helper function in kernelspace
+int pH_on_do_execve_file(struct pt_regs *ctx, struct file *exec_file, void *__argv, void *envp)
+{
+    struct dentry *exec_entry;
+    struct inode *exec_inode;
+    u32 ino = 0;
+
+    if(!ctx)
+        return -1;
+    if(!exec_file)
         return -1;
 
-    if(*syscall == SYS_EXECVE)
-    {
-        // initialize the filename
-        bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
+    // fetch dentry for executable
+    exec_entry = exec_file->f_path.dentry;
+    if(!exec_entry)
+        return -1;
 
-        // filter out execve calls with no filename
-        if(p.filename[0] == 0)
-            return 0;
+    // fetch inode for executable
+    exec_inode = exec_entry->d_inode;
+    if(!exec_inode)
+        return -1;
 
-        // hash the filename
-        hash = pH_hash_str(p.filename);
-        // either init the profile or copy it from the map if it exists
-        temp = profile.lookup_or_init(&hash, &p);
-    }
+    ino = exec_inode->i_ino;
 
+    //bpf_probe_read(fnt->filename, sizeof(fnt->filename), fn);
     return 0;
-}
-
-static int pH_create_or_update_train_data(char *filename, u64 *pid_tgid, long *syscall)
-{
-
-}
-
-static int pH_create_or_update_test_data(char *filename, u64 *pid_tgid, long *syscall)
-{
-
 }
 
 // *** BPF tracepoints ***
@@ -234,7 +302,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
     // create or update the profile for this executable
-    pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
+    //pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
 
     return 0;
 }
