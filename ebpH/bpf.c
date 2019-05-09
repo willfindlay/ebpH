@@ -262,31 +262,53 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_r
 //    return 0;
 //}
 
-// FIXME: get this working
 // hooks onto execve helper function in kernelspace
-int pH_on_do_execve_file(struct pt_regs *ctx, struct file *exec_file, void *__argv, void *envp)
+// FIXME: need to change paramters to match isra-optimized
+//        will likely need to create a macro to check for version-specific goodies
+//        in the user_arg_ptr structs
+//        https://elixir.bootlin.com/linux/latest/source/fs/exec.c#L388
+int pH_on_do_execve_file(struct pt_regs *ctx,
+                         int fd, struct filename *filename,
+                         user_arg_ptr argv,
+                         user_arg_ptr envp,
+                         int flags, struct file *exec_file)
 {
     struct dentry *exec_entry;
     struct inode *exec_inode;
     u32 ino = 0;
 
     if(!ctx)
+    {
+        bpf_trace_printk("failed to fetch ctx\n",ino);
         return -1;
+    }
     if(!exec_file)
+    {
+        bpf_trace_printk("failed to fetch exec_file\n",ino);
         return -1;
+    }
 
     // fetch dentry for executable
     exec_entry = exec_file->f_path.dentry;
     if(!exec_entry)
+    {
+        bpf_trace_printk("failed to fetch exec_entry\n",ino);
         return -1;
+    }
 
     // fetch inode for executable
     exec_inode = exec_entry->d_inode;
     if(!exec_inode)
+    {
+        bpf_trace_printk("failed to fetch exec_inode\n",ino);
         return -1;
+    }
 
-    ino = exec_inode->i_ino;
+    char fn[256];
+    bpf_probe_read_str(fn, sizeof(fn), filename->name);
+    kuid_t testificate = exec_inode->i_uid;
 
+    bpf_trace_printk("%s inode number is: %d\n",fn,testificate);
     //bpf_probe_read(fnt->filename, sizeof(fnt->filename), fn);
     return 0;
 }
