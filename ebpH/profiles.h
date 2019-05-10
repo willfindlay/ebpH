@@ -72,7 +72,7 @@ typedef struct
     u64 window_size;
     u64 count;
     u64 anomalies;
-    char filename[FILENAME_LEN];
+    u64 key;
 }
 pH_profile;
 

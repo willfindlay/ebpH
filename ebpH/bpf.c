@@ -21,28 +21,22 @@
 
 #define BPF_LICENSE GPL
 
-typedef struct
-{
-    char filename[FILENAME_LEN];
-}
-filename_t;
-
 // *** BPF hashmaps ***
 
 // sequences hashed by pid_tgid
 BPF_HASH(seq, u64, pH_seq);
 
-// profiles hashed by executable filename
+// profiles hashed by device number << 32 | inode number
 BPF_HASH(profile, u64, pH_profile);
-
+BPF_HASH(pid_tgid_to_profile, u64, pH_profile *);
 // test data hashed by executable filename
 BPF_HASH(test_data,  u64, pH_profile_data);
-
 // training data hashed by executable filename
 BPF_HASH(train_data, u64, pH_profile_data);
 
 // profiles hashed by sequences
 BPF_HASH(seq_profile, pH_seq *, pH_profile *);
+
 
 // *** helper functions ***
 
@@ -75,24 +69,6 @@ static u64 pH_get_ppid_tgid()
     ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
 
     return ppid_tgid;
-}
-
-// function to hash a string
-// this is necessary for the profiles hashmap
-static u64 pH_hash_str(char *s)
-{
-    u64 hash = 0;
-
-    // FIXME: this should NOT be 16... Should be FILENAME_LEN
-    //        unfortunately this currently causes the verifier to complain....
-    for(int i = 0; i < 16; i++)
-    {
-        hash = 37 * hash + (u64) s[i];
-    }
-
-    hash %= TABLE_SIZE;
-
-    return hash;
 }
 
 // *** pH sequence create/update subroutines ***
@@ -157,7 +133,7 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
 
 // called when pH detects a fork system call
 // we use this to copy the parent's sequence to the child
-static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_ret)
+static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
 {
     // child sequence
     pH_seq s = {.count = 0};
@@ -168,7 +144,7 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_r
         return -1;
 
     // we want to be inside the child process
-    if(*execve_ret != 0)
+    if(*fork_ret != 0)
         return 0;
 
     // fetch parent sequence
@@ -262,29 +238,88 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *execve_r
 //    return 0;
 //}
 
-// hooks onto execve helper function in kernelspace
-// FIXME: need to change paramters to match isra-optimized
-//        will likely need to create a macro to check for version-specific goodies
-//        in the user_arg_ptr structs
-//        https://elixir.bootlin.com/linux/latest/source/fs/exec.c#L388
-int pH_on_do_execve_file(struct pt_regs *ctx,
-                         int fd, struct filename *filename,
-                         user_arg_ptr argv,
-                         user_arg_ptr envp,
-                         int flags, struct file *exec_file)
+static int pH_reset_profile_test_data(pH_profile *p)
 {
+    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    // TODO: initialize lookahead pairs here
+
+    if(!p)
+    {
+        bpf_trace_printk("null profile -- pH_reset_profile_test_data");
+        return -1;
+    }
+
+    test_data.update(&p->key, &d);
+
+    return 0;
+}
+
+static int pH_reset_profile_train_data(pH_profile *p)
+{
+    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    // TODO: initialize lookahead pairs here
+
+    if(!p)
+    {
+        bpf_trace_printk("null profile -- pH_reset_profile_train_data");
+        return -1;
+    }
+
+    train_data.update(&p->key, &d);
+
+    return 0;
+}
+
+static int pH_create_profile(u64 *key)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    // init the profile
+    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
+                    .window_size = 0, .count = 0, .anomalies = 0};
+    pH_profile *p_pt;
+
+    if(!key)
+    {
+        bpf_trace_printk("failed to fetch key for new profile\n");
+        return -1;
+    }
+
+    bpf_probe_read(&p.key, sizeof(p.key), key);
+
+    // create and initialize the profile
+    pH_reset_profile_test_data(&p);
+    pH_reset_profile_train_data(&p);
+    pH_profile *temp = profile.lookup_or_init(key, &p);
+
+    // copy profile pointer to stack so we can operate on it
+    bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
+
+    // associate the profile with the appropriate PID
+    pid_tgid_to_profile.update(&pid_tgid, &p_pt);
+
+    return 0;
+}
+
+// hooks onto execve helper responsible for opening the files
+// and snags the return value (a file struct pointer)
+int pH_on_do_open_execat(struct pt_regs *ctx)
+{
+    struct file *exec_file;
     struct dentry *exec_entry;
     struct inode *exec_inode;
-    u32 ino = 0;
+    u64 key = 0;
 
     if(!ctx)
     {
-        bpf_trace_printk("failed to fetch ctx\n",ino);
+        bpf_trace_printk("failed to fetch ctx\n");
         return -1;
     }
-    if(!exec_file)
+
+    // yoink the file struct
+    exec_file = (struct file *)PT_REGS_RC(ctx);
+    if(!exec_file || IS_ERR(exec_file))
     {
-        bpf_trace_printk("failed to fetch exec_file\n",ino);
+        bpf_trace_printk("failed to fetch exec_file\n");
         return -1;
     }
 
@@ -292,7 +327,7 @@ int pH_on_do_execve_file(struct pt_regs *ctx,
     exec_entry = exec_file->f_path.dentry;
     if(!exec_entry)
     {
-        bpf_trace_printk("failed to fetch exec_entry\n",ino);
+        bpf_trace_printk("failed to fetch exec_entry\n");
         return -1;
     }
 
@@ -300,16 +335,21 @@ int pH_on_do_execve_file(struct pt_regs *ctx,
     exec_inode = exec_entry->d_inode;
     if(!exec_inode)
     {
-        bpf_trace_printk("failed to fetch exec_inode\n",ino);
+        bpf_trace_printk("failed to fetch exec_inode\n");
         return -1;
     }
 
-    char fn[256];
-    bpf_probe_read_str(fn, sizeof(fn), filename->name);
-    kuid_t testificate = exec_inode->i_uid;
+    // we want a key to be comprised of device number in the upper 32 bits
+    // and inode number in the lower 32 bits
+    key  = exec_inode->i_ino;
+    key |= ((u64)exec_inode->i_rdev << 32);
 
-    bpf_trace_printk("%s inode number is: %d\n",fn,testificate);
-    //bpf_probe_read(fnt->filename, sizeof(fnt->filename), fn);
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    bpf_trace_printk("pid is %d and inode is %d\n", pid_tgid >> 32, (u32)key);
+
+    // create a new profile with this key
+    pH_create_profile(&key);
+
     return 0;
 }
 
@@ -353,27 +393,32 @@ static int pH_load_test_data(pH_profile_payload *payload)
     pH_profile_data d;
     pH_profile_data *temp;
     pH_profile *p;
-    u64 hash = 0;
+    u64 key = 0;
 
-    // lookup original profile from hashmap
-    hash = pH_hash_str(payload->profile.filename);
-    p = profile.lookup(&hash);
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_load_test_data \n");
+        return -1;
+    }
+
+    // grab the appropriate key
+    key = payload->profile.key;
 
     // read in the test data
     bpf_probe_read(&d, sizeof(d), &payload->test);
 
     // check to see if test data exists in memory
-    temp = test_data.lookup(&hash);
+    temp = test_data.lookup(&key);
 
     // if it does, update it
     if(temp != NULL)
     {
-        test_data.update(&hash, &d);
+        test_data.update(&key, &d);
     }
     // otherwise, create it
     else
     {
-        test_data.lookup_or_init(&hash, &d);
+        test_data.lookup_or_init(&key, &d);
     }
 
     return 0;
@@ -385,27 +430,32 @@ static int pH_load_train_data(pH_profile_payload *payload)
     pH_profile_data d;
     pH_profile_data *temp;
     pH_profile *p;
-    u64 hash = 0;
+    u64 key = 0;
 
-    // lookup original profile from hashmap
-    hash = pH_hash_str(payload->profile.filename);
-    p = profile.lookup(&hash);
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_load_train_data \n");
+        return -1;
+    }
+
+    // grab the appropriate key
+    key = payload->profile.key;
 
     // read in the train data
     bpf_probe_read(&d, sizeof(d), &payload->train);
 
     // check to see if train data exists in memory
-    temp = train_data.lookup(&hash);
+    temp = train_data.lookup(&key);
 
     // if it does, update it
     if(temp != NULL)
     {
-        train_data.update(&hash, &d);
+        train_data.update(&key, &d);
     }
     // otherwise, create it
     else
     {
-        train_data.lookup_or_init(&hash, &d);
+        train_data.lookup_or_init(&key, &d);
     }
 
     return 0;
@@ -415,25 +465,31 @@ static int pH_load_base_profile(pH_profile_payload *payload)
 {
     pH_profile p;
     pH_profile *temp;
-    u64 hash = 0;
+    u64 key = 0;
+
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_load_base_profile \n");
+        return -1;
+    }
 
     bpf_probe_read(&p, sizeof(p), &payload->profile);
 
     // calculate the hash and lookup the profile
-    hash = pH_hash_str(p.filename);
+    key = p.key;
 
     // check to see if profile exists in memory
-    temp = profile.lookup(&hash);
+    temp = profile.lookup(&key);
 
     // if it does, update it
     if(temp != NULL)
     {
-        profile.update(&hash, &p);
+        profile.update(&key, &p);
     }
     // otherwise, create it
     else
     {
-        profile.lookup_or_init(&hash, &p);
+        profile.lookup_or_init(&key, &p);
     }
     return 0;
 }
@@ -443,11 +499,11 @@ int pH_load_profile(struct pt_regs *ctx)
 {
     pH_profile_payload *payload = (pH_profile_payload *)PT_REGS_RC(ctx);
 
-    if(payload == NULL)
-        return 0;
-
-    if(payload->profile.filename[0] == 0)
-        return 0;
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_load_profile \n");
+        return -1;
+    }
 
     pH_load_base_profile(payload);
     pH_load_test_data(payload);

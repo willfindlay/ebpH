@@ -57,6 +57,7 @@ def handle_errno(errstr):
 def print_sequences():
     # fetch BPF hashmap
     seq_hash = bpf["seq"]
+    pid_to_profile = bpf["pid_tgid_to_profile"]
 
     # print system time
     print()
@@ -87,6 +88,7 @@ def print_sequences():
             arr.append("%s(%s)" % (name.decode('utf-8'), call))
         print(textwrap.fill(", ".join(arr)))
         print()
+        print(pid_to_profile.next(p))
 
 # TODO: flesh this out... right now it just prints profile filenames
 def print_profiles():
@@ -94,8 +96,7 @@ def print_profiles():
     profile_hash = bpf["profile"]
 
     for k, profile in profile_hash.items():
-        filename = profile.filename.decode('utf-8')
-        print(filename)
+        print(k)
 
 # save profiles to disk
 def save_profiles():
@@ -104,7 +105,7 @@ def save_profiles():
     train_hash = bpf["train_data"]
 
     for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
-        filename = profile.filename.decode('utf-8')
+        filename = str(profile.key)
 
         # get rid of slash if it is the first character
         if filename[0] == r'/':
@@ -169,7 +170,7 @@ if __name__ == "__main__":
     # register callback to load profiles
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
     #execve_fnname = bpf.get_syscall_fnname("execve")
-    bpf.attach_kprobe(event='__do_execve_file.isra.14', fn_name='pH_on_do_execve_file')
+    bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
     # load in any profiles
     load_profiles()

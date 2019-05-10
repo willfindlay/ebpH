@@ -1,907 +1,2153 @@
 
-[07:03:50 AM]
+[13:27:16 PM]
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1881     900     
-
-Sequence:
-poll(7), poll(7), futex(202), getpid(39), futex(202), futex(202),
-write(1), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1177     14      
-
-Sequence:
-futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
-futex(202), writev(20)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1189     2964    
-
-Sequence:
-ppoll(271), read(0), write(1), read(0), write(1), read(0), ppoll(271),
-read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1177     6       
-
-Sequence:
-futex(202), futex(202), close(3), read(0), openat(257), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3101     298     
-
-Sequence:
-poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
-poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1178     8       
-
-Sequence:
-futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
-stat(4), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-22050    2       
-
-Sequence:
-epoll_pwait(281), read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-18760    256     
-
-Sequence:
-bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
-bpf(321)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1914     2       
-
-Sequence:
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1189     2240    
-
-Sequence:
-ppoll(271), ioctl(16), ioctl(16), write(1), ioctl(16), read(0),
-ppoll(271), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1881     52      
+14038    12826   
 
 Sequence:
 futex(202), futex(202), futex(202), futex(202), futex(202),
 futex(202), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1898     2       
+3574     27      
 
 Sequence:
-futex(202), futex(202)
+futex(202), futex(202), futex(202), madvise(28), madvise(28),
+futex(202), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1441     16      
+3559     7966    
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), poll(7), writev(20)
+epoll_wait(232), epoll_wait(232), epoll_wait(232), sendto(44),
+gettid(186), sendto(44), gettid(186), read(0)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1160     3       
+14038    11856   
 
 Sequence:
-poll(7), write(1), recvmsg(47)
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3177     99      
+14038    14103   
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
+futex(202), futex(202), futex(202), write(1), getpid(39), write(1),
+gettid(186), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1914     422     
+2352     92      
 
 Sequence:
-futex(202), gettid(186), gettid(186), futex(202), futex(202),
-gettid(186), gettid(186), futex(202)
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
 
-
-----------------------------------------------------------
-
-PID      COUNT   
-16952    18      
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
-recvmsg(47), recvmsg(47)
-
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1914     332     
-
-Sequence:
-epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
-gettid(186), gettid(186), gettid(186), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3360     6       
-
-Sequence:
-epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
-read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3101     12      
-
-Sequence:
-epoll_wait(232), recvmsg(47), write(1), recvmsg(47), epoll_wait(232),
-recvmsg(47), write(1), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-2019     6       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3101     133     
+3827     6127    
 
 Sequence:
 futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
 futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3246     4       
-
-Sequence:
-futex(202), futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3246     625     
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1189     522     
-
-Sequence:
-ppoll(271), ioctl(16), ioctl(16), ioctl(16), read(0), ppoll(271),
-ioctl(16), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    2       
-
-Sequence:
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    10      
-
-Sequence:
-futex(202), futex(202), futex(202), futex(202), futex(202),
-futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    7       
-
-Sequence:
-futex(202), poll(7), futex(202), futex(202), poll(7), futex(202),
-futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-676      1418    
-
-Sequence:
-epoll_wait(232), setitimer(38), recvmsg(47), writev(20), recvmsg(47),
-setitimer(38), epoll_wait(232), setitimer(38)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    2       
-
-Sequence:
-nanosleep(35), nanosleep(35)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1914     42      
-
-Sequence:
-futex(202), futex(202), futex(202), gettid(186), futex(202),
-gettid(186), gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3246     6       
-
-Sequence:
-epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
-read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1881     1034    
-
-Sequence:
-nanosleep(35), getpid(39), write(1), getpid(39), futex(202),
-getpid(39), futex(202), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-25795    4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-16921    2       
-
-Sequence:
-futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1881     2303    
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), read(0), poll(7), read(0)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-23861    4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-28153    4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-22050    19      
-
-Sequence:
-epoll_pwait(281), epoll_pwait(281), write(1), epoll_pwait(281),
-stat(4), getcwd(79), epoll_pwait(281), stat(4)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1189     575     
-
-Sequence:
-ppoll(271), ioctl(16), ioctl(16), ioctl(16), read(0), ppoll(271),
-ioctl(16), ioctl(16)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1144     12      
-
-Sequence:
-epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
-epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1898     7       
-
-Sequence:
-futex(202), gettid(186), futex(202), futex(202), write(1),
-gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1914     37      
-
-Sequence:
-futex(202), gettid(186), futex(202), gettid(186), gettid(186),
-futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1432     4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1177     21      
+21949    327     
 
 Sequence:
 futex(202), futex(202), close(3), read(0), read(0), openat(257),
 futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1177     8       
+3574     1158    
 
 Sequence:
-futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
-stat(4), futex(202)
+futex(202), gettid(186), gettid(186), gettid(186), dup(32), write(1),
+mmap(9), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-17012    6       
+755      79515   
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202), futex(202), futex(202)
+epoll_wait(232), setitimer(38), recvmsg(47), writev(20), writev(20),
+recvmsg(47), setitimer(38), epoll_wait(232)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1160     111     
+2139     13      
 
 Sequence:
-poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7), poll(7)
+futex(202), futex(202), madvise(28), madvise(28), madvise(28),
+futex(202), madvise(28), madvise(28)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7761     4       
+2139     6       
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202)
+recvmsg(47), close(3), close(3), sendmsg(46), sendmsg(46), openat(257)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7761     172     
+13110    6576    
 
 Sequence:
-futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
-write(1), futex(202)
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47)
 
-
-----------------------------------------------------------
-
-PID      COUNT   
-3177     4       
-
-Sequence:
-futex(202), futex(202), futex(202), futex(202)
-
+c_ulong(55323473752657)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3360     1232    
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-7899     4       
-
-Sequence:
-futex(202), futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    14      
+23010    341     
 
 Sequence:
 poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
 write(1)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3246     172     
+324      13      
 
 Sequence:
-futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
-write(1), futex(202)
+epoll_wait(232), timerfd_settime(286), close(3), sendmsg(46),
+getegid(108), getgid(104), geteuid(107), getuid(102)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3360     4       
+12844    33      
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202)
+futex(202), futex(202), access(21), access(21), mprotect(10), mmap(9),
+prctl(157), set_robust_list(273)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-17012    2       
+3542     936     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1000     72      
+
+Sequence:
+select(23), getpid(39), close(3), close(3), close(3), write(1),
+write(1), close(3)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     2       
 
 Sequence:
 futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-13082    258     
+13051    309     
 
 Sequence:
-poll(7), recvmsg(47), read(0), poll(7), recvmsg(47), write(1),
-read(0), read(0)
+poll(7), read(0), futex(202), read(0), poll(7), read(0), write(1),
+sendto(44)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1898     703     
+3574     29      
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
-recvmsg(47), recvmsg(47)
+futex(202), futex(202), futex(202), madvise(28), madvise(28),
+futex(202), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7761     9       
+12898    95      
 
 Sequence:
-epoll_wait(232), read(0), epoll_wait(232), read(0), epoll_wait(232),
-sendmsg(46), sendmsg(46), sendmsg(46)
+futex(202), futex(202), futex(202), futex(202), access(21),
+access(21), mprotect(10), munmap(11)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1881     407     
+536      185     
 
 Sequence:
-epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
-gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232)
+poll(7), poll(7), read(0), poll(7), close(3), write(1), read(0),
+poll(7)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1156     2007    
+3559     63      
 
 Sequence:
-epoll_wait(232), recvmsg(47), poll(7), writev(20), poll(7),
-getpid(39), getpid(39), getpid(39)
+futex(202), gettid(186), futex(202), futex(202), write(1),
+gettid(186), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7899     191     
+2139     8497    
 
 Sequence:
 futex(202), futex(202), futex(202), futex(202), futex(202),
-futex(202), futex(202), write(1)
+futex(202), futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-7899     664     
+21949    141     
+
+Sequence:
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     53639   
 
 Sequence:
 poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
 poll(7), recvmsg(47)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1881     18      
+2798     21519   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), writev(20)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     19272   
+
+Sequence:
+nanosleep(35), getpid(39), write(1), getpid(39), futex(202),
+getpid(39), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    198     
+
+Sequence:
+select(23), recvmsg(47), recvmsg(47), select(23), recvmsg(47),
+recvmsg(47), select(23), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12794    1529    
+
+Sequence:
+bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321), bpf(321),
+bpf(321)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     238     
+
+Sequence:
+futex(202), futex(202), fcntl(72), futex(202), futex(202), sendto(44),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    106     
+
+Sequence:
+read(0), futex(202), futex(202), futex(202), close(3), read(0),
+read(0), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3331     361     
+
+Sequence:
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    46      
+
+Sequence:
+futex(202), write(1), write(1), write(1), write(1), write(1),
+gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     51      
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7),
+write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     12      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     42188   
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), futex(202), read(0),
+poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     13      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13051    167     
+
+Sequence:
+futex(202), futex(202), access(21), access(21), mprotect(10), mmap(9),
+prctl(157), set_robust_list(273)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     11936   
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), write(1),
+gettid(186), recvmsg(47), epoll_wait(232), epoll_wait(232)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     13471   
+
+Sequence:
+epoll_wait(232), epoll_wait(232), epoll_wait(232), futex(202),
+gettid(186), gettid(186), gettid(186), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     18      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    19781   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     10123   
+
+Sequence:
+futex(202), gettid(186), gettid(186), futex(202), futex(202),
+gettid(186), gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    336     
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     2       
+
+Sequence:
+poll(7), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    1168    
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    14      
+
+Sequence:
+futex(202), futex(202), futex(202), madvise(28), madvise(28),
+madvise(28), madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     15942   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12844    34      
+
+Sequence:
+poll(7), read(0), poll(7), prctl(157), mprotect(10), munmap(11),
+munmap(11), mmap(9)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    19869   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    92      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1320     170     
+
+Sequence:
+nanosleep(35), recvmsg(47), poll(7), writev(20), poll(7), recvmsg(47),
+poll(7), writev(20)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    222     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), writev(20), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    189     
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
+stat(4), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     468     
+
+Sequence:
+select(23), select(23), select(23), select(23), select(23),
+select(23), select(23), select(23)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     40603   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), recvmsg(47), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     29      
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), write(1), read(0),
+poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     85      
+
+Sequence:
+futex(202), write(1), close(3), getsockname(51), connect(42),
+connect(42), getsockname(51), connect(42)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    16      
+
+Sequence:
+futex(202), futex(202), close(3), statfs(137), read(0), read(0),
+openat(257), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    65735   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1351     10118   
+
+Sequence:
+ppoll(271), ioctl(16), ioctl(16), ioctl(16), read(0), ppoll(271),
+ioctl(16), ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1322     357     
+
+Sequence:
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     127     
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2352     279     
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0), epoll_wait(232), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    2796    
+
+Sequence:
+futex(202), poll(7), futex(202), futex(202), poll(7), futex(202),
+futex(202), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+766      28      
+
+Sequence:
+poll(7), read(0), poll(7), write(1), poll(7), write(1), read(0),
+poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     647     
 
 Sequence:
 epoll_wait(232), epoll_wait(232), timerfd_settime(286),
 epoll_wait(232), timerfd_settime(286), futex(202), getpid(39),
 futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-16921    17      
+3574     1094    
 
 Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), recvmsg(47), poll(7)
+futex(202), futex(202), futex(202), futex(202), gettid(186),
+futex(202), gettid(186), gettid(186)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1914     44      
+3559     2       
 
 Sequence:
-futex(202), futex(202), futex(202), gettid(186), gettid(186),
-futex(202), futex(202), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3101     17      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    5       
-
-Sequence:
-poll(7), poll(7), poll(7), poll(7), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3360     340     
-
-Sequence:
-futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
 futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-18759    7       
+2139     31      
 
 Sequence:
-ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
-rt_sigreturn(15), write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-7547     4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3584     4       
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-8117     22      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1178     155     
-
-Sequence:
-poll(7), futex(202), futex(202), poll(7), futex(202), futex(202),
-poll(7), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-17012    10      
-
-Sequence:
-futex(202), gettid(186), gettid(186), gettid(186), gettid(186),
-gettid(186), gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-8111     22      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-7761     671     
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
-poll(7), recvmsg(47)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-8108     22      
-
-Sequence:
-poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
-write(1)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1881     1119    
-
-Sequence:
-poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
-recvmsg(47), recvmsg(47), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1898     81      
-
-Sequence:
-futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
-sched_yield(24), getpid(39)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1178     14      
-
-Sequence:
-futex(202), writev(20), poll(7), futex(202), futex(202), writev(20),
-poll(7), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1914     313     
-
-Sequence:
-futex(202), gettid(186), gettid(186), futex(202), futex(202),
-gettid(186), gettid(186), futex(202)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-3779     16      
-
-Sequence:
-poll(7), write(1), poll(7), recvfrom(45), poll(7), write(1), poll(7),
-recvfrom(45)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1177     154     
-
-Sequence:
-futex(202), poll(7), futex(202), futex(202), poll(7), futex(202),
-futex(202), poll(7)
-
-
-----------------------------------------------------------
-
-PID      COUNT   
-1178     21      
-
-Sequence:
-futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
 futex(202), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3101     4       
+12848    1006    
 
 Sequence:
-futex(202), futex(202), futex(202), futex(202)
+kill(62), getpid(39), rt_sigaction(13), setpgid(109),
+rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14), rt_sigaction(13)
 
+c_ulong(56191057146651)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1178     6       
+3492     360     
 
 Sequence:
-futex(202), futex(202), close(3), read(0), openat(257), futex(202)
+poll(7), write(1), recvmsg(47), poll(7), write(1), recvmsg(47),
+poll(7), write(1)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-3177     19      
+21949    189     
+
+Sequence:
+futex(202), stat(4), stat(4), futex(202), futex(202), stat(4),
+stat(4), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     3900    
 
 Sequence:
 futex(202), write(1), futex(202), futex(202), futex(202), futex(202),
 write(1), futex(202)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1898     307     
+21950    2796    
 
 Sequence:
-epoll_wait(232), epoll_wait(232), sendto(44), gettid(186), read(0),
-epoll_wait(232), epoll_wait(232), sendto(44)
+futex(202), poll(7), futex(202), futex(202), poll(7), futex(202),
+futex(202), poll(7)
 
+c_ulong(55241869374014)
 
 ----------------------------------------------------------
 
 PID      COUNT   
-1914     59      
+5501     2189    
 
 Sequence:
-futex(202), gettid(186), gettid(186), futex(202), gettid(186),
-gettid(186), futex(202), futex(202)
+epoll_pwait(281), read(0), epoll_pwait(281), read(0),
+epoll_pwait(281), futex(202), futex(202), write(1)
 
-/usr/bin/dmenu
-/bin/bash
-/usr/bin/i3
-/usr/bin/cat
-/usr/bin/dircolors
-/usr/bin/firefox
-/usr/bin/termite
-/usr/bin/uname
-/home/housedhorse/documents/school/ebpH/ebpH/profile_loader
-/usr/bin/playerctl
-/usr/bin/tput
-/usr/bin/dmenu_run
-/usr/bin/stest
-/usr/bin/stty
-/usr/bin/ls
-/usr/bin/ruby
-/usr/bin/git
-/usr/lib/firefox/firefox
-/usr/bin/dmenu_path
-/usr/bin/sed
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    12323   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+528      6       
+
+Sequence:
+epoll_pwait(281), recvmsg(47), recvmsg(47), epoll_pwait(281),
+recvmsg(47), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     247     
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0), epoll_wait(232), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     828     
+
+Sequence:
+recvmsg(47), close(3), sendmsg(46), sendmsg(46), unlink(87),
+recvmsg(47), close(3), close(3)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13051    168     
+
+Sequence:
+poll(7), read(0), poll(7), prctl(157), mprotect(10), munmap(11),
+munmap(11), mmap(9)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     344     
+
+Sequence:
+poll(7), recvfrom(45), recvfrom(45), poll(7), read(0), poll(7),
+read(0), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1351     40067   
+
+Sequence:
+ppoll(271), ioctl(16), ioctl(16), write(1), ioctl(16), read(0),
+ppoll(271), ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13110    361     
+
+Sequence:
+poll(7), read(0), futex(202), read(0), poll(7), read(0), write(1),
+sendto(44)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     8       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     14      
+
+Sequence:
+futex(202), write(1), futex(202), write(1), lseek(8), write(1),
+lseek(8), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+7227     67078   
+
+Sequence:
+select(23), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+writev(20), poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3331     12      
+
+Sequence:
+poll(7), write(1), read(0), ioctl(16), poll(7), write(1), read(0),
+ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     1139    
+
+Sequence:
+futex(202), gettid(186), gettid(186), gettid(186), futex(202),
+gettid(186), gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2352     1658    
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     13185   
+
+Sequence:
+epoll_wait(232), sendmsg(46), read(0), epoll_wait(232), recvmsg(47),
+recvmsg(47), epoll_wait(232), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12898    93      
+
+Sequence:
+poll(7), read(0), poll(7), prctl(157), mprotect(10), munmap(11),
+munmap(11), mmap(9)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    329     
+
+Sequence:
+futex(202), futex(202), close(3), read(0), read(0), openat(257),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1322     2710    
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    16      
+
+Sequence:
+futex(202), futex(202), close(3), statfs(137), read(0), read(0),
+openat(257), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     15      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     16606   
+
+Sequence:
+poll(7), futex(202), getpid(39), futex(202), write(1), write(1),
+getpid(39), getpid(39)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     130     
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13055    1125    
+
+Sequence:
+kill(62), getpid(39), rt_sigaction(13), setpgid(109),
+rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14), rt_sigaction(13)
+
+c_ulong(55357833491033)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13115    1447    
+
+Sequence:
+pselect6(270), write(1), rt_sigaction(13), rt_sigprocmask(14),
+rt_sigaction(13), rt_sigaction(13), rt_sigaction(13), rt_sigaction(13)
+
+c_ulong(55727200678575)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     525     
+
+Sequence:
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47),
+epoll_wait(232), recvmsg(47), epoll_wait(232), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     1060    
+
+Sequence:
+futex(202), futex(202), futex(202), gettid(186), gettid(186),
+gettid(186), gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     11      
+
+Sequence:
+epoll_wait(232), epoll_wait(232), read(0), epoll_wait(232), write(1),
+read(0), epoll_wait(232), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+766      4       
+
+Sequence:
+poll(7), read(0), poll(7), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     445     
+
+Sequence:
+futex(202), write(1), futex(202), futex(202), write(1), futex(202),
+futex(202), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     32250   
+
+Sequence:
+poll(7), recvmsg(47), poll(7), recvmsg(47), poll(7), recvmsg(47),
+poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    144     
+
+Sequence:
+futex(202), futex(202), close(3), read(0), openat(257), futex(202),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13110    218     
+
+Sequence:
+poll(7), read(0), poll(7), prctl(157), mprotect(10), munmap(11),
+munmap(11), mmap(9)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     77      
+
+Sequence:
+futex(202), futex(202), access(21), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    12321   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+7775     210     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    105     
+
+Sequence:
+read(0), futex(202), futex(202), futex(202), close(3), read(0),
+read(0), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12903    1005    
+
+Sequence:
+kill(62), getpid(39), rt_sigaction(13), setpgid(109),
+rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14), rt_sigaction(13)
+
+c_ulong(54988466303491)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3492     21716   
+
+Sequence:
+epoll_wait(232), timerfd_settime(286), epoll_wait(232),
+epoll_ctl(233), recvmsg(47), sendmsg(46), recvmsg(47), epoll_wait(232)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+311      1087    
+
+Sequence:
+epoll_wait(232), timerfd_settime(286), ftruncate(77), read(0),
+clock_gettime(228), epoll_wait(232), timerfd_settime(286), openat(257)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1        259     
+
+Sequence:
+epoll_wait(232), waitid(247), clock_gettime(228), epoll_wait(232),
+waitid(247), close(3), read(0), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3492     265     
+
+Sequence:
+poll(7), write(1), write(1), read(0), poll(7), write(1), write(1),
+read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     456     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+stat(4), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     16323   
+
+Sequence:
+futex(202), futex(202), futex(202), write(1), futex(202), futex(202),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    4       
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     492     
+
+Sequence:
+futex(202), futex(202), close(3), getdents64(217), close(3), lseek(8),
+read(0), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1351     53368   
+
+Sequence:
+ppoll(271), read(0), write(1), read(0), write(1), read(0), ppoll(271),
+read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+15957    203     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+26073    210     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     23      
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3574     12576   
+
+Sequence:
+futex(202), sendto(44), sendto(44), futex(202), futex(202),
+gettid(186), gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3827     160     
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0), epoll_wait(232), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12844    176     
+
+Sequence:
+poll(7), read(0), futex(202), read(0), poll(7), read(0), write(1),
+sendto(44)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    83      
+
+Sequence:
+futex(202), futex(202), madvise(28), madvise(28), madvise(28),
+futex(202), futex(202), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1352     12      
+
+Sequence:
+poll(7), write(1), poll(7), write(1), poll(7), write(1), poll(7),
+write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     293     
+
+Sequence:
+futex(202), write(1), write(1), lseek(8), write(1), lseek(8),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    20013   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     21368   
+
+Sequence:
+futex(202), gettid(186), write(1), writev(20), poll(7), futex(202),
+futex(202), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3559     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    10      
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     12      
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13317    896     
+
+Sequence:
+select(23), geteuid(107), getuid(102), close(3), alarm(37),
+rt_sigaction(13), alarm(37), fcntl(72)
+
+c_ulong(57178899624961)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     20      
+
+Sequence:
+epoll_wait(232), recvmsg(47), epoll_wait(232), epoll_wait(232),
+recvmsg(47), epoll_wait(232), recvmsg(47), epoll_wait(232)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2802     196     
+
+Sequence:
+wait4(61), wait4(61), rt_sigprocmask(14), rt_sigprocmask(14),
+kill(62), rt_sigprocmask(14), ioctl(16), rt_sigprocmask(14)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     5       
+
+Sequence:
+futex(202), write(1), gettid(186), gettid(186), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     421     
+
+Sequence:
+epoll_wait(232), read(0), epoll_wait(232), sendmsg(46), sendmsg(46),
+read(0), epoll_wait(232), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+521      16      
+
+Sequence:
+poll(7), read(0), write(1), poll(7), read(0), write(1), recvmsg(47),
+recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12793    7       
+
+Sequence:
+ppoll(271), rt_sigprocmask(14), rt_sigprocmask(14), read(0), read(0),
+rt_sigreturn(15), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1352     12      
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    11      
+
+Sequence:
+futex(202), madvise(28), mmap(9), futex(202), futex(202), madvise(28),
+madvise(28), madvise(28)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1322     12      
+
+Sequence:
+poll(7), write(1), read(0), ioctl(16), poll(7), write(1), read(0),
+ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+13318    476     
+
+Sequence:
+read(0), write(1), write(1), clock_gettime(228), read(0), select(23),
+write(1), getpid(39)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+23001    341     
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     3       
+
+Sequence:
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3827     92      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21949    219     
+
+Sequence:
+futex(202), writev(20), poll(7), futex(202), futex(202), futex(202),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+12898    236     
+
+Sequence:
+poll(7), read(0), futex(202), read(0), poll(7), read(0), write(1),
+sendto(44)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+16001    2       
+
+Sequence:
+poll(7), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+536      74      
+
+Sequence:
+poll(7), poll(7), brk(12), close(3), write(1), fstat(5), openat(257),
+stat(4)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     434     
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    11749   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    17884   
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), write(1), futex(202),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+520      46      
+
+Sequence:
+epoll_wait(232), sendmsg(46), sendmsg(46), close(3), epoll_ctl(233),
+recvmsg(47), epoll_wait(232), sendmsg(46)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     92      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     930     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202), write(1),
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2352     6639    
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3827     24991   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), poll(7), recvmsg(47), recvmsg(47),
+poll(7), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3665     444     
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), poll(7), recvmsg(47),
+recvmsg(47), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3542     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3559     16578   
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47), poll(7),
+recvmsg(47), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    7       
+
+Sequence:
+futex(202), madvise(28), madvise(28), madvise(28), madvise(28),
+madvise(28), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+5501     8828    
+
+Sequence:
+epoll_pwait(281), epoll_pwait(281), write(1), read(0),
+epoll_pwait(281), epoll_pwait(281), write(1), epoll_pwait(281)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    196     
+
+Sequence:
+select(23), recvmsg(47), recvmsg(47), select(23), recvmsg(47),
+recvmsg(47), select(23), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    8       
+
+Sequence:
+futex(202), futex(202), futex(202), madvise(28), madvise(28),
+madvise(28), madvise(28), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    16822   
+
+Sequence:
+epoll_wait(232), recvmsg(47), futex(202), recvmsg(47),
+epoll_wait(232), futex(202), sendmsg(46), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     92      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2497     2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+757      418     
+
+Sequence:
+poll(7), inotify_add_watch(254), poll(7), read(0), poll(7), write(1),
+write(1), read(0)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     153     
+
+Sequence:
+futex(202), write(1), lseek(8), write(1), lseek(8), write(1),
+lseek(8), write(1)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1306     3084    
+
+Sequence:
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47),
+epoll_wait(232), recvmsg(47), recvmsg(47), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1600     1420    
+
+Sequence:
+poll(7), recvmsg(47), recvmsg(47), recvmsg(47), recvmsg(47),
+recvmsg(47), poll(7), writev(20)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3331     2604    
+
+Sequence:
+poll(7), poll(7), poll(7), poll(7), poll(7), read(0), poll(7), poll(7)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2552     14      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+1598     410     
+
+Sequence:
+epoll_wait(232), recvmsg(47), recvmsg(47), epoll_wait(232),
+recvmsg(47), recvmsg(47), epoll_wait(232), recvmsg(47)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     48      
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+21950    336     
+
+Sequence:
+futex(202), futex(202), ioctl(16), close(3), read(0), read(0),
+openat(257), ioctl(16)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3559     1195    
+
+Sequence:
+futex(202), write(1), recvmsg(47), poll(7), writev(20), poll(7),
+sched_yield(24), getpid(39)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+3492     495     
+
+Sequence:
+poll(7), read(0), poll(7), read(0), poll(7), read(0), poll(7),
+futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+14038    2       
+
+Sequence:
+futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+2139     112     
+
+Sequence:
+futex(202), futex(202), futex(202), futex(202), futex(202),
+futex(202), futex(202), futex(202)
+
+c_ulong(55241869374014)
+
+----------------------------------------------------------
+
+PID      COUNT   
+23004    341     
+
+Sequence:
+poll(7), read(0), read(0), poll(7), read(0), write(1), read(0),
+write(1)
+
+c_ulong(55241869374014)
+c_ulong(20978484)
+c_ulong(21014510)
+c_ulong(20983724)
+c_ulong(20984968)
+c_ulong(21005579)
+c_ulong(20987556)
+c_ulong(20983763)
+c_ulong(20993992)
+c_ulong(20983749)
+c_ulong(20975719)
+c_ulong(41944706)
+c_ulong(21003172)
+c_ulong(20983745)
+c_ulong(21234311)
+c_ulong(21011628)
+c_ulong(20993884)
+c_ulong(20983787)
+c_ulong(20983796)
+c_ulong(40896990)
+c_ulong(20983766)
+c_ulong(21004496)
+c_ulong(20991790)
+c_ulong(21001427)
+c_ulong(21002098)
+c_ulong(20983719)
+c_ulong(20983778)
+c_ulong(20987480)
+c_ulong(21002428)
+c_ulong(20983743)
+c_ulong(20974864)
+c_ulong(41156850)
+c_ulong(21001599)
+c_ulong(20983709)
+c_ulong(20983782)
+c_ulong(21002371)
+c_ulong(41944696)
+c_ulong(21005275)
+c_ulong(21015902)
