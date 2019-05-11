@@ -56,7 +56,7 @@ typedef struct
 {
     u64 last_mod_count;
     u64 train_count;
-    //u8 pairs[LAPLEN][LAPLEN];
+    //u8 pairs[SEQLEN];
 }
 pH_profile_data;
 

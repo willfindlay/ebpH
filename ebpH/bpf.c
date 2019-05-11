@@ -181,13 +181,13 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
     temp = pid_tgid_to_profile.lookup(ppid_tgid);
     if(!temp)
     {
-        bpf_trace_printk("failed to lookup parent profile on fork!\n");
-        return -1;
+        bpf_trace_printk("no parent profile found\n");
+        return 0;
     }
     // associate pid with the parent profile
     bpf_probe_read(&p_pt, sizeof(p_pt), temp);
     pid_tgid_to_profile.update(pid_tgid, &p_pt);
-    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully!\n",
+    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully\n",
             (*ppid_tgid) >> 32, (*pid_tgid) >> 32);
 
     return 0;
@@ -254,16 +254,14 @@ static int pH_create_profile(u64 *key)
 
     // create the profile if it does not exist
     temp = profile.lookup_or_init(key, &p);
-
-    bpf_trace_printk("created a profile for key %llu with inode %d\n", *key, (u32)(*key));
+    bpf_trace_printk("created profile %llu\n", *key);
 
     // copy profile pointer to stack so we can operate on it
     bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
 
     // associate the profile with the appropriate PID
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
-
-    bpf_trace_printk("profile for inode %d successfully associated with pid %d\n", (u32)(*key), pid_tgid >> 32);
+    bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
 
     return 0;
 }
@@ -344,15 +342,20 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
         if(!p_pt_pt)
         {
-            bpf_trace_printk("no previous profile associated with this pid!\n");
+            bpf_trace_printk("no previous profile associated with this pid\n");
         }
         else
         {
             bpf_probe_read(&p_pt, sizeof(p_pt), p_pt_pt);
             bpf_probe_read(&p, sizeof(p), p_pt);
             pid_tgid_to_profile.delete(&pid_tgid);
-            bpf_trace_printk("disassociated profile %llu with pid %d!\n", p.key, pid_tgid >> 32);
+            bpf_trace_printk("disassociated profile %llu with pid %d\n", p.key, pid_tgid >> 32);
         }
+    }
+    // log if a fork occurred
+    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    {
+        bpf_trace_printk("fork occurred!\n");
     }
 
     return 0;
