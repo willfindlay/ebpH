@@ -21,8 +21,6 @@
 
 // *** pH task data structures ***
 
-typedef struct pH_profile pH_profile;
-
 // a locality
 // TODO: implement me
 typedef struct
@@ -46,19 +44,25 @@ pH_seq;
 
 // *** pH profile data structures ***
 
+typedef struct
+{
+    u8 flags[PH_NUM_SYSCALLS];
+}
+pH_lookahead_pair;
+
 // profile data
 // TODO: implement me
 typedef struct
 {
     u64 last_mod_count;
     u64 train_count;
-    unsigned char entry[PH_NUM_SYSCALLS][PH_NUM_SYSCALLS];
+    //u8 pairs[LAPLEN][LAPLEN];
 }
 pH_profile_data;
 
 // per executable profile
 // TODO: implement me
-struct pH_profile
+typedef struct
 {
     int normal;
     int frozen;
@@ -66,7 +70,16 @@ struct pH_profile
     u64 window_size;
     u64 count;
     u64 anomalies;
-    char filename[FILENAME_LEN];
-};
+    u64 key;
+}
+pH_profile;
+
+typedef struct
+{
+    pH_profile profile;
+    pH_profile_data test;
+    pH_profile_data train;
+}
+pH_profile_payload;
 
 #endif // PROFILES_H

@@ -94,14 +94,16 @@ def print_profiles():
     profile_hash = bpf["profile"]
 
     for k, profile in profile_hash.items():
-        filename = profile.filename.decode('utf-8')
-        print(filename)
+        print(k)
 
 # save profiles to disk
 def save_profiles():
     profile_hash = bpf["profile"]
-    for k,profile in profile_hash.items():
-        filename = profile.filename.decode('utf-8')
+    test_hash = bpf["test_data"]
+    train_hash = bpf["train_data"]
+
+    for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
+        filename = str(profile.key)
 
         # get rid of slash if it is the first character
         if filename[0] == r'/':
@@ -116,7 +118,7 @@ def save_profiles():
                 if exc.errno != errno.EEXIST:
                     raise
         with open(profile_path, "w") as f:
-            printb(profile,file=f)
+            printb(b"".join([profile,test,train]),file=f,nl=0)
 
 # load profiles from disk
 def load_profiles():
@@ -165,9 +167,10 @@ if __name__ == "__main__":
     bpf = BPF(text=text)
     # register callback to load profiles
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+    #execve_fnname = bpf.get_syscall_fnname("execve")
+    bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
     # load in any profiles
-    # TODO: uncomment this when profile_loader has been fixed to work with actual profiles
     load_profiles()
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
@@ -175,7 +178,8 @@ if __name__ == "__main__":
     while True:
         # update the hashmap of sequences
         try:
-            bpf.perf_buffer_poll()
+            bpf.trace_print()
+            sleep(1)
         except KeyboardInterrupt: # handle exiting gracefully
             exiting = 1
             signal.signal(signal.SIGINT, signal_ignore)

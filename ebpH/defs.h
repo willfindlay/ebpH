@@ -18,8 +18,11 @@
 
 // we need some extra definitions if we are including this file from userspace
 #ifdef USERSPACE
-#define TASK_COMM_LEN 16
-typedef unsigned long u64;
+#include <stdint.h>
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t  u8;
 typedef long time_t;
 #endif
 
@@ -34,15 +37,15 @@ typedef long time_t;
 #define PH_LOCALITY_WIN 128
 
 // pH_profile definitions
-#define PH_NUM_SYSCALLS 512
+#define PH_NUM_SYSCALLS  313
 
 // important syscall definitions
-#define SYS_EXIT       60
-#define SYS_EXIT_GROUP 231
-#define SYS_EXECVE     59
 #define SYS_CLONE      56
 #define SYS_FORK       57
 #define SYS_VFORK      58
+#define SYS_EXECVE     59
+#define SYS_EXIT       60
+#define SYS_EXIT_GROUP 231
 #define EMPTY          9999
 
 // size of a filename string
