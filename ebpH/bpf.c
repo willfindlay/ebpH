@@ -140,7 +140,7 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret
     // parent sequence
     pH_seq *parent_seq;
 
-    if(pid_tgid == NULL || ppid_tgid == NULL)
+    if(!pid_tgid || !ppid_tgid || !fork_ret)
         return -1;
 
     // we want to be inside the child process
@@ -165,79 +165,35 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret
     return 0;
 }
 
+static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
+{
+    pH_profile *p_pt;
+    pH_profile **temp;
+
+    if(!pid_tgid || !ppid_tgid || !fork_ret)
+        return -1;
+
+    // we want to be inside the child process
+    if(*fork_ret != 0)
+        return 0;
+
+    // lookup parent profile
+    temp = pid_tgid_to_profile.lookup(ppid_tgid);
+    if(!temp)
+    {
+        bpf_trace_printk("failed to lookup parent profile on fork!\n");
+        return -1;
+    }
+    // associate pid with the parent profile
+    bpf_probe_read(&p_pt, sizeof(p_pt), temp);
+    pid_tgid_to_profile.update(pid_tgid, &p_pt);
+    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully!\n",
+            (*ppid_tgid) >> 32, (*pid_tgid) >> 32);
+
+    return 0;
+}
+
 // *** pH profile create/update subroutines ***
-
-//// FIXME: this is currently test code due to broken hash function
-//static int pH_create_or_update_base_profile(char *filename, u64 *pid_tgid, long *syscall)
-//{
-//    int i;
-//    u64 hash;
-//    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
-//                    .window_size = 0, .count = 0, .anomalies = 0};
-//    pH_profile *temp;
-//
-//    if(filename == NULL || pid_tgid == NULL || syscall == NULL)
-//        return -1;
-//
-//    if(*syscall == SYS_EXECVE)
-//    {
-//        // initialize the filename
-//        bpf_probe_read_str(&p.filename, sizeof(p.filename), filename);
-//
-//        // filter out execve calls with no filename
-//        if(p.filename[0] == 0)
-//            return 0;
-//
-//        // hash the filename
-//        hash = pH_hash_str(p.filename);
-//        // either init the profile or copy it from the map if it exists
-//        temp = profile.lookup_or_init(&hash, &p);
-//    }
-//
-//    return 0;
-//}
-//
-//// FIXME: this is currently test code due to broken hash function
-//static int pH_create_or_update_train_data(char *filename, u64 *pid_tgid, long *syscall)
-//{
-//    char test1[4] = "hi";
-//    u64 test = pH_hash_str(test1);
-//    pH_profile_data d;
-//
-//    d.last_mod_count = 0;
-//    d.train_count = 0;
-//
-//    train_data.lookup_or_init(&test, &d);
-//
-//    return 0;
-//}
-//
-//// FIXME: this is currently test code due to broken hash function
-//static int pH_create_or_update_test_data(char *filename, u64 *pid_tgid, long *syscall)
-//{
-//    char test1[4] = "hi";
-//    u64 test = pH_hash_str(test1);
-//    pH_profile_data d;
-//
-//    d.last_mod_count = 0;
-//    d.train_count = 0;
-//
-//    test_data.lookup_or_init(&test, &d);
-//    return 0;
-//}
-//
-//// create or update a pH profile
-//// TODO: finish this (right now it just creates a sequence with nothing in it)
-////       also -- need to create two sets of profile data and link it with separate hashmaps
-//static int pH_create_or_update_profile(char *filename, u64 *pid_tgid, long *syscall)
-//{
-//    pH_create_or_update_base_profile(filename, pid_tgid, syscall);
-//    pH_create_or_update_train_data(filename, pid_tgid, syscall);
-//    pH_create_or_update_test_data(filename, pid_tgid, syscall);
-//
-//    return 0;
-//}
-
 static int pH_reset_profile_test_data(pH_profile *p)
 {
     pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
@@ -273,10 +229,12 @@ static int pH_reset_profile_train_data(pH_profile *p)
 static int pH_create_profile(u64 *key)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
+
     // init the profile
     pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
                     .window_size = 0, .count = 0, .anomalies = 0};
     pH_profile *p_pt;
+    pH_profile *temp;
 
     if(!key)
     {
@@ -284,18 +242,28 @@ static int pH_create_profile(u64 *key)
         return -1;
     }
 
+    // check to see if a profile is already associated with this PID
+    pH_profile **test = pid_tgid_to_profile.lookup(& pid_tgid);
+    if(test)
+        return 0;
+
     bpf_probe_read(&p.key, sizeof(p.key), key);
 
-    // create and initialize the profile
     pH_reset_profile_test_data(&p);
     pH_reset_profile_train_data(&p);
-    pH_profile *temp = profile.lookup_or_init(key, &p);
+
+    // create the profile if it does not exist
+    temp = profile.lookup_or_init(key, &p);
+
+    bpf_trace_printk("created a profile for key %llu with inode %d\n", *key, (u32)(*key));
 
     // copy profile pointer to stack so we can operate on it
     bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
 
     // associate the profile with the appropriate PID
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
+
+    bpf_trace_printk("profile for inode %d successfully associated with pid %d\n", (u32)(*key), pid_tgid >> 32);
 
     return 0;
 }
@@ -345,7 +313,6 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     key |= ((u64)exec_inode->i_rdev << 32);
 
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    bpf_trace_printk("pid is %d and inode is %d\n", pid_tgid >> 32, (u32)key);
 
     // create a new profile with this key
     pH_create_profile(&key);
@@ -359,12 +326,34 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
+    u64 key;
+    pH_profile **p_pt_pt;
+    pH_profile *p_pt;
+    pH_profile p;
 
     // create or update the sequence for this pid_tgid
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
     // create or update the profile for this executable
     //pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
+
+    // log if an execve occurred and disassociate pid with profile
+    if(syscall == SYS_EXECVE)
+    {
+        bpf_trace_printk("execve occurred!\n");
+        p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
+        if(!p_pt_pt)
+        {
+            bpf_trace_printk("no previous profile associated with this pid!\n");
+        }
+        else
+        {
+            bpf_probe_read(&p_pt, sizeof(p_pt), p_pt_pt);
+            bpf_probe_read(&p, sizeof(p), p_pt);
+            pid_tgid_to_profile.delete(&pid_tgid);
+            bpf_trace_printk("disassociated profile %llu with pid %d!\n", p.key, pid_tgid >> 32);
+        }
+    }
 
     return 0;
 }
@@ -382,6 +371,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
+        pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
     }
 
     return 0;

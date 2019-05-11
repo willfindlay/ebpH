@@ -46,9 +46,7 @@ pH_seq;
 
 typedef struct
 {
-    u64 first;
-    u64 last;
-    u8 delta;
+    u8 flags[PH_NUM_SYSCALLS];
 }
 pH_lookahead_pair;
 
@@ -58,7 +56,7 @@ typedef struct
 {
     u64 last_mod_count;
     u64 train_count;
-    pH_lookahead_pair pairs[LAPLEN];
+    //u8 pairs[LAPLEN][LAPLEN];
 }
 pH_profile_data;
 

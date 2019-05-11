@@ -57,7 +57,6 @@ def handle_errno(errstr):
 def print_sequences():
     # fetch BPF hashmap
     seq_hash = bpf["seq"]
-    pid_to_profile = bpf["pid_tgid_to_profile"]
 
     # print system time
     print()
@@ -88,7 +87,6 @@ def print_sequences():
             arr.append("%s(%s)" % (name.decode('utf-8'), call))
         print(textwrap.fill(", ".join(arr)))
         print()
-        print(pid_to_profile.next(p))
 
 # TODO: flesh this out... right now it just prints profile filenames
 def print_profiles():
