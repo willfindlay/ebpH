@@ -38,6 +38,10 @@ typedef long time_t;
 
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  313
+#define PH_NORMAL_WAIT (u64) (24 * 7 * 3600) // one week in seconds
+#define PH_THAWED 0
+#define PH_FROZEN 1
+#define PH_NORMAL 2
 
 // important syscall definitions
 #define SYS_CLONE      56

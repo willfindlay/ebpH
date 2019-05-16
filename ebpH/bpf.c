@@ -16,6 +16,7 @@
 #include <linux/sched.h>
 #include <linux/fs.h>
 #include <linux/path.h>
+#include <linux/timekeeping.h>
 #include "defs.h"
 #include "profiles.h"
 
@@ -29,6 +30,7 @@ BPF_HASH(seq, u64, pH_seq);
 // profiles hashed by device number << 32 | inode number
 BPF_HASH(profile, u64, pH_profile);
 BPF_HASH(pid_tgid_to_profile, u64, pH_profile *);
+BPF_HASH(profile_loaded, u64, u8);
 // test data hashed by executable filename
 BPF_HASH(test_data,  u64, pH_profile_data);
 // training data hashed by executable filename
@@ -36,7 +38,6 @@ BPF_HASH(train_data, u64, pH_profile_data);
 
 // profiles hashed by sequences
 BPF_HASH(seq_profile, pH_seq *, pH_profile *);
-
 
 // *** helper functions ***
 
@@ -69,6 +70,15 @@ static u64 pH_get_ppid_tgid()
     ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
 
     return ppid_tgid;
+}
+
+static u64 pH_update_set_normal_time(pH_profile *p)
+{
+    u64 time_ns = bpf_ktime_get_ns();
+
+    time_ns += PH_NORMAL_WAIT * 1000000000;
+
+    return time_ns / 1000000000;
 }
 
 // *** pH sequence create/update subroutines ***
@@ -196,7 +206,7 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
 // *** pH profile create/update subroutines ***
 static int pH_reset_profile_test_data(pH_profile *p)
 {
-    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
 
     if(!p)
@@ -212,7 +222,7 @@ static int pH_reset_profile_test_data(pH_profile *p)
 
 static int pH_reset_profile_train_data(pH_profile *p)
 {
-    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
 
     if(!p)
@@ -231,10 +241,15 @@ static int pH_create_profile(u64 *key)
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     // init the profile
-    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
+    pH_profile p = {.state = PH_THAWED, .normal_time = 0,
+                    .last_mod_count = 0, .train_count = 0,
                     .window_size = 0, .count = 0, .anomalies = 0};
     pH_profile *p_pt;
     pH_profile *temp;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+    bpf_spin_lock(&p.lock);
+#endif
 
     if(!key)
     {
@@ -262,6 +277,10 @@ static int pH_create_profile(u64 *key)
     // associate the profile with the appropriate PID
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
     bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+    bpf_spin_unlock(&p.lock);
+#endif
 
     return 0;
 }
@@ -483,18 +502,55 @@ static int pH_load_base_profile(pH_profile_payload *payload)
     else
     {
         profile.lookup_or_init(&key, &p);
+        // prevent overloading of a profile
+        u8 val = 1;
+        profile_loaded.update(&key, &val);
     }
+    return 0;
+}
+
+// check if a profile is already loaded
+static int pH_is_loaded(pH_profile_payload *payload)
+{
+    pH_profile p;
+    pH_profile *temp;
+    u64 key = 0;
+    u8  val = 0;
+
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_is_loaded \n");
+        return -1;
+    }
+
+    bpf_probe_read(&p, sizeof(p), &payload->profile);
+
+    if(*profile_loaded.lookup_or_init(&p.key, &val) != 0)
+    {
+        bpf_trace_printk("profile already loaded -- pH_is_loaded\n");
+        return -1;
+    }
+
+    val = 1;
+    profile_loaded.update(&p.key, &val);
+
     return 0;
 }
 
 // load a profile
 int pH_load_profile(struct pt_regs *ctx)
 {
+    pH_profile *p = 0;
     pH_profile_payload *payload = (pH_profile_payload *)PT_REGS_RC(ctx);
 
     if(!payload)
     {
         bpf_trace_printk("could not load full profile data -- pH_load_profile \n");
+        return -1;
+    }
+
+    if(pH_is_loaded(payload) != 0)
+    {
         return -1;
     }
 

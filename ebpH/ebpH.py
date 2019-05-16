@@ -175,6 +175,11 @@ if __name__ == "__main__":
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
+
+    # maybe redirect output
+    if args.output is not None:
+        sys.stdout = open(args.output,"w+")
+
     while True:
         # update the hashmap of sequences
         try:
@@ -186,10 +191,6 @@ if __name__ == "__main__":
 
         # exit control flow
         if exiting:
-            # maybe redirect output
-            if args.output is not None:
-                sys.stdout = open(args.output,"w+")
-
             seq_hash = bpf["seq"]
             pro_hash = bpf["profile"]
 

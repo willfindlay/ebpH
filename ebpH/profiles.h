@@ -17,6 +17,7 @@
 #define PROFILES_H
 
 #include <linux/sched.h>
+#include <linux/version.h>
 #include "defs.h"
 
 // *** pH task data structures ***
@@ -52,11 +53,12 @@ pH_lookahead_pair;
 
 // profile data
 // TODO: implement me
+// FIXME: given the way I may be implementing this, this struct could be useless
+//        might want to get rid of it...
 typedef struct
 {
-    u64 last_mod_count;
-    u64 train_count;
     //u8 pairs[SEQLEN];
+    u8 dummy; // FIXME: this just lets the program compile for now
 }
 pH_profile_data;
 
@@ -64,13 +66,17 @@ pH_profile_data;
 // TODO: implement me
 typedef struct
 {
-    int normal;
-    int frozen;
-    time_t normal_time;
+    u8 state;
+    u64 normal_time;
     u64 window_size;
     u64 count;
+    u64 last_mod_count; // moved these over from pH_profile_data
+    u64 train_count;    // moved these over from pH_profile_data
     u64 anomalies;
     u64 key;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+    struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
+#endif
 }
 pH_profile;
 

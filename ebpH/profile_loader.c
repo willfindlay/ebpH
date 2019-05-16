@@ -21,7 +21,7 @@
 #include "defs.h"
 #include "profiles.h"
 
-// TODO: get this working with the training data as well
+// TODO: get this working with the training and testing data as well
 //       may need a separate structure to submit to eBPF program
 pH_profile_payload *load_profile(char *path)
 {
