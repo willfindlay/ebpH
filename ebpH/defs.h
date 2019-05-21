@@ -34,7 +34,7 @@ typedef long time_t;
 #define TABLE_SIZE 10240
 
 // pH_task definitions
-#define PH_LOCALITY_WIN 128
+#define PH_LOCALITY_WIN 9
 
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  313

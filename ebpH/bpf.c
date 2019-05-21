@@ -258,9 +258,9 @@ static int pH_create_profile(u64 *key)
     pH_profile *p_pt;
     pH_profile *temp;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    bpf_spin_lock(&p.lock);
-#endif
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    bpf_spin_lock(&p.lock);
+//#endif
 
     if(!key)
     {
@@ -289,9 +289,9 @@ static int pH_create_profile(u64 *key)
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
     bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    bpf_spin_unlock(&p.lock);
-#endif
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    bpf_spin_unlock(&p.lock);
+//#endif
 
     return 0;
 }
