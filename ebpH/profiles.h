@@ -26,10 +26,8 @@
 // TODO: implement me
 typedef struct
 {
-    unsigned char win[PH_LOCALITY_WIN];
-    int first;
-    int total;
-    int max;
+    u8 win[PH_LOCALITY_WIN];
+    int lfc;
 }
 pH_locality;
 
@@ -52,9 +50,8 @@ typedef struct
 pH_lookahead_pair;
 
 // profile data
-// TODO: implement me
 // FIXME: given the way I may be implementing this, this struct could be useless
-//        might want to get rid of it...
+//        might want to get rid of it... for now, added a dumym value so the program will still compile
 typedef struct
 {
     //u8 pairs[SEQLEN];
