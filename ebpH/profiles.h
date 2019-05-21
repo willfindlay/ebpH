@@ -28,6 +28,7 @@ typedef struct
 {
     u8 win[PH_LOCALITY_WIN];
     int lfc;
+    int lfc_max;
 }
 pH_locality;
 

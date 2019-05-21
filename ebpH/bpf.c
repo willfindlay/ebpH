@@ -79,9 +79,11 @@ static void pH_reset_locality(pH_seq *s)
         s->lf.win[i] = 0;
     }
 
-    s->lf.total = 0;
-    s->lf.max = 0;
-    s->lf.first = PH_LOCALITY_WIN - 1;
+    s->lf.lfc     = 0;
+    s->lf.lfc_max = 0;
+    //s->lf.total = 0;
+    //s->lf.max = 0;
+    //s->lf.first = PH_LOCALITY_WIN - 1;
 }
 
 // intialize a pH sequence
