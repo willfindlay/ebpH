@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Wed May 22 15:52:48 2019
+# Created: Wed May 22 17:33:53 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,18 +13,31 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(964, 678)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/img/assets/img/logos/favicon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
+        MainWindow.setWindowOpacity(1.0)
+        MainWindow.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
+        self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
+        self.gridLayout.setObjectName("gridLayout")
+        self.event_log = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.event_log.setReadOnly(True)
+        self.event_log.setObjectName("event_log")
+        self.gridLayout.addWidget(self.event_log, 1, 0, 1, 1)
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 964, 29))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
+        self.menuExport = QtWidgets.QMenu(self.menu_File)
+        self.menuExport.setObjectName("menuExport")
         self.menu_Settings = QtWidgets.QMenu(self.menubar)
         self.menu_Settings.setObjectName("menu_Settings")
         self.menu_Help = QtWidgets.QMenu(self.menubar)
@@ -41,8 +54,6 @@ class Ui_MainWindow(object):
         self.actionebpH_Help.setObjectName("actionebpH_Help")
         self.action_Quit = QtWidgets.QAction(MainWindow)
         self.action_Quit.setObjectName("action_Quit")
-        self.actiontest = QtWidgets.QAction(MainWindow)
-        self.actiontest.setObjectName("actiontest")
         self.action_Start_Monitoring = QtWidgets.QAction(MainWindow)
         self.action_Start_Monitoring.setObjectName("action_Start_Monitoring")
         self.action_Stop_Monitoring = QtWidgets.QAction(MainWindow)
@@ -51,12 +62,16 @@ class Ui_MainWindow(object):
         self.action_Inspect_Executable.setObjectName("action_Inspect_Executable")
         self.action_Force_Save_Profiles = QtWidgets.QAction(MainWindow)
         self.action_Force_Save_Profiles.setObjectName("action_Force_Save_Profiles")
-        self.action_Forget_Profile = QtWidgets.QAction(MainWindow)
-        self.action_Forget_Profile.setObjectName("action_Forget_Profile")
         self.action_Preferences = QtWidgets.QAction(MainWindow)
         self.action_Preferences.setObjectName("action_Preferences")
-        self.menu_File.addAction(self.actiontest)
+        self.actionExport_Logs = QtWidgets.QAction(MainWindow)
+        self.actionExport_Logs.setObjectName("actionExport_Logs")
+        self.actionExport_Statistics = QtWidgets.QAction(MainWindow)
+        self.actionExport_Statistics.setObjectName("actionExport_Statistics")
+        self.menuExport.addAction(self.actionExport_Logs)
+        self.menuExport.addAction(self.actionExport_Statistics)
         self.menu_File.addAction(self.action_Force_Save_Profiles)
+        self.menu_File.addAction(self.menuExport.menuAction())
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.action_Quit)
         self.menu_Settings.addAction(self.action_Preferences)
@@ -73,11 +88,14 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menu_Help.menuAction())
 
         self.retranslateUi(MainWindow)
+        QtCore.QObject.connect(self.action_Quit, QtCore.SIGNAL("triggered()"), MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "ebpH", None, -1))
+        self.label.setText(QtWidgets.QApplication.translate("MainWindow", "ebpH Log", None, -1))
         self.menu_File.setTitle(QtWidgets.QApplication.translate("MainWindow", "&File", None, -1))
+        self.menuExport.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Export", None, -1))
         self.menu_Settings.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Settings", None, -1))
         self.menu_Help.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Help", None, -1))
         self.menu_Actions.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Monitoring", None, -1))
@@ -86,7 +104,6 @@ class Ui_MainWindow(object):
         self.actionebpH_Help.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+H", None, -1))
         self.action_Quit.setText(QtWidgets.QApplication.translate("MainWindow", "&Quit", None, -1))
         self.action_Quit.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+Q", None, -1))
-        self.actiontest.setText(QtWidgets.QApplication.translate("MainWindow", "&Export Statistics", None, -1))
         self.action_Start_Monitoring.setText(QtWidgets.QApplication.translate("MainWindow", "&Start Monitoring", None, -1))
         self.action_Start_Monitoring.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+Shift+S", None, -1))
         self.action_Stop_Monitoring.setText(QtWidgets.QApplication.translate("MainWindow", "&Stop Monitoring", None, -1))
@@ -95,7 +112,10 @@ class Ui_MainWindow(object):
         self.action_Inspect_Executable.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
         self.action_Force_Save_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Force &Save Profiles", None, -1))
         self.action_Force_Save_Profiles.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+S", None, -1))
-        self.action_Forget_Profile.setText(QtWidgets.QApplication.translate("MainWindow", "&Forget A Profile", None, -1))
         self.action_Preferences.setText(QtWidgets.QApplication.translate("MainWindow", "&Preferences", None, -1))
+        self.actionExport_Logs.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Logs", None, -1))
+        self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E, Ctrl+L", None, -1))
+        self.actionExport_Statistics.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Statistics", None, -1))
+        self.actionExport_Statistics.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E, Ctrl+S", None, -1))
 
 import resources_rc

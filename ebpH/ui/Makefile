@@ -11,3 +11,6 @@ $(QMLPY): $(QML)
 
 $(RESPY): $(RES)
 	$(foreach i, $(RES), pyside2-rcc $(i) > $(i:.qrc=_rc.py))
+
+clean:
+	@rm $(PY)

@@ -7,8 +7,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>964</width>
+    <height>678</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,13 +18,36 @@
    <iconset resource="resources.qrc">
     <normaloff>:/img/assets/img/logos/favicon.png</normaloff>:/img/assets/img/logos/favicon.png</iconset>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <property name="windowOpacity">
+   <double>1.000000000000000</double>
+  </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonIconOnly</enum>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="1" column="0">
+     <widget class="QPlainTextEdit" name="event_log">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="label">
+      <property name="text">
+       <string>ebpH Log</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>964</width>
      <height>29</height>
     </rect>
    </property>
@@ -32,8 +55,15 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="actiontest"/>
+    <widget class="QMenu" name="menuExport">
+     <property name="title">
+      <string>&amp;Export</string>
+     </property>
+     <addaction name="actionExport_Logs"/>
+     <addaction name="actionExport_Statistics"/>
+    </widget>
     <addaction name="action_Force_Save_Profiles"/>
+    <addaction name="menuExport"/>
     <addaction name="separator"/>
     <addaction name="action_Quit"/>
    </widget>
@@ -87,11 +117,6 @@
     <string>Ctrl+Q</string>
    </property>
   </action>
-  <action name="actiontest">
-   <property name="text">
-    <string>&amp;Export Statistics</string>
-   </property>
-  </action>
   <action name="action_Start_Monitoring">
    <property name="text">
     <string>&amp;Start Monitoring</string>
@@ -124,19 +149,47 @@
     <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="action_Forget_Profile">
-   <property name="text">
-    <string>&amp;Forget A Profile</string>
-   </property>
-  </action>
   <action name="action_Preferences">
    <property name="text">
     <string>&amp;Preferences</string>
+   </property>
+  </action>
+  <action name="actionExport_Logs">
+   <property name="text">
+    <string>Export &amp;Logs</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E, Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionExport_Statistics">
+   <property name="text">
+    <string>Export &amp;Statistics</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E, Ctrl+S</string>
    </property>
   </action>
  </widget>
  <resources>
   <include location="resources.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>action_Quit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
