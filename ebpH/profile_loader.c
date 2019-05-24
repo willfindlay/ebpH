@@ -11,7 +11,7 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under GPL v3 License */
+ * Licensed under GPL v2 License */
 
 // let profiles.h know that we are in userspace and need some extra definitions
 #define USERSPACE

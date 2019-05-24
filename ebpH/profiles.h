@@ -11,7 +11,7 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under GPL v3 License */
+ * Licensed under GPL v2 License */
 
 #ifndef PROFILES_H
 #define PROFILES_H

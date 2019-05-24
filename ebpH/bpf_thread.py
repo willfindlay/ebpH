@@ -11,7 +11,7 @@
 #  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
 #  Copyright 2003 Anil Somayaji
 #
-# USAGE: ebpH.py <COMMAND>
+# USAGE: ebpH.py
 #
 # Licensed under GPL v2 License
 
@@ -28,7 +28,7 @@ from bcc import BPF
 from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
-from pprint import pprint
+from PySide2.QtCore import QThread
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -36,21 +36,6 @@ PROFILE_DIR = "/var/lib/pH/profiles"
 LOADER_PATH = os.path.abspath("profile_loader")
 # length of sequences
 SEQLEN = 8
-
-# signal handler
-def signal_ignore(signal, frame):
-    print()
-
-def handle_errno(errstr):
-    try:
-        return abs(int(errstr))
-    except ValueError:
-        pass
-
-    try:
-        return getattr(errno, errstr)
-    except AttributeError:
-        raise argparse.ArgumentTypeError("couldn't map %s to an errno" % errstr)
 
 def print_sequences():
     # fetch BPF hashmap
@@ -133,73 +118,43 @@ def load_bpf(code):
 
     return text
 
-# main control flow
-if __name__ == "__main__":
-    commands = ["start", "stop"]
 
-    parser = argparse.ArgumentParser(description="Monitor system call sequences and detect anomalies.")
-    #parser.add_argument("command", metavar="COMMAND", type=str.lower, choices=commands,
-    #                    help="Command to run. Possible commands are %s." % ', '.join(commands))
-    # TODO: implement this functionality (or perhaps remove it since it's only useful for testing)
-    parser.add_argument("-o", "--output", type=str, default=None,
-                        help="write to a log file specified by <output>")
-    args = parser.parse_args()
+class BPFThread(QThread):
+    def __init__(self, parent=None):
+        QThread.__init__(self, parent)
+        self.exiting = False
 
-    # check privileges
-    if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
-        print("This script must be run with root privileges! Exiting.")
-        exit()
+    def run(self):
+        self.exiting = False
 
-    # create PROFILE_DIR if it does not exist
-    if not os.path.exists(PROFILE_DIR):
-        os.makedirs(PROFILE_DIR)
+        if not os.path.exists(PROFILE_DIR):
+            os.makedirs(PROFILE_DIR)
 
-    # read BPF embedded C from bpf.c
-    text = load_bpf("./bpf.c")
+        # read BPF embedded C from bpf.c
+        text = load_bpf("./bpf.c")
 
-    # compile ebpf code
-    bpf = BPF(text=text)
-    # register callback to load profiles
-    bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-    bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
+        # compile ebpf code
+        bpf = BPF(text=text)
+        # register callback to load profiles
+        bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+        bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
-    # load in any profiles
-    load_profiles()
+        # load in any profiles
+        load_profiles()
 
-    print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
-    exiting = 0
-
-    # maybe redirect output
-    if args.output is not None:
-        sys.stdout = open(args.output,"w+")
-
-    while True:
-        # update the hashmap of sequences
-        try:
-            bpf.trace_print()
+        while True:
+            # update the hashmap of sequences
+            #bpf.trace_print()
             sleep(1)
-        except KeyboardInterrupt: # handle exiting gracefully
-            exiting = 1
-            signal.signal(signal.SIGINT, signal_ignore)
 
-        # exit control flow
-        if exiting:
-            seq_hash = bpf["seq"]
-            pro_hash = bpf["profile"]
+            # exit control flow
+            if self.exiting:
+                save_profiles()
 
-            print_sequences()
-            print_profiles()
-            save_profiles()
+                # clear the BPF hashmap
+                seq_hash.clear()
+                pro_hash.clear()
 
-            # clear the BPF hashmap
-            seq_hash.clear()
-            pro_hash.clear()
-
-            # reset stdout
-            if args.output is not None:
-                sys.stdout.close()
-                sys.stdout = sys.__stdout__
-
-            print()
-            print("Detaching...")
-            exit()
+                print()
+                print("Detaching...")
+                self.terminate()

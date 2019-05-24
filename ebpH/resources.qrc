@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="img">
+    <file>assets/img/icons/browser.png</file>
+    <file>assets/img/icons/delete.png</file>
+    <file>assets/img/icons/eye.png</file>
+    <file>assets/img/icons/hide.png</file>
+    <file>assets/img/logos/favicon.png</file>
+  </qresource>
+</RCC>
