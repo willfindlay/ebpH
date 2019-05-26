@@ -46,6 +46,7 @@ BPF_PERF_OUTPUT(profile_copy_event);
 BPF_PERF_OUTPUT(anomaly_event); // TODO: implement this
 
 // counting syscalls
+BPF_HISTOGRAM(profiles);
 BPF_HISTOGRAM(syscalls);
 BPF_HISTOGRAM(forks);
 BPF_HISTOGRAM(execves);
@@ -324,6 +325,7 @@ static int pH_create_profile(u64 *key, struct pt_regs *ctx)
 
     // notify userspace of profile creation
     profile_create_event.perf_submit(ctx, &p, sizeof(p));
+    profiles.increment(0);
 
 created:
 
@@ -541,7 +543,7 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
 
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    // create a new profile with this key
+    // create a new profile with this key if necessary
     pH_create_profile(&key, ctx);
 
     return 0;
@@ -634,6 +636,8 @@ int pH_load_profile(struct pt_regs *ctx)
     pH_load_base_profile(payload, ctx);
     pH_load_test_data(payload);
     pH_load_train_data(payload);
+
+    profiles.increment(0);
 
     return 0;
 }

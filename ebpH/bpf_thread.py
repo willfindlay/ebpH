@@ -24,7 +24,7 @@ import itertools
 import sys
 import signal
 import os
-from bcc import BPF
+from bcc import BPF, USDT
 from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
@@ -143,13 +143,11 @@ class BPFThread(QThread):
             event = self.bpf["profile_create_event"].event(data)
             s = f"Profile {event.key} created."
             self.sig_event.emit(s)
-            self.num_profiles += 1
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
             s = f"Profile {event.key} loaded."
             self.sig_event.emit(s)
-            self.num_profiles += 1
 
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
@@ -163,7 +161,7 @@ class BPFThread(QThread):
 
         def on_profile_copy(cpu, data, size):
             event = self.bpf["profile_copy_event"].event(data)
-            s = f"Fork ocurred. Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
+            s = f"Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
             self.sig_event.emit(s)
 
         def on_anomaly(cpu, data, size):
@@ -173,7 +171,6 @@ class BPFThread(QThread):
 
         self.sig_can_exit.emit(False)
         self.exiting = False
-        self.num_profiles = 0
 
         if not os.path.exists(PROFILE_DIR):
             os.makedirs(PROFILE_DIR)
@@ -200,7 +197,8 @@ class BPFThread(QThread):
 
         while True:
             # update the hashmap of sequences
-            self.bpf.perf_buffer_poll(10)
+            self.bpf.perf_buffer_poll(100)
+            self.num_profiles = self.bpf["profiles"].values()[0].value
             self.num_syscalls = self.bpf["syscalls"].values()[0].value
             self.num_forks    = self.bpf["forks"].values()[0].value
             self.num_execves  = self.bpf["execves"].values()[0].value
