@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>866</width>
+    <width>945</width>
     <height>723</height>
    </rect>
   </property>
@@ -297,7 +297,7 @@ background-position: bottom left;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>866</width>
+     <width>945</width>
      <height>29</height>
     </rect>
    </property>
@@ -366,6 +366,7 @@ background-position: bottom left;
    <addaction name="action_Stop_Monitoring"/>
    <addaction name="separator"/>
    <addaction name="action_View_Modify_Profile"/>
+   <addaction name="action_Force_Save_Profiles"/>
    <addaction name="separator"/>
    <addaction name="action_Quit"/>
   </widget>
@@ -443,6 +444,13 @@ background-position: bottom left;
    </property>
   </action>
   <action name="action_Force_Save_Profiles">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/img/assets/img/icons/copy.png</normaloff>:/img/assets/img/icons/copy.png</iconset>
+   </property>
    <property name="text">
     <string>Force &amp;Save Profiles</string>
    </property>

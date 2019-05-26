@@ -51,7 +51,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.can_exit = True
 
         # setup thread
-        self.bpf_thread = BPFThread()
+        self.bpf_thread = BPFThread(self)
 
         # add graph
         self.series = QtCharts.QLineSeries()
@@ -71,7 +71,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def connect_slots(self):
         # --- File Menu ---
-        self.action_Force_Save_Profiles
+        self.action_Force_Save_Profiles.triggered.connect(self.bpf_thread.save_profiles)
+        self.bpf_thread.sig_profiles_saved.connect(self.on_profiles_saved)
         self.actionExport_Logs
         self.actionExport_Statistics
         # quit is implicit in the .ui file
@@ -129,6 +130,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.monitoring:
             self.action_Start_Monitoring.setEnabled(False)
             self.action_Stop_Monitoring.setEnabled(True)
+            self.action_Force_Save_Profiles.setEnabled(True)
             self.bpf_thread.start()
             self.log_event("Monitoring started.", "m")
             self.monitoring_radio.setChecked(True)
@@ -136,6 +138,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.action_Start_Monitoring.setEnabled(True)
             self.action_Stop_Monitoring.setEnabled(False)
+            self.action_Force_Save_Profiles.setEnabled(False)
             self.bpf_thread.exiting = True
             self.log_event("Monitoring stopped.", "w")
             self.monitoring_radio.setChecked(False)
@@ -176,10 +179,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_can_exit(self, can_exit):
         self.can_exit = can_exit
 
+    def on_profiles_saved(self):
+        text = """
+        Profiles saved successfully!
+        """
+        self.info_box(text=text, title="Success")
+
     # --- Event Handlers ---
 
     # cleanup thread before exiting
     def closeEvent(self, event):
+        reply = QMessageBox.question(self, "Message", "Are you sure you want to quit?",
+                QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            event.ignore()
+            return
         self.bpf_thread.exiting = True
         self.bpf_thread.wait()
         event.accept()

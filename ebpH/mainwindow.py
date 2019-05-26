@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Sat May 25 20:51:33 2019
+# Created: Sat May 25 21:46:43 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(866, 723)
+        MainWindow.resize(945, 723)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/img/assets/img/logos/favicon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -143,7 +143,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.frame, 1, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 866, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 945, 29))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
@@ -190,6 +190,10 @@ class Ui_MainWindow(object):
         self.action_View_Modify_Profile.setIcon(icon4)
         self.action_View_Modify_Profile.setObjectName("action_View_Modify_Profile")
         self.action_Force_Save_Profiles = QtWidgets.QAction(MainWindow)
+        self.action_Force_Save_Profiles.setEnabled(False)
+        icon5 = QtGui.QIcon()
+        icon5.addPixmap(QtGui.QPixmap(":/img/assets/img/icons/copy.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.action_Force_Save_Profiles.setIcon(icon5)
         self.action_Force_Save_Profiles.setObjectName("action_Force_Save_Profiles")
         self.action_Preferences = QtWidgets.QAction(MainWindow)
         self.action_Preferences.setObjectName("action_Preferences")
@@ -219,6 +223,7 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.action_Stop_Monitoring)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.action_View_Modify_Profile)
+        self.toolBar.addAction(self.action_Force_Save_Profiles)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.action_Quit)
 

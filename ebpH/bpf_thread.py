@@ -117,6 +117,9 @@ class BPFThread(QThread):
             with open(profile_path, "w") as f:
                 printb(b"".join([profile,test,train]),file=f,nl=0)
 
+        if not self.exiting:
+            self.sig_profiles_saved.emit()
+
     # load profiles from disk
     def load_profiles(self):
         for dirpath, dirnames, files in os.walk(PROFILE_DIR):
@@ -131,6 +134,7 @@ class BPFThread(QThread):
     sig_error            = Signal(str)
     sig_stats            = Signal(int, int, int, int, int)
     sig_can_exit         = Signal(bool)
+    sig_profiles_saved   = Signal()
 
     # --- Control Flow ---
     # called when the thread is started
