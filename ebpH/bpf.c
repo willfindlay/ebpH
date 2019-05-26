@@ -11,53 +11,70 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under GPL v3 License */
+ * Licensed under GPL v2 License */
 
 #include <linux/sched.h>
 #include <linux/fs.h>
 #include <linux/path.h>
+#include <linux/timekeeping.h>
 #include "defs.h"
 #include "profiles.h"
 
 #define BPF_LICENSE GPL
 
-// *** BPF hashmaps ***
+struct profile_association
+{
+    u64 key;
+    u32 pid;
+};
 
-// sequences hashed by pid_tgid
-BPF_HASH(seq, u64, pH_seq);
+struct profile_copy
+{
+    u32 ppid;
+    u32 pid;
+    u64 key;
+};
+
+// profile events
+BPF_PERF_OUTPUT(profile_create_event);
+BPF_PERF_OUTPUT(profile_load_event);
+BPF_PERF_OUTPUT(profile_assoc_event);
+BPF_PERF_OUTPUT(profile_disassoc_event);
+BPF_PERF_OUTPUT(profile_copy_event);
+
+// monitoring events
+BPF_PERF_OUTPUT(anomaly_event); // TODO: implement this
+
+// counting syscalls
+BPF_HISTOGRAM(syscalls);
+BPF_HISTOGRAM(forks);
+BPF_HISTOGRAM(execves);
+BPF_HISTOGRAM(exits);
+
+// Hashmaps {{{
 
 // profiles hashed by device number << 32 | inode number
 BPF_HASH(profile, u64, pH_profile);
 BPF_HASH(pid_tgid_to_profile, u64, pH_profile *);
+
+// whether a profile has been loaded or not
+// 0 -> not loaded
+// 1 -> loaded
+// this prevents profiles from being overwritten by profile_loader
+BPF_HASH(profile_loaded, u64, u8);
+
 // test data hashed by executable filename
 BPF_HASH(test_data,  u64, pH_profile_data);
 // training data hashed by executable filename
 BPF_HASH(train_data, u64, pH_profile_data);
 
-// profiles hashed by sequences
-BPF_HASH(seq_profile, pH_seq *, pH_profile *);
+// sequences hashed by pid_tgid
+BPF_HASH(seq, u64, pH_seq);
 
+// }}}
+// Helper Functions {{{
 
-// *** helper functions ***
-
-// reset a locality for a task
-static void pH_reset_locality(pH_seq *s)
-{
-    for(int i = 0; i < PH_LOCALITY_WIN; i++)
-    {
-        s->lf.win[i] = 0;
-    }
-
-    s->lf.total = 0;
-    s->lf.max = 0;
-    s->lf.first = PH_LOCALITY_WIN - 1;
-}
-
-// intialize a pH sequence
-static void pH_init_sequence(pH_seq *s)
-{
-    pH_reset_locality(s);
-}
+// Generic Helpers {{{
 
 // function that returns the pid_tgid of a process' parent
 static u64 pH_get_ppid_tgid()
@@ -71,7 +88,38 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-// *** pH sequence create/update subroutines ***
+static u64 pH_update_set_normal_time(pH_profile *p)
+{
+    u64 time_ns = bpf_ktime_get_ns();
+
+    time_ns += PH_NORMAL_WAIT * 1000000000;
+
+    return time_ns / 1000000000;
+}
+
+// }}}
+// Sequences and Localities {{{
+
+// reset a locality for a task
+static void pH_reset_locality(pH_seq *s)
+{
+    for(int i = 0; i < PH_LOCALITY_WIN; i++)
+    {
+        s->lf.win[i] = 0;
+    }
+
+    s->lf.lfc     = 0;
+    s->lf.lfc_max = 0;
+    //s->lf.total = 0;
+    //s->lf.max = 0;
+    //s->lf.first = PH_LOCALITY_WIN - 1;
+}
+
+// intialize a pH sequence
+static void pH_init_sequence(pH_seq *s)
+{
+    pH_reset_locality(s);
+}
 
 // TODO: this could be a little more performant if we optimize for sequences
 //       that don't need to be initialized
@@ -122,6 +170,7 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
     {
         seq.delete(pid_tgid);
+        exits.increment(0);
     }
     else
     {
@@ -165,7 +214,7 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret
     return 0;
 }
 
-static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
+static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, struct pt_regs *ctx)
 {
     pH_profile *p_pt;
     pH_profile **temp;
@@ -181,22 +230,29 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
     temp = pid_tgid_to_profile.lookup(ppid_tgid);
     if(!temp)
     {
-        bpf_trace_printk("failed to lookup parent profile on fork!\n");
-        return -1;
+        bpf_trace_printk("no parent profile found\n");
+        return 0;
     }
     // associate pid with the parent profile
     bpf_probe_read(&p_pt, sizeof(p_pt), temp);
     pid_tgid_to_profile.update(pid_tgid, &p_pt);
-    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully!\n",
+    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully\n",
             (*ppid_tgid) >> 32, (*pid_tgid) >> 32);
+
+    // notify userspace of profile copying
+    struct profile_copy cop = {(*ppid_tgid) >> 32, (*pid_tgid) >> 32, 0};
+    bpf_probe_read(&cop.key, sizeof(cop.key), &p_pt->key);
+    profile_copy_event.perf_submit(ctx, &cop, sizeof(cop));
 
     return 0;
 }
 
-// *** pH profile create/update subroutines ***
+// }}}
+// Profiles and Profile Data {{{
+
 static int pH_reset_profile_test_data(pH_profile *p)
 {
-    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
 
     if(!p)
@@ -212,7 +268,7 @@ static int pH_reset_profile_test_data(pH_profile *p)
 
 static int pH_reset_profile_train_data(pH_profile *p)
 {
-    pH_profile_data d = {.last_mod_count = 0, .train_count = 0};
+    pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
 
     if(!p)
@@ -226,15 +282,20 @@ static int pH_reset_profile_train_data(pH_profile *p)
     return 0;
 }
 
-static int pH_create_profile(u64 *key)
+static int pH_create_profile(u64 *key, struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     // init the profile
-    pH_profile p = {.normal = 0, .frozen = 0, .normal_time = 0,
+    pH_profile p = {.state = PH_THAWED, .normal_time = 0,
+                    .last_mod_count = 0, .train_count = 0,
                     .window_size = 0, .count = 0, .anomalies = 0};
     pH_profile *p_pt;
     pH_profile *temp;
+
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    bpf_spin_lock(&p.lock);
+//#endif
 
     if(!key)
     {
@@ -242,6 +303,7 @@ static int pH_create_profile(u64 *key)
         return -1;
     }
 
+    // FIXME: this is wrong. should not return if there's already a profile associated
     // check to see if a profile is already associated with this PID
     pH_profile **test = pid_tgid_to_profile.lookup(& pid_tgid);
     if(test)
@@ -252,130 +314,39 @@ static int pH_create_profile(u64 *key)
     pH_reset_profile_test_data(&p);
     pH_reset_profile_train_data(&p);
 
+    temp = profile.lookup(key);
+    if(temp != NULL)
+        goto created;
+
     // create the profile if it does not exist
     temp = profile.lookup_or_init(key, &p);
+    bpf_trace_printk("created profile %llu\n", *key);
 
-    bpf_trace_printk("created a profile for key %llu with inode %d\n", *key, (u32)(*key));
+    // notify userspace of profile creation
+    profile_create_event.perf_submit(ctx, &p, sizeof(p));
+
+created:
 
     // copy profile pointer to stack so we can operate on it
     bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
 
     // associate the profile with the appropriate PID
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
+    bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
 
-    bpf_trace_printk("profile for inode %d successfully associated with pid %d\n", (u32)(*key), pid_tgid >> 32);
+    // notify userspace of profile asssociation
+    struct profile_association ass = {*key, pid_tgid >> 32};
+    profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
-    return 0;
-}
-
-// hooks onto execve helper responsible for opening the files
-// and snags the return value (a file struct pointer)
-int pH_on_do_open_execat(struct pt_regs *ctx)
-{
-    struct file *exec_file;
-    struct dentry *exec_entry;
-    struct inode *exec_inode;
-    u64 key = 0;
-
-    if(!ctx)
-    {
-        bpf_trace_printk("failed to fetch ctx\n");
-        return -1;
-    }
-
-    // yoink the file struct
-    exec_file = (struct file *)PT_REGS_RC(ctx);
-    if(!exec_file || IS_ERR(exec_file))
-    {
-        bpf_trace_printk("failed to fetch exec_file\n");
-        return -1;
-    }
-
-    // fetch dentry for executable
-    exec_entry = exec_file->f_path.dentry;
-    if(!exec_entry)
-    {
-        bpf_trace_printk("failed to fetch exec_entry\n");
-        return -1;
-    }
-
-    // fetch inode for executable
-    exec_inode = exec_entry->d_inode;
-    if(!exec_inode)
-    {
-        bpf_trace_printk("failed to fetch exec_inode\n");
-        return -1;
-    }
-
-    // we want a key to be comprised of device number in the upper 32 bits
-    // and inode number in the lower 32 bits
-    key  = exec_inode->i_ino;
-    key |= ((u64)exec_inode->i_rdev << 32);
-
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-
-    // create a new profile with this key
-    pH_create_profile(&key);
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    bpf_spin_unlock(&p.lock);
+//#endif
 
     return 0;
 }
 
-// *** BPF tracepoints ***
-
-TRACEPOINT_PROBE(raw_syscalls, sys_enter)
-{
-    long syscall = args->id;
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    u64 key;
-    pH_profile **p_pt_pt;
-    pH_profile *p_pt;
-    pH_profile p;
-
-    // create or update the sequence for this pid_tgid
-    pH_create_or_update_sequence(&args->id, &pid_tgid);
-
-    // create or update the profile for this executable
-    //pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
-
-    // log if an execve occurred and disassociate pid with profile
-    if(syscall == SYS_EXECVE)
-    {
-        bpf_trace_printk("execve occurred!\n");
-        p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
-        if(!p_pt_pt)
-        {
-            bpf_trace_printk("no previous profile associated with this pid!\n");
-        }
-        else
-        {
-            bpf_probe_read(&p_pt, sizeof(p_pt), p_pt_pt);
-            bpf_probe_read(&p, sizeof(p), p_pt);
-            pid_tgid_to_profile.delete(&pid_tgid);
-            bpf_trace_printk("disassociated profile %llu with pid %d!\n", p.key, pid_tgid >> 32);
-        }
-    }
-
-    return 0;
-}
-
-// we need the return value from fork syscalls in order to copy profiles over
-TRACEPOINT_PROBE(raw_syscalls, sys_exit)
-{
-    long syscall = args->id;
-    // get PID
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    // get parent's PID
-    u64 ppid_tgid = pH_get_ppid_tgid();
-
-    // if we are forking, we need to copy our profile to the next
-    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
-    {
-        pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
-        pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
-    }
-
-    return 0;
-}
+// }}}
+// Profile Loading {{{
 
 // load a profile's test data from userspace
 static int pH_load_test_data(pH_profile_payload *payload)
@@ -451,7 +422,7 @@ static int pH_load_train_data(pH_profile_payload *payload)
     return 0;
 }
 
-static int pH_load_base_profile(pH_profile_payload *payload)
+static int pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 {
     pH_profile p;
     pH_profile *temp;
@@ -480,7 +451,167 @@ static int pH_load_base_profile(pH_profile_payload *payload)
     else
     {
         profile.lookup_or_init(&key, &p);
+        // prevent overloading of a profile
+        u8 val = 1;
+        profile_loaded.update(&key, &val);
     }
+
+    // notify userspace of the profile being loaded
+    profile_load_event.perf_submit(ctx, &p, sizeof(p));
+
+    return 0;
+}
+
+// check if a profile is already loaded
+static int pH_is_loaded(pH_profile_payload *payload)
+{
+    pH_profile p;
+    pH_profile *temp;
+    u64 key = 0;
+    u8  val = 0;
+
+    if(!payload)
+    {
+        bpf_trace_printk("could not load full profile data -- pH_is_loaded \n");
+        return -1;
+    }
+
+    bpf_probe_read(&p, sizeof(p), &payload->profile);
+
+    if(*profile_loaded.lookup_or_init(&p.key, &val) != 0)
+    {
+        bpf_trace_printk("profile already loaded -- pH_is_loaded\n");
+        return -1;
+    }
+
+    val = 1;
+    profile_loaded.update(&p.key, &val);
+
+    return 0;
+}
+
+// }}}
+
+// }}}
+// Tracepoints and Hooks {{{
+
+// hooks onto execve helper responsible for opening the files
+// and snags the return value (a file struct pointer)
+int pH_on_do_open_execat(struct pt_regs *ctx)
+{
+    struct file *exec_file;
+    struct dentry *exec_entry;
+    struct inode *exec_inode;
+    u64 key = 0;
+
+    if(!ctx)
+    {
+        bpf_trace_printk("failed to fetch ctx\n");
+        return -1;
+    }
+
+    // yoink the file struct
+    exec_file = (struct file *)PT_REGS_RC(ctx);
+    if(!exec_file || IS_ERR(exec_file))
+    {
+        bpf_trace_printk("failed to fetch exec_file\n");
+        return -1;
+    }
+
+    // fetch dentry for executable
+    exec_entry = exec_file->f_path.dentry;
+    if(!exec_entry)
+    {
+        bpf_trace_printk("failed to fetch exec_entry\n");
+        return -1;
+    }
+
+    // fetch inode for executable
+    exec_inode = exec_entry->d_inode;
+    if(!exec_inode)
+    {
+        bpf_trace_printk("failed to fetch exec_inode\n");
+        return -1;
+    }
+
+    // we want a key to be comprised of device number in the upper 32 bits
+    // and inode number in the lower 32 bits
+    key  = exec_inode->i_ino;
+    key |= ((u64)exec_inode->i_rdev << 32);
+
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    // create a new profile with this key
+    pH_create_profile(&key, ctx);
+
+    return 0;
+}
+
+TRACEPOINT_PROBE(raw_syscalls, sys_enter)
+{
+    long syscall = args->id;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u64 key;
+    pH_profile **p_pt_pt;
+    pH_profile *p_pt;
+    pH_profile p;
+
+    // create or update the sequence for this pid_tgid
+    pH_create_or_update_sequence(&args->id, &pid_tgid);
+
+    // create or update the profile for this executable
+    //pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
+
+    // log if an execve occurred and disassociate pid with profile
+    if(syscall == SYS_EXECVE)
+    {
+        bpf_trace_printk("execve occurred!\n");
+        execves.increment(0);
+        p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
+        if(!p_pt_pt)
+        {
+            bpf_trace_printk("no previous profile associated with this pid\n");
+        }
+        else
+        {
+            bpf_probe_read(&p_pt, sizeof(p_pt), p_pt_pt);
+            bpf_probe_read(&p, sizeof(p), p_pt);
+            pid_tgid_to_profile.delete(&pid_tgid);
+            bpf_trace_printk("disassociated profile %llu with pid %d\n", p.key, pid_tgid >> 32);
+
+            // notify userspace that the profile has been disassociated
+            struct profile_association ass = {p.key, pid_tgid >> 32};
+            profile_disassoc_event.perf_submit(args, &ass, sizeof(ass));
+        }
+    }
+    // log if a fork occurred
+    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    {
+        bpf_trace_printk("fork occurred!\n");
+        forks.increment(0);
+    }
+
+    syscalls.increment(0);
+
+    return 0;
+}
+
+// we need the return value from fork syscalls in order to copy profiles over
+TRACEPOINT_PROBE(raw_syscalls, sys_exit)
+{
+    long syscall = args->id;
+    // get PID
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    // get parent's PID
+    u64 ppid_tgid = pH_get_ppid_tgid();
+
+    // if we are forking, we need to copy our profile to the next
+    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    {
+        pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
+        pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
+    }
+
     return 0;
 }
 
@@ -495,9 +626,16 @@ int pH_load_profile(struct pt_regs *ctx)
         return -1;
     }
 
-    pH_load_base_profile(payload);
+    if(pH_is_loaded(payload) != 0)
+    {
+        return -1;
+    }
+
+    pH_load_base_profile(payload, ctx);
     pH_load_test_data(payload);
     pH_load_train_data(payload);
 
     return 0;
 }
+
+// }}}

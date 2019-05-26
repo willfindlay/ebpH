@@ -13,7 +13,7 @@
 #
 # USAGE: ebpH.py <COMMAND>
 #
-# Licensed under GPL v3 License
+# Licensed under GPL v2 License
 
 from time import sleep, strftime
 import subprocess
@@ -34,8 +34,6 @@ from pprint import pprint
 PROFILE_DIR = "/var/lib/pH/profiles"
 # path of profile loader executable
 LOADER_PATH = os.path.abspath("profile_loader")
-# path of exe finder executable
-EXE_FINDER_PATH = os.path.abspath("exe_finder")
 # length of sequences
 SEQLEN = 8
 
@@ -147,10 +145,6 @@ if __name__ == "__main__":
                         help="write to a log file specified by <output>")
     args = parser.parse_args()
 
-    # TODO: daemonize the process
-    # TODO: use command to control daemonized process
-    #command = args.command
-
     # check privileges
     if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
@@ -167,7 +161,6 @@ if __name__ == "__main__":
     bpf = BPF(text=text)
     # register callback to load profiles
     bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-    #execve_fnname = bpf.get_syscall_fnname("execve")
     bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
     # load in any profiles
@@ -175,6 +168,11 @@ if __name__ == "__main__":
 
     print("Tracing syscall sequences of length %s... Ctrl+C to quit." % SEQLEN)
     exiting = 0
+
+    # maybe redirect output
+    if args.output is not None:
+        sys.stdout = open(args.output,"w+")
+
     while True:
         # update the hashmap of sequences
         try:
@@ -186,10 +184,6 @@ if __name__ == "__main__":
 
         # exit control flow
         if exiting:
-            # maybe redirect output
-            if args.output is not None:
-                sys.stdout = open(args.output,"w+")
-
             seq_hash = bpf["seq"]
             pro_hash = bpf["profile"]
 

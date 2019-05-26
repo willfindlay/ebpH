@@ -11,7 +11,7 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under GPL v3 License */
+ * Licensed under GPL v2 License */
 
 // let profiles.h know that we are in userspace and need some extra definitions
 #define USERSPACE
@@ -21,7 +21,7 @@
 #include "defs.h"
 #include "profiles.h"
 
-// TODO: get this working with the training data as well
+// TODO: get this working with the training and testing data as well
 //       may need a separate structure to submit to eBPF program
 pH_profile_payload *load_profile(char *path)
 {

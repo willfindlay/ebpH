@@ -11,7 +11,7 @@
  *
  * USAGE: ebpH.py <COMMAND>
  *
- * Licensed under GPL v3 License */
+ * Licensed under GPL v2 License */
 
 #ifndef DEFS_H
 #define DEFS_H
@@ -34,10 +34,14 @@ typedef long time_t;
 #define TABLE_SIZE 10240
 
 // pH_task definitions
-#define PH_LOCALITY_WIN 128
+#define PH_LOCALITY_WIN 9
 
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  313
+#define PH_NORMAL_WAIT (u64) (24 * 7 * 3600) // one week in seconds
+#define PH_THAWED 0
+#define PH_FROZEN 1
+#define PH_NORMAL 2
 
 // important syscall definitions
 #define SYS_CLONE      56
