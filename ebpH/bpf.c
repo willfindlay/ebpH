@@ -22,6 +22,35 @@
 
 #define BPF_LICENSE GPL
 
+struct profile_association
+{
+    u64 key;
+    u32 pid;
+};
+
+struct profile_copy
+{
+    u32 ppid;
+    u32 pid;
+    u64 key;
+};
+
+// profile events
+BPF_PERF_OUTPUT(profile_create_event);
+BPF_PERF_OUTPUT(profile_load_event);
+BPF_PERF_OUTPUT(profile_assoc_event);
+BPF_PERF_OUTPUT(profile_disassoc_event);
+BPF_PERF_OUTPUT(profile_copy_event);
+
+// monitoring events
+BPF_PERF_OUTPUT(anomaly_event); // TODO: implement this
+
+// counting syscalls
+BPF_HISTOGRAM(syscalls);
+BPF_HISTOGRAM(forks);
+BPF_HISTOGRAM(execves);
+BPF_HISTOGRAM(exits);
+
 // Hashmaps {{{
 
 // profiles hashed by device number << 32 | inode number
@@ -141,6 +170,7 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
     {
         seq.delete(pid_tgid);
+        exits.increment(0);
     }
     else
     {
@@ -184,7 +214,7 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret
     return 0;
 }
 
-static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
+static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, struct pt_regs *ctx)
 {
     pH_profile *p_pt;
     pH_profile **temp;
@@ -208,6 +238,11 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
     pid_tgid_to_profile.update(pid_tgid, &p_pt);
     bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully\n",
             (*ppid_tgid) >> 32, (*pid_tgid) >> 32);
+
+    // notify userspace of profile copying
+    struct profile_copy cop = {(*ppid_tgid) >> 32, (*pid_tgid) >> 32, 0};
+    bpf_probe_read(&cop.key, sizeof(cop.key), &p_pt->key);
+    profile_copy_event.perf_submit(ctx, &cop, sizeof(cop));
 
     return 0;
 }
@@ -247,7 +282,7 @@ static int pH_reset_profile_train_data(pH_profile *p)
     return 0;
 }
 
-static int pH_create_profile(u64 *key)
+static int pH_create_profile(u64 *key, struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
@@ -268,6 +303,7 @@ static int pH_create_profile(u64 *key)
         return -1;
     }
 
+    // FIXME: this is wrong. should not return if there's already a profile associated
     // check to see if a profile is already associated with this PID
     pH_profile **test = pid_tgid_to_profile.lookup(& pid_tgid);
     if(test)
@@ -278,9 +314,18 @@ static int pH_create_profile(u64 *key)
     pH_reset_profile_test_data(&p);
     pH_reset_profile_train_data(&p);
 
+    temp = profile.lookup(key);
+    if(temp != NULL)
+        goto created;
+
     // create the profile if it does not exist
     temp = profile.lookup_or_init(key, &p);
     bpf_trace_printk("created profile %llu\n", *key);
+
+    // notify userspace of profile creation
+    profile_create_event.perf_submit(ctx, &p, sizeof(p));
+
+created:
 
     // copy profile pointer to stack so we can operate on it
     bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
@@ -288,6 +333,10 @@ static int pH_create_profile(u64 *key)
     // associate the profile with the appropriate PID
     pid_tgid_to_profile.update(&pid_tgid, &p_pt);
     bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
+
+    // notify userspace of profile asssociation
+    struct profile_association ass = {*key, pid_tgid >> 32};
+    profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
 //#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
 //    bpf_spin_unlock(&p.lock);
@@ -373,7 +422,7 @@ static int pH_load_train_data(pH_profile_payload *payload)
     return 0;
 }
 
-static int pH_load_base_profile(pH_profile_payload *payload)
+static int pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 {
     pH_profile p;
     pH_profile *temp;
@@ -406,6 +455,10 @@ static int pH_load_base_profile(pH_profile_payload *payload)
         u8 val = 1;
         profile_loaded.update(&key, &val);
     }
+
+    // notify userspace of the profile being loaded
+    profile_load_event.perf_submit(ctx, &p, sizeof(p));
+
     return 0;
 }
 
@@ -489,7 +542,7 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     // create a new profile with this key
-    pH_create_profile(&key);
+    pH_create_profile(&key, ctx);
 
     return 0;
 }
@@ -513,6 +566,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     if(syscall == SYS_EXECVE)
     {
         bpf_trace_printk("execve occurred!\n");
+        execves.increment(0);
         p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
         if(!p_pt_pt)
         {
@@ -524,13 +578,20 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
             bpf_probe_read(&p, sizeof(p), p_pt);
             pid_tgid_to_profile.delete(&pid_tgid);
             bpf_trace_printk("disassociated profile %llu with pid %d\n", p.key, pid_tgid >> 32);
+
+            // notify userspace that the profile has been disassociated
+            struct profile_association ass = {p.key, pid_tgid >> 32};
+            profile_disassoc_event.perf_submit(args, &ass, sizeof(ass));
         }
     }
     // log if a fork occurred
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
         bpf_trace_printk("fork occurred!\n");
+        forks.increment(0);
     }
+
+    syscalls.increment(0);
 
     return 0;
 }
@@ -548,7 +609,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
-        pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
+        pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
     }
 
     return 0;
@@ -557,7 +618,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 // load a profile
 int pH_load_profile(struct pt_regs *ctx)
 {
-    pH_profile *p = 0;
     pH_profile_payload *payload = (pH_profile_payload *)PT_REGS_RC(ctx);
 
     if(!payload)
@@ -571,7 +631,7 @@ int pH_load_profile(struct pt_regs *ctx)
         return -1;
     }
 
-    pH_load_base_profile(payload);
+    pH_load_base_profile(payload, ctx);
     pH_load_test_data(payload);
     pH_load_train_data(payload);
 

@@ -73,7 +73,7 @@ typedef struct
     u64 anomalies;
     u64 key;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
+    //struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
 #endif
 }
 pH_profile;

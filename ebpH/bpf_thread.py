@@ -29,6 +29,7 @@ from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
 from PySide2.QtCore import QThread
+from PySide2.QtCore import Signal
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -79,38 +80,6 @@ def print_profiles():
     for k, profile in profile_hash.items():
         print(k)
 
-# save profiles to disk
-def save_profiles():
-    profile_hash = bpf["profile"]
-    test_hash = bpf["test_data"]
-    train_hash = bpf["train_data"]
-
-    for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
-        filename = str(profile.key)
-
-        # get rid of slash if it is the first character
-        if filename[0] == r'/':
-            filename = filename[1:]
-        profile_path = os.path.join(PROFILE_DIR, filename)
-
-        # create path if it doesn't exist
-        if not os.path.exists(os.path.dirname(profile_path)):
-            try:
-                os.makedirs(os.path.dirname(profile_path))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-        with open(profile_path, "w") as f:
-            printb(b"".join([profile,test,train]),file=f,nl=0)
-
-# load profiles from disk
-def load_profiles():
-    for dirpath, dirnames, files in os.walk(PROFILE_DIR):
-        for f in files:
-            profile_path = os.path.join(dirpath, f)
-            # run the profile_loader which is registered with a uretprobe
-            subprocess.run([LOADER_PATH,profile_path])
-
 # load a bpf program from a file
 def load_bpf(code):
     with open(code, "r") as f:
@@ -118,14 +87,89 @@ def load_bpf(code):
 
     return text
 
-
 class BPFThread(QThread):
     def __init__(self, parent=None):
         QThread.__init__(self, parent)
         self.exiting = False
+        self.profiles = 0
 
+    # save profiles to disk
+    def save_profiles(self):
+        profile_hash = self.bpf["profile"]
+        test_hash    = self.bpf["test_data"]
+        train_hash   = self.bpf["train_data"]
+
+        for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
+            filename = str(profile.key)
+
+            # get rid of slash if it is the first character
+            if filename[0] == r'/':
+                filename = filename[1:]
+            profile_path = os.path.join(PROFILE_DIR, filename)
+
+            # create path if it doesn't exist
+            if not os.path.exists(os.path.dirname(profile_path)):
+                try:
+                    os.makedirs(os.path.dirname(profile_path))
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+            with open(profile_path, "w") as f:
+                printb(b"".join([profile,test,train]),file=f,nl=0)
+
+    # load profiles from disk
+    def load_profiles(self):
+        for dirpath, dirnames, files in os.walk(PROFILE_DIR):
+            for f in files:
+                profile_path = os.path.join(dirpath, f)
+                # run the profile_loader which is registered with a uretprobe
+                subprocess.run([LOADER_PATH,profile_path])
+
+    # --- Signals ---
+    sig_event            = Signal(str)
+    sig_warning          = Signal(str)
+    sig_error            = Signal(str)
+    sig_stats            = Signal(int, int, int, int, int)
+    sig_can_exit         = Signal(bool)
+
+    # --- Control Flow ---
+    # called when the thread is started
     def run(self):
+        def on_profile_create(cpu, data, size):
+            event = self.bpf["profile_create_event"].event(data)
+            s = f"Profile {event.key} created."
+            self.sig_event.emit(s)
+            self.num_profiles += 1
+
+        def on_profile_load(cpu, data, size):
+            event = self.bpf["profile_load_event"].event(data)
+            s = f"Profile {event.key} loaded."
+            self.sig_event.emit(s)
+            self.num_profiles += 1
+
+        def on_profile_assoc(cpu, data, size):
+            event = self.bpf["profile_assoc_event"].event(data)
+            s = f"Profile {event.key} associated with PID {event.pid}."
+            self.sig_event.emit(s)
+
+        def on_profile_disassoc(cpu, data, size):
+            event = self.bpf["profile_disassoc_event"].event(data)
+            s = f"Profile {event.key} has been disassociated from PID {event.pid}."
+            self.sig_event.emit(s)
+
+        def on_profile_copy(cpu, data, size):
+            event = self.bpf["profile_copy_event"].event(data)
+            s = f"Fork ocurred. Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
+            self.sig_event.emit(s)
+
+        def on_anomaly(cpu, data, size):
+            event = self.bpf["anomaly_event"].event(data)
+            s = " ".join(["Profile"])
+            self.sig_warning.emit(s)
+
+        self.sig_can_exit.emit(False)
         self.exiting = False
+        self.num_profiles = 0
 
         if not os.path.exists(PROFILE_DIR):
             os.makedirs(PROFILE_DIR)
@@ -134,27 +178,39 @@ class BPFThread(QThread):
         text = load_bpf("./bpf.c")
 
         # compile ebpf code
-        bpf = BPF(text=text)
+        self.bpf = BPF(text=text)
         # register callback to load profiles
-        bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-        bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
+        self.bpf.attach_uretprobe(name=LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
+
+        # register perf outputs
+        self.bpf["profile_create_event"].open_perf_buffer(on_profile_create)
+        self.bpf["profile_load_event"].open_perf_buffer(on_profile_load)
+        self.bpf["profile_assoc_event"].open_perf_buffer(on_profile_assoc)
+        self.bpf["profile_disassoc_event"].open_perf_buffer(on_profile_disassoc)
+        self.bpf["profile_copy_event"].open_perf_buffer(on_profile_copy)
+        self.bpf["anomaly_event"].open_perf_buffer(on_anomaly)
 
         # load in any profiles
-        load_profiles()
+        self.load_profiles()
 
         while True:
             # update the hashmap of sequences
-            #bpf.trace_print()
-            sleep(1)
+            self.bpf.perf_buffer_poll(10)
+            self.num_syscalls = self.bpf["syscalls"].values()[0].value
+            self.num_forks    = self.bpf["forks"].values()[0].value
+            self.num_execves  = self.bpf["execves"].values()[0].value
+            self.num_exits  = self.bpf["exits"].values()[0].value
+            self.sig_stats.emit(self.num_profiles, self.num_syscalls, self.num_forks, self.num_execves, self.num_exits)
 
             # exit control flow
             if self.exiting:
-                save_profiles()
+                self.save_profiles()
 
                 # clear the BPF hashmap
-                seq_hash.clear()
-                pro_hash.clear()
-
-                print()
-                print("Detaching...")
-                self.terminate()
+                #seq_hash.clear()
+                #pro_hash.clear()
+                self.bpf.cleanup()
+                self.sig_event.emit("Probe has been detached.")
+                self.sig_can_exit.emit(True)
+                break

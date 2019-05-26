@@ -17,13 +17,29 @@
 
 import sys
 import os
+import re
 import textwrap
+import datetime
+import atexit
+from time import sleep
 from pprint import pprint
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
+from PySide2.QtCharts import *
 from mainwindow import Ui_MainWindow
 from bpf_thread import BPFThread
+
+# --- HTML Color Definitions ---
+
+def color(color):
+    return "".join(["<font color=\"", color, "\">"])
+
+ORANGE = color("#ff6600")
+BLACK  = color("#000000")
+GREEN  = color("#009900")
+RED    = color("#990000")
+BLUE   = color("#000099")
 
 # to recompile UI or Resources files, just run make
 
@@ -31,10 +47,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        self.monitoring = False
+        self.can_exit = True
+
+        # setup thread
+        self.bpf_thread = BPFThread()
+
+        # add graph
+        self.series = QtCharts.QLineSeries()
+        self.chart_view = QtCharts.QChartView()
+        self.chart_view.chart().addSeries(self.series)
+        self.chart_view.chart().createDefaultAxes()
+        self.chart_view.chart().setTitle("ebpH Statistics Over Time")
+        ell = QGridLayout()
+        self.chart_container.setLayout(ell)
+        self.chart_container.layout().addWidget(self.chart_view)
+
+        # connect slots and draw window
         self.connect_slots()
         self.showMaximized()
-        self.bpf_thread = BPFThread()
-        self.monitoring = False
 
     # --- Initialization Helpers ---
 
@@ -48,7 +79,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # --- Monitoring Menu ---
         self.action_Start_Monitoring.triggered.connect(self.toggle_monitoring)
         self.action_Stop_Monitoring.triggered.connect(self.toggle_monitoring)
-        # this is bound to the "View/Modify Profile" button in the menu
         self.action_View_Modify_Profile
 
         # --- Settings Menu ---
@@ -57,6 +87,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # --- Help Menu ---
         self.actionebpH_Help.triggered.connect(self.show_ebpH_help)
         self.action_About.triggered.connect(self.about_ebpH)
+
+        # --- ebpH events ---
+        self.bpf_thread.sig_event.connect(self.log_message)
+        self.bpf_thread.sig_warning.connect(self.log_warning)
+        self.bpf_thread.sig_error.connect(self.log_error)
+
+        # --- Statistics ---
+        self.bpf_thread.sig_stats.connect(self.update_stats)
+
+        # --- Housekeeping ---
+        self.bpf_thread.sig_can_exit.connect(self.update_can_exit)
 
     # --- Slots ---
 
@@ -89,10 +130,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.action_Start_Monitoring.setEnabled(False)
             self.action_Stop_Monitoring.setEnabled(True)
             self.bpf_thread.start()
+            self.log_event("Monitoring started.", "m")
+            self.monitoring_radio.setChecked(True)
+            self.not_monitoring_radio.setChecked(False)
         else:
             self.action_Start_Monitoring.setEnabled(True)
             self.action_Stop_Monitoring.setEnabled(False)
             self.bpf_thread.exiting = True
+            self.log_event("Monitoring stopped.", "w")
+            self.monitoring_radio.setChecked(False)
+            self.not_monitoring_radio.setChecked(True)
+
+    def log_event(self, event, etype="m"):
+        now = datetime.datetime.now()
+        time_str = now.strftime("[%m/%d/%Y %H:%M:%S]")
+        event = re.sub(r"(\d+)", f"{RED}\\1{BLACK}", event)
+        etype = etype.lower()
+        if etype == "w":
+            etype_str = "WARNING:".replace(" ","&nbsp;")
+            etype_str = "".join([ORANGE, etype_str, BLACK])
+        elif etype == "e":
+            etype_str = "  ERROR:".replace(" ","&nbsp;")
+            etype_str = "".join([RED, etype_str, BLACK])
+        else:
+            etype_str = "   INFO:".replace(" ","&nbsp;")
+            etype_str = "".join([GREEN, etype_str, BLACK])
+        self.event_log.appendHtml(" ".join([BLUE, time_str, etype_str, BLACK, event]))
+
+    def log_message(self, event):
+        self.log_event(event, "m")
+
+    def log_warning(self, event):
+        self.log_event(event, "w")
+
+    def log_error(self, event):
+        self.log_event(event, "e")
+
+    def update_stats(self, profiles, syscalls, forks, execves, exits):
+        self.profile_count.setText(str(profiles))
+        self.syscall_count.setText(str(syscalls))
+        self.fork_count.setText(str(forks))
+        self.execve_count.setText(str(execves))
+        self.exit_count.setText(str(exits))
+
+    def update_can_exit(self, can_exit):
+        self.can_exit = can_exit
+
+    # --- Event Handlers ---
+
+    # cleanup thread before exiting
+    def closeEvent(self, event):
+        self.bpf_thread.exiting = True
+        self.bpf_thread.wait()
+        event.accept()
 
     # --- Generic Helpers ---
 
