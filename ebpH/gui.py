@@ -140,13 +140,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.monitoring_radio.setChecked(True)
             self.not_monitoring_radio.setChecked(False)
         else:
-            self.action_Start_Monitoring.setEnabled(True)
+            self.bpf_thread.exiting = True
+            self.log("Stopping monitoring...", "m")
             self.action_Stop_Monitoring.setEnabled(False)
             self.action_Force_Save_Profiles.setEnabled(False)
-            self.bpf_thread.exiting = True
-            self.log("Monitoring stopped.", "w")
-            self.monitoring_radio.setChecked(False)
-            self.not_monitoring_radio.setChecked(True)
+            # re-enabling monitor button will go in a callback to the probe being shut off
 
     def log(self, event, etype="m"):
         now = datetime.datetime.now()
@@ -183,6 +181,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_can_exit(self, can_exit):
         self.can_exit = can_exit
+        if can_exit:
+            self.action_Start_Monitoring.setEnabled(True)
+            self.monitoring_radio.setChecked(False)
+            self.not_monitoring_radio.setChecked(True)
 
     def on_profiles_saved(self):
         text = """

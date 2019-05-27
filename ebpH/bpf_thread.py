@@ -24,7 +24,7 @@ import itertools
 import sys
 import signal
 import os
-from bcc import BPF, USDT
+from bcc import BPF
 from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
@@ -92,6 +92,11 @@ class BPFThread(QThread):
         QThread.__init__(self, parent)
         self.exiting = False
         self.profiles = 0
+        self.events = []
+
+    def dispatch_events(self):
+        self.sig_events.emit(self.events)
+        self.events = []
 
     # save profiles to disk
     def save_profiles(self):
@@ -122,16 +127,14 @@ class BPFThread(QThread):
 
     # load profiles from disk
     def load_profiles(self):
-        for dirpath, dirnames, files in os.walk(PROFILE_DIR):
-            for f in files:
-                profile_path = os.path.join(dirpath, f)
-                # run the profile_loader which is registered with a uretprobe
-                subprocess.run([LOADER_PATH,profile_path])
+        # run the profile_loader which is registered with a uretprobe
+        subprocess.run([LOADER_PATH])
 
     # --- Signals ---
     sig_event            = Signal(str)
     sig_warning          = Signal(str)
     sig_error            = Signal(str)
+    sig_events           = Signal(list)
     sig_stats            = Signal(int, int, int, int, int)
     sig_can_exit         = Signal(bool)
     sig_profiles_saved   = Signal()
@@ -142,32 +145,38 @@ class BPFThread(QThread):
         def on_profile_create(cpu, data, size):
             event = self.bpf["profile_create_event"].event(data)
             s = f"Profile {event.key} created."
-            self.sig_event.emit(s)
+            #self.sig_event.emit(s)
+            self.events.append({event: s, event_type: "m"})
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
             s = f"Profile {event.key} loaded."
-            self.sig_event.emit(s)
+            #self.sig_event.emit(s)
+            self.events.append({event: s, event_type: "m"})
 
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
             s = f"Profile {event.key} associated with PID {event.pid}."
-            self.sig_event.emit(s)
+            #self.sig_event.emit(s)
+            self.events.append({event: s, event_type: "m"})
 
         def on_profile_disassoc(cpu, data, size):
             event = self.bpf["profile_disassoc_event"].event(data)
             s = f"Profile {event.key} has been disassociated from PID {event.pid}."
-            self.sig_event.emit(s)
+            #self.sig_event.emit(s)
+            self.events.append({event: s, event_type: "m"})
 
         def on_profile_copy(cpu, data, size):
             event = self.bpf["profile_copy_event"].event(data)
             s = f"Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
-            self.sig_event.emit(s)
+            #self.sig_event.emit(s)
+            self.events.append({event: s, event_type: "m"})
 
         def on_anomaly(cpu, data, size):
             event = self.bpf["anomaly_event"].event(data)
             s = " ".join(["Profile"])
-            self.sig_warning.emit(s)
+            #self.sig_warning.emit(s)
+            self.events.append({event: s, event_type: "w"})
 
         self.sig_can_exit.emit(False)
         self.exiting = False
@@ -213,6 +222,6 @@ class BPFThread(QThread):
                 #seq_hash.clear()
                 #pro_hash.clear()
                 self.bpf.cleanup()
-                self.sig_event.emit("Probe has been detached.")
+                self.sig_warning.emit("Probe has been detached.")
                 self.sig_can_exit.emit(True)
                 break

@@ -18,8 +18,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <ctype.h>
+#include <string.h>
+#include <errno.h>
 #include "defs.h"
 #include "profiles.h"
+
+const char *profile_dir = "/var/lib/pH/profiles";
 
 // TODO: get this working with the training and testing data as well
 //       may need a separate structure to submit to eBPF program
@@ -31,26 +37,49 @@ pH_profile_payload *load_profile(char *path)
     // open profile for reading
     FILE *f = fopen(path, "r");
     if(f == NULL)
+    {
+        printf("%s\n",strerror(errno));
         return NULL;
+    }
 
     while(fread(p, sizeof(pH_profile_payload), 1, f))
     {
 
     }
 
+    fclose(f);
+
     return p;
+}
+
+void prepare_filename(char *entry, char* filename)
+{
+    char *c;
+    strcpy(filename, profile_dir);
+    c = filename + strlen(filename);
+    *c = '/';
+    c++;
+    strcpy(c,entry);
 }
 
 int main(int argc, char **argv)
 {
-    if(argc != 2)
-        return -1;
+    DIR *profiles_dir;
+    struct dirent *e;
+    char filename[512];
+    pH_profile_payload *p;
+    int i = 0;
 
     // open the profile
-    char *path = argv[1];
-    pH_profile_payload *p = load_profile(path);
-
-    free(p);
+    profiles_dir = opendir(profile_dir);
+    if(profiles_dir == NULL)
+        return -1;
+    for(e = readdir(profiles_dir); e != NULL; e = readdir(profiles_dir))
+    {
+        prepare_filename(e->d_name, filename);
+        p = load_profile(filename);
+        free(p);
+    }
 
     return 0;
 }
