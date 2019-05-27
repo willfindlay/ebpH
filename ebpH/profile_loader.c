@@ -76,9 +76,12 @@ int main(int argc, char **argv)
         return -1;
     for(e = readdir(profiles_dir); e != NULL; e = readdir(profiles_dir))
     {
-        prepare_filename(e->d_name, filename);
-        p = load_profile(filename);
-        free(p);
+        if(isdigit(e->d_name[0]))
+        {
+            prepare_filename(e->d_name, filename);
+            p = load_profile(filename);
+            free(p);
+        }
     }
 
     return 0;

@@ -120,11 +120,8 @@ def save_profiles():
 
 # load profiles from disk
 def load_profiles():
-    for dirpath, dirnames, files in os.walk(PROFILE_DIR):
-        for f in files:
-            profile_path = os.path.join(dirpath, f)
-            # run the profile_loader which is registered with a uretprobe
-            subprocess.run([LOADER_PATH,profile_path])
+    # run the profile_loader which is registered with a uretprobe
+    subprocess.run([LOADER_PATH])
 
 # load a bpf program from a file
 def load_bpf(code):

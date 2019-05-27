@@ -92,11 +92,6 @@ class BPFThread(QThread):
         QThread.__init__(self, parent)
         self.exiting = False
         self.profiles = 0
-        self.events = []
-
-    def dispatch_events(self):
-        self.sig_events.emit(self.events)
-        self.events = []
 
     # save profiles to disk
     def save_profiles(self):
@@ -145,38 +140,32 @@ class BPFThread(QThread):
         def on_profile_create(cpu, data, size):
             event = self.bpf["profile_create_event"].event(data)
             s = f"Profile {event.key} created."
-            #self.sig_event.emit(s)
-            self.events.append({event: s, event_type: "m"})
+            self.sig_event.emit(s)
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
             s = f"Profile {event.key} loaded."
-            #self.sig_event.emit(s)
-            self.events.append({event: s, event_type: "m"})
+            self.sig_event.emit(s)
 
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
             s = f"Profile {event.key} associated with PID {event.pid}."
-            #self.sig_event.emit(s)
-            self.events.append({event: s, event_type: "m"})
+            self.sig_event.emit(s)
 
         def on_profile_disassoc(cpu, data, size):
             event = self.bpf["profile_disassoc_event"].event(data)
             s = f"Profile {event.key} has been disassociated from PID {event.pid}."
-            #self.sig_event.emit(s)
-            self.events.append({event: s, event_type: "m"})
+            self.sig_event.emit(s)
 
         def on_profile_copy(cpu, data, size):
             event = self.bpf["profile_copy_event"].event(data)
             s = f"Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
-            #self.sig_event.emit(s)
-            self.events.append({event: s, event_type: "m"})
+            self.sig_event.emit(s)
 
         def on_anomaly(cpu, data, size):
             event = self.bpf["anomaly_event"].event(data)
             s = " ".join(["Profile"])
-            #self.sig_warning.emit(s)
-            self.events.append({event: s, event_type: "w"})
+            self.sig_warning.emit(s)
 
         self.sig_can_exit.emit(False)
         self.exiting = False
