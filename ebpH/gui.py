@@ -41,6 +41,8 @@ GREEN  = color("#009900")
 RED    = color("#990000")
 BLUE   = color("#000099")
 
+# --- Main Window ---
+
 # to recompile UI or Resources files, just run make
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -58,7 +60,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.chart_view = QtCharts.QChartView()
         self.chart_view.chart().addSeries(self.series)
         self.chart_view.chart().createDefaultAxes()
-        self.chart_view.chart().setTitle("ebpH Statistics Over Time")
+        self.chart_view.chart().layout().setContentsMargins(0, 0, 0, 0);
+        self.chart_view.chart().setBackgroundRoundness(0);
+        #self.chart_view.chart().setTitle("ebpH Statistics Over Time")
         ell = QGridLayout()
         self.chart_container.setLayout(ell)
         self.chart_container.layout().addWidget(self.chart_view)
@@ -89,7 +93,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionebpH_Help.triggered.connect(self.show_ebpH_help)
         self.action_About.triggered.connect(self.about_ebpH)
 
-        # --- ebpH events ---
+        # --- Log ebpH events ---
         self.bpf_thread.sig_event.connect(self.log_message)
         self.bpf_thread.sig_warning.connect(self.log_warning)
         self.bpf_thread.sig_error.connect(self.log_error)
@@ -132,22 +136,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.action_Stop_Monitoring.setEnabled(True)
             self.action_Force_Save_Profiles.setEnabled(True)
             self.bpf_thread.start()
-            self.log_event("Monitoring started.", "m")
+            self.log("Monitoring started.", "m")
             self.monitoring_radio.setChecked(True)
             self.not_monitoring_radio.setChecked(False)
         else:
-            self.action_Start_Monitoring.setEnabled(True)
+            self.bpf_thread.exiting = True
+            self.log("Stopping monitoring...", "m")
             self.action_Stop_Monitoring.setEnabled(False)
             self.action_Force_Save_Profiles.setEnabled(False)
-            self.bpf_thread.exiting = True
-            self.log_event("Monitoring stopped.", "w")
-            self.monitoring_radio.setChecked(False)
-            self.not_monitoring_radio.setChecked(True)
+            # re-enabling monitor button will go in a callback to the probe being shut off
 
-    def log_event(self, event, etype="m"):
+    def log(self, event, etype="m"):
         now = datetime.datetime.now()
         time_str = now.strftime("[%m/%d/%Y %H:%M:%S]")
         event = re.sub(r"(\d+)", f"{RED}\\1{BLACK}", event)
+        #event = re.sub(r"(\r\n?|\n)+", "".join(["<br>"] + ["&nbsp;" for _ in range(31)]), event)
         etype = etype.lower()
         if etype == "w":
             etype_str = "WARNING:".replace(" ","&nbsp;")
@@ -161,13 +164,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.event_log.appendHtml(" ".join([BLUE, time_str, etype_str, BLACK, event]))
 
     def log_message(self, event):
-        self.log_event(event, "m")
+        self.log(event, "m")
 
     def log_warning(self, event):
-        self.log_event(event, "w")
+        self.log(event, "w")
 
     def log_error(self, event):
-        self.log_event(event, "e")
+        self.log(event, "e")
 
     def update_stats(self, profiles, syscalls, forks, execves, exits):
         self.profile_count.setText(str(profiles))
@@ -178,6 +181,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_can_exit(self, can_exit):
         self.can_exit = can_exit
+        if can_exit:
+            self.action_Start_Monitoring.setEnabled(True)
+            self.monitoring_radio.setChecked(False)
+            self.not_monitoring_radio.setChecked(True)
 
     def on_profiles_saved(self):
         text = """

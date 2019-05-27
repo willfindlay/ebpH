@@ -122,16 +122,14 @@ class BPFThread(QThread):
 
     # load profiles from disk
     def load_profiles(self):
-        for dirpath, dirnames, files in os.walk(PROFILE_DIR):
-            for f in files:
-                profile_path = os.path.join(dirpath, f)
-                # run the profile_loader which is registered with a uretprobe
-                subprocess.run([LOADER_PATH,profile_path])
+        # run the profile_loader which is registered with a uretprobe
+        subprocess.run([LOADER_PATH])
 
     # --- Signals ---
     sig_event            = Signal(str)
     sig_warning          = Signal(str)
     sig_error            = Signal(str)
+    sig_events           = Signal(list)
     sig_stats            = Signal(int, int, int, int, int)
     sig_can_exit         = Signal(bool)
     sig_profiles_saved   = Signal()
@@ -143,13 +141,11 @@ class BPFThread(QThread):
             event = self.bpf["profile_create_event"].event(data)
             s = f"Profile {event.key} created."
             self.sig_event.emit(s)
-            self.num_profiles += 1
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
             s = f"Profile {event.key} loaded."
             self.sig_event.emit(s)
-            self.num_profiles += 1
 
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
@@ -163,7 +159,7 @@ class BPFThread(QThread):
 
         def on_profile_copy(cpu, data, size):
             event = self.bpf["profile_copy_event"].event(data)
-            s = f"Fork ocurred. Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
+            s = f"Profile {event.key} copied from PPID {event.ppid} to PID {event.pid}."
             self.sig_event.emit(s)
 
         def on_anomaly(cpu, data, size):
@@ -173,7 +169,6 @@ class BPFThread(QThread):
 
         self.sig_can_exit.emit(False)
         self.exiting = False
-        self.num_profiles = 0
 
         if not os.path.exists(PROFILE_DIR):
             os.makedirs(PROFILE_DIR)
@@ -200,7 +195,8 @@ class BPFThread(QThread):
 
         while True:
             # update the hashmap of sequences
-            self.bpf.perf_buffer_poll(10)
+            self.bpf.perf_buffer_poll(100)
+            self.num_profiles = self.bpf["profiles"].values()[0].value
             self.num_syscalls = self.bpf["syscalls"].values()[0].value
             self.num_forks    = self.bpf["forks"].values()[0].value
             self.num_execves  = self.bpf["execves"].values()[0].value
@@ -215,6 +211,6 @@ class BPFThread(QThread):
                 #seq_hash.clear()
                 #pro_hash.clear()
                 self.bpf.cleanup()
-                self.sig_event.emit("Probe has been detached.")
+                self.sig_warning.emit("Probe has been detached.")
                 self.sig_can_exit.emit(True)
                 break
