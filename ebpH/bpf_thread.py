@@ -164,7 +164,17 @@ class BPFThread(QThread):
 
         def on_anomaly(cpu, data, size):
             event = self.bpf["anomaly_event"].event(data)
-            s = " ".join(["Profile"])
+            s = " ".join(["Anomaly"])
+            self.sig_warning.emit(s)
+
+        def on_error(cpu, data, size):
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            s = f"{event}"
+            self.sig_error.emit(s)
+
+        def on_warning(cpu, data, size):
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            s = f"{event}"
             self.sig_warning.emit(s)
 
         self.sig_can_exit.emit(False)
@@ -189,6 +199,9 @@ class BPFThread(QThread):
         self.bpf["profile_disassoc_event"].open_perf_buffer(on_profile_disassoc)
         self.bpf["profile_copy_event"].open_perf_buffer(on_profile_copy)
         self.bpf["anomaly_event"].open_perf_buffer(on_anomaly)
+        # perf outputs for errors and warnings
+        self.bpf["pH_error"].open_perf_buffer(on_error)
+        self.bpf["pH_warning"].open_perf_buffer(on_warning)
 
         # load in any profiles
         self.load_profiles()
@@ -211,6 +224,6 @@ class BPFThread(QThread):
                 #seq_hash.clear()
                 #pro_hash.clear()
                 self.bpf.cleanup()
-                self.sig_warning.emit("Probe has been detached.")
+                self.sig_event.emit("Monitoring stopped.")
                 self.sig_can_exit.emit(True)
                 break

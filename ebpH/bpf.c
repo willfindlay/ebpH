@@ -42,6 +42,10 @@ BPF_PERF_OUTPUT(profile_assoc_event);
 BPF_PERF_OUTPUT(profile_disassoc_event);
 BPF_PERF_OUTPUT(profile_copy_event);
 
+// error events
+BPF_PERF_OUTPUT(pH_error);
+BPF_PERF_OUTPUT(pH_warning);
+
 // monitoring events
 BPF_PERF_OUTPUT(anomaly_event); // TODO: implement this
 
@@ -231,14 +235,13 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret,
     temp = pid_tgid_to_profile.lookup(ppid_tgid);
     if(!temp)
     {
-        bpf_trace_printk("no parent profile found\n");
+        char err[] = "No parent profile to copy on fork.";
+        pH_warning.perf_submit(ctx, &err, sizeof(err));
         return 0;
     }
     // associate pid with the parent profile
     bpf_probe_read(&p_pt, sizeof(p_pt), temp);
     pid_tgid_to_profile.update(pid_tgid, &p_pt);
-    bpf_trace_printk("parent profile associated with pid %d copied to pid %d successfully\n",
-            (*ppid_tgid) >> 32, (*pid_tgid) >> 32);
 
     // notify userspace of profile copying
     struct profile_copy cop = {(*ppid_tgid) >> 32, (*pid_tgid) >> 32, 0};
@@ -624,20 +627,25 @@ int pH_load_profile(struct pt_regs *ctx)
 
     if(!payload)
     {
-        bpf_trace_printk("could not load full profile data -- pH_load_profile \n");
+        char err[] = "Could not load full profile data.";
+        pH_error.perf_submit(ctx, &err, sizeof(err));
         return -1;
     }
 
     if(pH_is_loaded(payload) != 0)
     {
-        return -1;
+        char err[] = "Reloading a profile that has already been loaded.";
+        pH_warning.perf_submit(ctx, &err, sizeof(err));
+        //return -1;
     }
+
+    profiles.increment(0);
+
+reload:
 
     pH_load_base_profile(payload, ctx);
     pH_load_test_data(payload);
     pH_load_train_data(payload);
-
-    profiles.increment(0);
 
     return 0;
 }

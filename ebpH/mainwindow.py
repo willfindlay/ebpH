@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Sun May 26 18:08:45 2019
+# Created: Mon May 27 20:34:52 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(945, 723)
+        MainWindow.resize(903, 723)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/img/assets/img/logos/favicon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -44,6 +44,15 @@ class Ui_MainWindow(object):
         self.event_log.setBackgroundVisible(False)
         self.event_log.setObjectName("event_log")
         self.verticalLayout_2.addWidget(self.event_log)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setContentsMargins(-1, 0, -1, -1)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem)
+        self.export_logs_button = QtWidgets.QPushButton(self.centralwidget)
+        self.export_logs_button.setObjectName("export_logs_button")
+        self.horizontalLayout_2.addWidget(self.export_logs_button)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.chart_container = QtWidgets.QWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -94,8 +103,8 @@ class Ui_MainWindow(object):
         self.not_monitoring_radio.setChecked(True)
         self.not_monitoring_radio.setObjectName("not_monitoring_radio")
         self.horizontalLayout.addWidget(self.not_monitoring_radio)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem1)
         self.gridLayout_4.addLayout(self.horizontalLayout, 0, 1, 1, 1)
         self.label_5 = QtWidgets.QLabel(self.centralwidget)
         self.label_5.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
@@ -130,8 +139,8 @@ class Ui_MainWindow(object):
         self.profile_count.setObjectName("profile_count")
         self.gridLayout_4.addWidget(self.profile_count, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout_4)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem1)
+        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem2)
         self.gridLayout.addLayout(self.verticalLayout, 2, 0, 1, 1)
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -143,7 +152,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.label_2, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 945, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 903, 29))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
@@ -199,10 +208,7 @@ class Ui_MainWindow(object):
         self.action_Preferences.setObjectName("action_Preferences")
         self.actionExport_Logs = QtWidgets.QAction(MainWindow)
         self.actionExport_Logs.setObjectName("actionExport_Logs")
-        self.actionExport_Statistics = QtWidgets.QAction(MainWindow)
-        self.actionExport_Statistics.setObjectName("actionExport_Statistics")
         self.menuExport.addAction(self.actionExport_Logs)
-        self.menuExport.addAction(self.actionExport_Statistics)
         self.menu_File.addAction(self.action_Force_Save_Profiles)
         self.menu_File.addAction(self.menuExport.menuAction())
         self.menu_File.addSeparator()
@@ -234,6 +240,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "ebpH", None, -1))
         self.event_log.setStatusTip(QtWidgets.QApplication.translate("MainWindow", "ebpH event log", None, -1))
+        self.export_logs_button.setText(QtWidgets.QApplication.translate("MainWindow", "Export Logs", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("MainWindow", "ebpH Log", None, -1))
         self.execve_count.setText(QtWidgets.QApplication.translate("MainWindow", "0", None, -1))
         self.exit_count.setText(QtWidgets.QApplication.translate("MainWindow", "0", None, -1))
@@ -267,14 +274,12 @@ class Ui_MainWindow(object):
         self.action_Stop_Monitoring.setText(QtWidgets.QApplication.translate("MainWindow", "&Stop Monitoring", None, -1))
         self.action_Stop_Monitoring.setStatusTip(QtWidgets.QApplication.translate("MainWindow", "Stop monitoring processes", None, -1))
         self.action_Stop_Monitoring.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+M", None, -1))
-        self.action_View_Modify_Profile.setText(QtWidgets.QApplication.translate("MainWindow", "View/Modify &Profile", None, -1))
+        self.action_View_Modify_Profile.setText(QtWidgets.QApplication.translate("MainWindow", "View/Modify &Profiles", None, -1))
         self.action_View_Modify_Profile.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+Shift+P", None, -1))
         self.action_Force_Save_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Force &Save Profiles", None, -1))
         self.action_Force_Save_Profiles.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+S", None, -1))
         self.action_Preferences.setText(QtWidgets.QApplication.translate("MainWindow", "&Preferences", None, -1))
         self.actionExport_Logs.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Logs", None, -1))
-        self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E, Ctrl+L", None, -1))
-        self.actionExport_Statistics.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Statistics", None, -1))
-        self.actionExport_Statistics.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E, Ctrl+S", None, -1))
+        self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
 
 import resources_rc

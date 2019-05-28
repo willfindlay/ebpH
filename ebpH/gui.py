@@ -28,7 +28,13 @@ from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 from PySide2.QtCharts import *
 from mainwindow import Ui_MainWindow
+from profiledialog import Ui_ProfileDialog
 from bpf_thread import BPFThread
+
+# directory in which profiles are stored
+PROFILE_DIR = "/var/lib/pH/profiles"
+# path of profile loader executable
+LOADER_PATH = os.path.abspath("profile_loader")
 
 # --- HTML Color Definitions ---
 
@@ -40,6 +46,24 @@ BLACK  = color("#000000")
 GREEN  = color("#009900")
 RED    = color("#990000")
 BLUE   = color("#000099")
+
+# --- Profile Dialog ---
+
+class ProfileDialog(QDialog, Ui_ProfileDialog):
+    def __init__(self, parent=None):
+        super(ProfileDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.update_list()
+        self.refresh_button.pressed.connect(self.refresh)
+
+    def update_list(self):
+        filenames = os.listdir(PROFILE_DIR)
+        items = [filename for filename in filenames]
+        self.profile_list.addItems(items)
+
+    def refresh(self):
+        print("refresh pressed")
+        self.update_list()
 
 # --- Main Window ---
 
@@ -77,14 +101,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # --- File Menu ---
         self.action_Force_Save_Profiles.triggered.connect(self.bpf_thread.save_profiles)
         self.bpf_thread.sig_profiles_saved.connect(self.on_profiles_saved)
-        self.actionExport_Logs
-        self.actionExport_Statistics
+        self.actionExport_Logs.triggered.connect(self.export_logs)
+        self.export_logs_button.pressed.connect(self.export_logs)
         # quit is implicit in the .ui file
 
         # --- Monitoring Menu ---
         self.action_Start_Monitoring.triggered.connect(self.toggle_monitoring)
         self.action_Stop_Monitoring.triggered.connect(self.toggle_monitoring)
-        self.action_View_Modify_Profile
+        self.action_View_Modify_Profile.triggered.connect(self.display_profiles_dialog)
 
         # --- Settings Menu ---
         self.action_Preferences
@@ -141,10 +165,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.not_monitoring_radio.setChecked(False)
         else:
             self.bpf_thread.exiting = True
-            self.log("Stopping monitoring...", "m")
+            self.action_Start_Monitoring.setEnabled(True)
             self.action_Stop_Monitoring.setEnabled(False)
+            self.log("Detaching probe...", "w")
+            self.monitoring_radio.setChecked(False)
+            self.not_monitoring_radio.setChecked(True)
             self.action_Force_Save_Profiles.setEnabled(False)
-            # re-enabling monitor button will go in a callback to the probe being shut off
 
     def log(self, event, etype="m"):
         now = datetime.datetime.now()
@@ -181,16 +207,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def update_can_exit(self, can_exit):
         self.can_exit = can_exit
-        if can_exit:
-            self.action_Start_Monitoring.setEnabled(True)
-            self.monitoring_radio.setChecked(False)
-            self.not_monitoring_radio.setChecked(True)
 
     def on_profiles_saved(self):
         text = """
         Profiles saved successfully!
         """
         self.info_box(text=text, title="Success")
+
+    def display_profiles_dialog(self):
+        d = ProfileDialog(self)
+        d.exec_()
+
+    def export_logs(self):
+        now = datetime.datetime.now()
+        time_str = now.strftime("%m-%d-%Y_%H-%M-%S")
+        filename, selected_filter = QFileDialog.getSaveFileName(self, "Export Logs",
+                f"{os.path.expanduser('~')}/ebpH_{time_str}.log", filter="Log Files (*.log);;All Files (*)",
+                selectedFilter="*.log")
+        if filename:
+            with open(filename,"w+") as f:
+                f.write(self.event_log.toPlainText())
+            os.chmod(filename, 0o666)
 
     # --- Event Handlers ---
 

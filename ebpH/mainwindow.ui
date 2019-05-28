@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>945</width>
+    <width>903</width>
     <height>723</height>
    </rect>
   </property>
@@ -35,7 +35,7 @@ background-position: bottom left;
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="2" column="1">
-     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0">
+     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0">
       <item>
        <widget class="QPlainTextEdit" name="event_log">
         <property name="sizePolicy">
@@ -59,6 +59,33 @@ background-position: bottom left;
          <bool>false</bool>
         </property>
        </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="export_logs_button">
+          <property name="text">
+           <string>Export Logs</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <widget class="QWidget" name="chart_container" native="true">
@@ -297,7 +324,7 @@ background-position: bottom left;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>945</width>
+     <width>903</width>
      <height>29</height>
     </rect>
    </property>
@@ -310,7 +337,6 @@ background-position: bottom left;
       <string>&amp;Export</string>
      </property>
      <addaction name="actionExport_Logs"/>
-     <addaction name="actionExport_Statistics"/>
     </widget>
     <addaction name="action_Force_Save_Profiles"/>
     <addaction name="menuExport"/>
@@ -437,7 +463,7 @@ background-position: bottom left;
      <normaloff>:/img/assets/img/icons/browser.png</normaloff>:/img/assets/img/icons/browser.png</iconset>
    </property>
    <property name="text">
-    <string>View/Modify &amp;Profile</string>
+    <string>View/Modify &amp;Profiles</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+P</string>
@@ -468,15 +494,7 @@ background-position: bottom left;
     <string>Export &amp;Logs</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+E, Ctrl+L</string>
-   </property>
-  </action>
-  <action name="actionExport_Statistics">
-   <property name="text">
-    <string>Export &amp;Statistics</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+E, Ctrl+S</string>
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>
