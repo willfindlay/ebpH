@@ -22,6 +22,10 @@
 
 #define BPF_LICENSE GPL
 
+#define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX)); return -1
+#define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
+
+// these structures help with PERF_OUTPUT messages
 struct profile_association
 {
     u64 key;
@@ -307,12 +311,6 @@ static int pH_create_profile(u64 *key, struct pt_regs *ctx)
         return -1;
     }
 
-    // FIXME: this is wrong. should not return if there's already a profile associated
-    // check to see if a profile is already associated with this PID
-    pH_profile **test = pid_tgid_to_profile.lookup(& pid_tgid);
-    if(test)
-        return 0;
-
     bpf_probe_read(&p.key, sizeof(p.key), key);
 
     pH_reset_profile_test_data(&p);
@@ -497,6 +495,39 @@ static int pH_is_loaded(pH_profile_payload *payload)
 
 // }}}
 
+// log an error -- this function should not be called, use macro PH_ERROR instead
+static inline void __pH_log_error(char *m, int size, struct pt_regs *ctx)
+{
+    pH_error.perf_submit(ctx, m, size);
+}
+
+// log a warning -- this function should not be called, use macro PH_WARNING instead
+static inline void __pH_log_warning(char *m, int size, struct pt_regs *ctx)
+{
+    pH_warning.perf_submit(ctx, m, size);
+}
+
+// disassociate a profile from a pid
+static inline void pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
+{
+    u64 key;
+    pH_profile **pp;
+
+    pp = pid_tgid_to_profile.lookup(&pid_tgid);
+
+    if(!pp)
+    {
+        return;
+    }
+
+    bpf_probe_read(&key, sizeof(key), &((*pp)->key));
+    pid_tgid_to_profile.delete(&pid_tgid);
+
+    // notify userspace that the profile has been disassociated
+    struct profile_association ass = {key, pid_tgid >> 32};
+    profile_disassoc_event.perf_submit(ctx, &ass, sizeof(ass));
+}
+
 // }}}
 // Tracepoints and Hooks {{{
 
@@ -570,7 +601,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     // log if an execve occurred and disassociate pid with profile
     if(syscall == SYS_EXECVE)
     {
-        bpf_trace_printk("execve occurred!\n");
         execves.increment(0);
         p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
         if(!p_pt_pt)
@@ -579,20 +609,12 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         }
         else
         {
-            bpf_probe_read(&p_pt, sizeof(p_pt), p_pt_pt);
-            bpf_probe_read(&p, sizeof(p), p_pt);
-            pid_tgid_to_profile.delete(&pid_tgid);
-            bpf_trace_printk("disassociated profile %llu with pid %d\n", p.key, pid_tgid >> 32);
-
-            // notify userspace that the profile has been disassociated
-            struct profile_association ass = {p.key, pid_tgid >> 32};
-            profile_disassoc_event.perf_submit(args, &ass, sizeof(ass));
+            pH_disassociate_profile(pid_tgid, (struct pt_regs*)args);
         }
     }
     // log if a fork occurred
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
-        bpf_trace_printk("fork occurred!\n");
         forks.increment(0);
     }
 
@@ -627,16 +649,13 @@ int pH_load_profile(struct pt_regs *ctx)
 
     if(!payload)
     {
-        char err[] = "Could not load full profile data.";
-        pH_error.perf_submit(ctx, &err, sizeof(err));
-        return -1;
+        PH_ERROR("Could not load profile data.", ctx);
     }
 
     if(pH_is_loaded(payload) != 0)
     {
-        char err[] = "Reloading a profile that has already been loaded.";
-        pH_warning.perf_submit(ctx, &err, sizeof(err));
-        //return -1;
+        PH_WARNING("Reloading a profile that has already been loaded.", ctx);
+        goto reload; // we don't want to increment the number of active profiles if we are reloading
     }
 
     profiles.increment(0);
