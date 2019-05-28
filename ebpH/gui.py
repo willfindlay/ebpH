@@ -163,6 +163,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.log("Monitoring started.", "m")
             self.monitoring_radio.setChecked(True)
             self.not_monitoring_radio.setChecked(False)
+            print("----------------- attached -----------------")
         else:
             self.bpf_thread.exiting = True
             self.action_Start_Monitoring.setEnabled(True)
@@ -171,6 +172,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.monitoring_radio.setChecked(False)
             self.not_monitoring_radio.setChecked(True)
             self.action_Force_Save_Profiles.setEnabled(False)
+            print("----------------- detached -----------------")
 
     def log(self, event, etype="m"):
         now = datetime.datetime.now()
