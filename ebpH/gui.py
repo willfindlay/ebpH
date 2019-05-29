@@ -21,6 +21,7 @@ import re
 import textwrap
 import datetime
 import atexit
+import ctypes as ct
 from time import sleep
 from pprint import pprint
 from PySide2.QtGui import *
@@ -47,24 +48,114 @@ GREEN  = color("#009900")
 RED    = color("#990000")
 BLUE   = color("#000099")
 
+# --- Read Chunks From File ---
+# TODO: maybe remove
+def read_file(filename, chunksize=8192):
+    with open(filename, "rb") as f:
+        while True:
+            chunk = f.read(chunksize)
+            if chunk:
+                for b in chunk:
+                    yield b
+            else:
+                break
+
+# --- Profile Structures ---
+# WARNING: These MUST match the structs defined in profiles.h
+
+class ProfileStruct(ct.Structure):
+    _fields_ = [("state", ct.c_int8),
+                ("normal_time", ct.c_int64),
+                ("window_size", ct.c_int64),
+                ("count", ct.c_int64),
+                ("last_mod_count", ct.c_int64),
+                ("train_count", ct.c_int64),
+                ("anomalies", ct.c_int64),
+                ("key", ct.c_int64),
+                ("comm", type(ct.create_string_buffer(16)))]
+
 # --- Profile Dialog ---
 
 class ProfileDialog(QDialog, Ui_ProfileDialog):
     def __init__(self, parent=None):
         super(ProfileDialog, self).__init__(parent)
         self.setupUi(self)
+        self.profile_list.currentItemChanged.connect(self.select_profile)
+        self.reset_profile_button.pressed.connect(self.reset_profile)
+        self.refresh_button.pressed.connect(self.update_list)
+        self.last_selected_text = None
         self.update_list()
-        self.refresh_button.pressed.connect(self.refresh)
 
     def update_list(self):
+        try:
+            self.parent().bpf_thread.save_profiles()
+        except:
+            pass
         filenames = os.listdir(PROFILE_DIR)
-        items = [filename for filename in filenames]
+        items = sorted([filename for filename in filenames])
         self.profile_list.clear()
         self.profile_list.addItems(items)
+        if self.last_selected_text:
+            for i in range(self.profile_list.count()):
+                if self.profile_list.item(i).text() == self.last_selected_text:
+                    self.profile_list.setCurrentRow(i)
+                    #self.profile_list.setCurrentItem(i)
+                    break
+        else:
+            try:
+                self.profile_list.setCurrentRow(0)
+            except:
+                pass
 
-    def refresh(self):
-        print("refresh pressed")
-        self.update_list()
+    def load_profile_data(self, key):
+        try:
+            with open("".join([PROFILE_DIR,"/",str(key)]), "rb") as f:
+                b = f.read()
+
+            # read profile struct
+            p = ProfileStruct()
+            fit = min(len(b), ct.sizeof(p))
+            ct.memmove(ct.addressof(p), b, fit)
+
+            return p
+        except FileNotFoundError:
+            return None
+
+    def write_profile_data(self, p, key):
+        with open("".join([PROFILE_DIR,"/",str(key)]), "wb+") as f:
+            f.write(p)
+
+    # TODO: get profile information printing
+    def select_profile(self, curr, prev):
+        if curr is None:
+            return
+        try:
+            self.parent().bpf_thread.save_profiles()
+        except:
+            pass
+        self.last_selected_text = curr.text()
+        p = self.load_profile_data(curr.text())
+        if p:
+            self.comm.setText(p.comm.decode('utf-8'))
+            self.train_count.setText(str(p.train_count))
+            self.normal_count.setText(str(p.train_count - p.last_mod_count))
+
+    def reset_profile(self):
+        selected = self.profile_list.currentItem()
+        if not selected:
+            return
+        reply = QMessageBox.question(self, "Message", f"Are you sure you want to reset profile {selected.text()}?",
+                QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return
+        p = self.load_profile_data(selected.text())
+        p.train_count = 0
+        p.last_mod_count = 0
+
+        # write profile, update selection, force reload
+        self.write_profile_data(p, p.key)
+        self.parent().bpf_thread.load_profiles(str(p.key))
+        self.select_profile(selected, None)
 
 # --- Main Window ---
 
@@ -212,14 +303,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.can_exit = can_exit
 
     def on_profiles_saved(self):
-        text = """
-        Profiles saved successfully!
-        """
-        self.info_box(text=text, title="Success")
+        #text = """
+        #Profiles saved successfully!
+        #"""
+        #self.info_box(text=text, title="Success")
+        pass
 
     def display_profiles_dialog(self):
+        try:
+            self.bpf_thread.save_profiles()
+        except:
+            pass
         d = ProfileDialog(self)
-        d.exec_()
+        d.show()
 
     def export_logs(self):
         now = datetime.datetime.now()

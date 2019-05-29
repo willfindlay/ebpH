@@ -79,12 +79,6 @@ BPF_HISTOGRAM(exits);
 BPF_HASH(profile, u64, pH_profile);
 BPF_HASH(pid_tgid_to_profile_key, u64, u64);
 
-// whether a profile has been loaded or not
-// 0 -> not loaded
-// 1 -> loaded
-// this prevents profiles from being overwritten by profile_loader
-BPF_HASH(profile_loaded, u64, u8);
-
 // test data hashed by executable filename
 BPF_HASH(test_data,  u64, pH_profile_data);
 // training data hashed by executable filename
@@ -318,6 +312,9 @@ static int pH_create_profile(u64 *key, struct pt_regs *ctx)
                     .window_size = 0, .count = 0, .anomalies = 0};
     pH_profile *p_pt;
     pH_profile *temp;
+
+    // set initial comm (this will be overwritten later)
+    bpf_get_current_comm(&p.comm, sizeof(p.comm));
 
 //#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
 //    bpf_spin_lock(&p.lock);
@@ -584,14 +581,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
         bpf_probe_read(&pro, sizeof(pro), p_pt);
 
-        pro.train_count = pro.train_count + 1;
+        // update train_count and last_mod_count
+        pro.train_count++;
+        pro.last_mod_count++;
+
         profile.update(key, &pro);
-        // FIXME: this association stuff is just for debugging
-        //        GET RID OF IT WHEN STUFF WORKS
-        //struct profile_association temp = {.key=pro.key, .pid=(u32)pro.train_count};
-        //struct profile_association ass;
-        //bpf_probe_read(&ass, sizeof(ass), &temp);
-        //output_number.perf_submit(args, &ass, sizeof(ass));
     }
     else
     {
@@ -636,6 +630,19 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
         pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
+    }
+
+    if(syscall == SYS_EXECVE)
+    {
+        u64 *key = pid_tgid_to_profile_key.lookup(&pid_tgid);
+        if(!key)
+            return 0;
+        pH_profile *pro = profile.lookup(key);
+        if(!pro)
+            return 0;
+        // update comm
+        bpf_get_current_comm(&pro->comm, sizeof(pro->comm));
+        profile.update(key, pro);
     }
 
     return 0;

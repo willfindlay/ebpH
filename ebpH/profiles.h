@@ -72,6 +72,7 @@ typedef struct
     u64 train_count;    // moved these over from pH_profile_data
     u64 anomalies;
     u64 key;
+    u8  comm[16];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     //struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
 #endif

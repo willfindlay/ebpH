@@ -129,9 +129,12 @@ class BPFThread(QThread):
             self.sig_profiles_saved.emit()
 
     # load profiles from disk
-    def load_profiles(self):
+    def load_profiles(self, profile=None):
         # run the profile_loader which is registered with a uretprobe
-        subprocess.run([LOADER_PATH])
+        if profile:
+            subprocess.run([LOADER_PATH, profile])
+        else:
+            subprocess.run([LOADER_PATH])
 
     # --- Signals ---
     sig_event            = Signal(str)
