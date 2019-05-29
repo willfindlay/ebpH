@@ -177,6 +177,12 @@ class BPFThread(QThread):
             s = f"{event}"
             self.sig_warning.emit(s)
 
+        # FIXME: delete this
+        def on_debug(cpu, data, size):
+            event = self.bpf["output_number"].event(data)
+            s = f"Key: {event.key} Train Count: {event.pid}"
+            self.sig_warning.emit(s)
+
         self.sig_can_exit.emit(False)
         self.exiting = False
 
@@ -202,6 +208,7 @@ class BPFThread(QThread):
         # perf outputs for errors and warnings
         self.bpf["pH_error"].open_perf_buffer(on_error)
         self.bpf["pH_warning"].open_perf_buffer(on_warning)
+        self.bpf["output_number"].open_perf_buffer(on_debug)
 
         # load in any profiles
         self.load_profiles()

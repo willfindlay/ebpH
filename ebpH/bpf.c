@@ -25,6 +25,10 @@
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX)); return -1
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
 
+// hard-coded test profiles
+#define TEST_PROFILE(KEY) \
+    u64 __key = (KEY);
+
 // these structures help with PERF_OUTPUT messages
 struct profile_association
 {
@@ -49,6 +53,9 @@ BPF_PERF_OUTPUT(profile_copy_event);
 // error events
 BPF_PERF_OUTPUT(pH_error);
 BPF_PERF_OUTPUT(pH_warning);
+
+// debugging events
+BPF_PERF_OUTPUT(output_number);
 
 // monitoring events
 BPF_PERF_OUTPUT(anomaly_event); // TODO: implement this
@@ -311,6 +318,11 @@ static int pH_create_profile(u64 *key, struct pt_regs *ctx)
         return -1;
     }
 
+    // prevent shared libraries from being written on top of a binary
+    pH_profile **test = pid_tgid_to_profile.lookup(& pid_tgid);
+    if(test)
+        return 0;
+
     bpf_probe_read(&p.key, sizeof(p.key), key);
 
     pH_reset_profile_test_data(&p);
@@ -329,7 +341,6 @@ static int pH_create_profile(u64 *key, struct pt_regs *ctx)
     profiles.increment(0);
 
 created:
-
     // copy profile pointer to stack so we can operate on it
     bpf_probe_read(&p_pt, sizeof(p_pt), &temp);
 
@@ -495,6 +506,18 @@ static int pH_is_loaded(pH_profile_payload *payload)
 
 // }}}
 
+static inline void pH_update_profile(pH_profile pro, u64 pid_tgid)
+{
+        pH_profile* pro_pt;
+        pH_profile* temp;
+
+        temp = &pro;
+        bpf_probe_read(&pro_pt, sizeof(pro_pt), &temp);
+
+        profile.update(&pid_tgid, &pro);
+        pid_tgid_to_profile.update(&pro.key, &pro_pt);
+}
+
 // log an error -- this function should not be called, use macro PH_ERROR instead
 static inline void __pH_log_error(char *m, int size, struct pt_regs *ctx)
 {
@@ -587,35 +610,42 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    u64 key;
-    pH_profile **p_pt_pt;
-    pH_profile *p_pt;
-    pH_profile p;
+    pH_profile **p;
 
     // create or update the sequence for this pid_tgid
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
-    // create or update the profile for this executable
-    //pH_create_or_update_profile((char *) args->args[0], &pid_tgid, &syscall);
+    p = pid_tgid_to_profile.lookup(&pid_tgid);
 
     // log if an execve occurred and disassociate pid with profile
     if(syscall == SYS_EXECVE)
     {
         execves.increment(0);
-        p_pt_pt = pid_tgid_to_profile.lookup(&pid_tgid);
-        if(!p_pt_pt)
-        {
-            bpf_trace_printk("no previous profile associated with this pid\n");
-        }
-        else
+        if(p)
         {
             pH_disassociate_profile(pid_tgid, (struct pt_regs*)args);
         }
     }
     // log if a fork occurred
-    if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
+    else if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
         forks.increment(0);
+    }
+
+    // we want to increment train_count of the profile if it exists
+    if(p)
+    {
+        pH_profile pro;
+        bpf_probe_read(&pro, sizeof(pro), *p);
+
+        pro.train_count++;
+        // FIXME: this association stuff is just for debugging
+        //        GET RID OF IT WHEN STUFF WORKS
+        struct profile_association temp = {.key=pro.key, .pid=(u32)pro.train_count};
+        struct profile_association ass;
+        bpf_probe_read(&ass, sizeof(ass), &temp);
+        output_number.perf_submit(args, &ass, sizeof(ass));
+        pH_update_profile(pro, pid_tgid);
     }
 
     syscalls.increment(0);
