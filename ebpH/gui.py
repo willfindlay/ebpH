@@ -59,6 +59,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
     def update_list(self):
         filenames = os.listdir(PROFILE_DIR)
         items = [filename for filename in filenames]
+        self.profile_list.clear()
         self.profile_list.addItems(items)
 
     def refresh(self):
