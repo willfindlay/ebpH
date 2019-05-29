@@ -99,7 +99,15 @@ class BPFThread(QThread):
         test_hash    = self.bpf["test_data"]
         train_hash   = self.bpf["train_data"]
 
-        for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
+        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
+
+        #for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
+        for k in profile_dict:
+            profile  = profile_dict[k]
+            test     = test_dict[k]
+            train    = train_dict[k]
             filename = str(profile.key)
 
             # get rid of slash if it is the first character
@@ -147,6 +155,11 @@ class BPFThread(QThread):
             s = f"Profile {event.key} loaded."
             self.sig_event.emit(s)
 
+        def on_profile_reload(cpu, data, size):
+            event = self.bpf["profile_load_event"].event(data)
+            s = f"Profile {event.key} overwritten via load."
+            self.sig_warning.emit(s)
+
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
             s = f"Profile {event.key} associated with PID {event.pid}."
@@ -180,7 +193,7 @@ class BPFThread(QThread):
         # FIXME: delete this
         def on_debug(cpu, data, size):
             event = self.bpf["output_number"].event(data)
-            s = f"Key: {event.key} Train Count: {event.pid}"
+            s = f"{event.n}"
             self.sig_warning.emit(s)
 
         self.sig_can_exit.emit(False)
@@ -201,6 +214,7 @@ class BPFThread(QThread):
         # register perf outputs
         self.bpf["profile_create_event"].open_perf_buffer(on_profile_create)
         self.bpf["profile_load_event"].open_perf_buffer(on_profile_load)
+        self.bpf["profile_reload_event"].open_perf_buffer(on_profile_reload)
         self.bpf["profile_assoc_event"].open_perf_buffer(on_profile_assoc)
         self.bpf["profile_disassoc_event"].open_perf_buffer(on_profile_disassoc)
         self.bpf["profile_copy_event"].open_perf_buffer(on_profile_copy)

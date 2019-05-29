@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'profiledialog.ui',
 # licensing of 'profiledialog.ui' applies.
 #
-# Created: Mon May 27 20:34:52 2019
+# Created: Wed May 29 01:27:59 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -24,26 +24,32 @@ class Ui_ProfileDialog(object):
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.gridLayout_3 = QtWidgets.QGridLayout()
         self.gridLayout_3.setObjectName("gridLayout_3")
-        self.lineEdit = QtWidgets.QLineEdit(ProfileDialog)
-        self.lineEdit.setObjectName("lineEdit")
-        self.gridLayout_3.addWidget(self.lineEdit, 0, 1, 1, 1)
+        self.comm = QtWidgets.QLineEdit(ProfileDialog)
+        self.comm.setObjectName("comm")
+        self.gridLayout_3.addWidget(self.comm, 0, 1, 1, 1)
+        self.anomalies = QtWidgets.QLineEdit(ProfileDialog)
+        self.anomalies.setObjectName("anomalies")
+        self.gridLayout_3.addWidget(self.anomalies, 1, 1, 1, 1)
+        self.label_4 = QtWidgets.QLabel(ProfileDialog)
+        self.label_4.setObjectName("label_4")
+        self.gridLayout_3.addWidget(self.label_4, 1, 0, 1, 1)
         self.label_3 = QtWidgets.QLabel(ProfileDialog)
         self.label_3.setObjectName("label_3")
         self.gridLayout_3.addWidget(self.label_3, 0, 0, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout_3.addItem(spacerItem, 3, 0, 1, 1)
-        self.label_4 = QtWidgets.QLabel(ProfileDialog)
-        self.label_4.setObjectName("label_4")
-        self.gridLayout_3.addWidget(self.label_4, 1, 0, 1, 1)
-        self.lineEdit_2 = QtWidgets.QLineEdit(ProfileDialog)
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.gridLayout_3.addWidget(self.lineEdit_2, 1, 1, 1, 1)
+        self.gridLayout_3.addItem(spacerItem, 4, 0, 1, 1)
         self.syscalls = QtWidgets.QListWidget(ProfileDialog)
         self.syscalls.setObjectName("syscalls")
-        self.gridLayout_3.addWidget(self.syscalls, 2, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.syscalls, 3, 1, 1, 1)
         self.label_5 = QtWidgets.QLabel(ProfileDialog)
         self.label_5.setObjectName("label_5")
-        self.gridLayout_3.addWidget(self.label_5, 2, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.label_5, 3, 0, 1, 1)
+        self.label_6 = QtWidgets.QLabel(ProfileDialog)
+        self.label_6.setObjectName("label_6")
+        self.gridLayout_3.addWidget(self.label_6, 2, 0, 1, 1)
+        self.train_count = QtWidgets.QLineEdit(ProfileDialog)
+        self.train_count.setObjectName("train_count")
+        self.gridLayout_3.addWidget(self.train_count, 2, 1, 1, 1)
         self.gridLayout_2.addLayout(self.gridLayout_3, 1, 1, 1, 1)
         self.label_2 = QtWidgets.QLabel(ProfileDialog)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -92,10 +98,11 @@ class Ui_ProfileDialog(object):
 
     def retranslateUi(self, ProfileDialog):
         ProfileDialog.setWindowTitle(QtWidgets.QApplication.translate("ProfileDialog", "View/Modify Profiles", None, -1))
-        self.label_3.setText(QtWidgets.QApplication.translate("ProfileDialog", "Comm", None, -1))
         self.label_4.setText(QtWidgets.QApplication.translate("ProfileDialog", "Anomalies", None, -1))
+        self.label_3.setText(QtWidgets.QApplication.translate("ProfileDialog", "Comm", None, -1))
         self.label_5.setText(QtWidgets.QApplication.translate("ProfileDialog", "Recent\n"
 "System Calls", None, -1))
+        self.label_6.setText(QtWidgets.QApplication.translate("ProfileDialog", "Train Count", None, -1))
         self.label_2.setText(QtWidgets.QApplication.translate("ProfileDialog", "Details", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("ProfileDialog", "Profiles", None, -1))
         self.refresh_button.setToolTip(QtWidgets.QApplication.translate("ProfileDialog", "Refresh", None, -1))
