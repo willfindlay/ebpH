@@ -30,6 +30,7 @@ from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
 from PySide2.QtCore import QThread
 from PySide2.QtCore import Signal
+from colors import *
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -93,37 +94,54 @@ class BPFThread(QThread):
         self.exiting = False
         self.profiles = 0
 
-    # save profiles to disk
-    def save_profiles(self):
+    # save a profile to disk
+    def save_profile(self, k):
         profile_hash = self.bpf["profile"]
         test_hash    = self.bpf["test_data"]
         train_hash   = self.bpf["train_data"]
 
-        for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
-            filename = str(profile.key)
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
+        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
-            # get rid of slash if it is the first character
-            if filename[0] == r'/':
-                filename = filename[1:]
-            profile_path = os.path.join(PROFILE_DIR, filename)
+        profile  = profile_dict[k]
+        test     = test_dict[k]
+        train    = train_dict[k]
+        filename = str(profile.key)
 
-            # create path if it doesn't exist
-            if not os.path.exists(os.path.dirname(profile_path)):
-                try:
-                    os.makedirs(os.path.dirname(profile_path))
-                except OSError as exc: # Guard against race condition
-                    if exc.errno != errno.EEXIST:
-                        raise
-            with open(profile_path, "w") as f:
-                printb(b"".join([profile,test,train]),file=f,nl=0)
+        # get rid of slash if it is the first character
+        if filename[0] == r'/':
+            filename = filename[1:]
+        profile_path = os.path.join(PROFILE_DIR, filename)
 
-        if not self.exiting:
+        # create path if it doesn't exist
+        if not os.path.exists(os.path.dirname(profile_path)):
+            try:
+                os.makedirs(os.path.dirname(profile_path))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+        with open(profile_path, "w") as f:
+            printb(b"".join([profile,test,train]),file=f,nl=0)
+
+    # save all profiles to disk
+    def save_profiles(self, notify=True):
+        profile_hash = self.bpf["profile"]
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+
+        for k in profile_dict:
+            self.save_profile(k)
+
+        if notify and not self.exiting:
             self.sig_profiles_saved.emit()
 
     # load profiles from disk
-    def load_profiles(self):
+    def load_profiles(self, profile=None):
         # run the profile_loader which is registered with a uretprobe
-        subprocess.run([LOADER_PATH])
+        if profile:
+            subprocess.run([LOADER_PATH, profile])
+        else:
+            subprocess.run([LOADER_PATH])
 
     # --- Signals ---
     sig_event            = Signal(str)
@@ -144,8 +162,13 @@ class BPFThread(QThread):
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
-            s = f"Profile {event.key} loaded."
+            s = f"Profile {event.key} ({event.comm.decode('utf-8')}) loaded."
             self.sig_event.emit(s)
+
+        def on_profile_reload(cpu, data, size):
+            event = self.bpf["profile_load_event"].event(data)
+            s = f"Profile {event.key} ({event.comm.decode('utf-8')}) overwritten via load."
+            self.sig_warning.emit(s)
 
         def on_profile_assoc(cpu, data, size):
             event = self.bpf["profile_assoc_event"].event(data)
@@ -164,7 +187,23 @@ class BPFThread(QThread):
 
         def on_anomaly(cpu, data, size):
             event = self.bpf["anomaly_event"].event(data)
-            s = " ".join(["Profile"])
+            s = " ".join(["Anomaly"])
+            self.sig_warning.emit(s)
+
+        def on_error(cpu, data, size):
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            s = f"{event}"
+            self.sig_error.emit(s)
+
+        def on_warning(cpu, data, size):
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            s = f"{event}"
+            self.sig_warning.emit(s)
+
+        # FIXME: delete this
+        def on_debug(cpu, data, size):
+            event = self.bpf["output_number"].event(data)
+            s = f"{event.n}"
             self.sig_warning.emit(s)
 
         self.sig_can_exit.emit(False)
@@ -185,10 +224,15 @@ class BPFThread(QThread):
         # register perf outputs
         self.bpf["profile_create_event"].open_perf_buffer(on_profile_create)
         self.bpf["profile_load_event"].open_perf_buffer(on_profile_load)
+        self.bpf["profile_reload_event"].open_perf_buffer(on_profile_reload)
         self.bpf["profile_assoc_event"].open_perf_buffer(on_profile_assoc)
         self.bpf["profile_disassoc_event"].open_perf_buffer(on_profile_disassoc)
         self.bpf["profile_copy_event"].open_perf_buffer(on_profile_copy)
         self.bpf["anomaly_event"].open_perf_buffer(on_anomaly)
+        # perf outputs for errors and warnings
+        self.bpf["pH_error"].open_perf_buffer(on_error)
+        self.bpf["pH_warning"].open_perf_buffer(on_warning)
+        self.bpf["output_number"].open_perf_buffer(on_debug)
 
         # load in any profiles
         self.load_profiles()
@@ -196,6 +240,7 @@ class BPFThread(QThread):
         while True:
             # update the hashmap of sequences
             self.bpf.perf_buffer_poll(100)
+            #self.bpf.trace_print()
             self.num_profiles = self.bpf["profiles"].values()[0].value
             self.num_syscalls = self.bpf["syscalls"].values()[0].value
             self.num_forks    = self.bpf["forks"].values()[0].value
@@ -211,6 +256,6 @@ class BPFThread(QThread):
                 #seq_hash.clear()
                 #pro_hash.clear()
                 self.bpf.cleanup()
-                self.sig_warning.emit("Probe has been detached.")
+                self.sig_event.emit("Monitoring stopped.")
                 self.sig_can_exit.emit(True)
                 break

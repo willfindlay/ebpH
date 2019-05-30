@@ -74,13 +74,23 @@ int main(int argc, char **argv)
     profiles_dir = opendir(profile_dir);
     if(profiles_dir == NULL)
         return -1;
-    for(e = readdir(profiles_dir); e != NULL; e = readdir(profiles_dir))
+
+    if(argc > 1 && isdigit(argv[1][1]))
     {
-        if(isdigit(e->d_name[0]))
+        prepare_filename(argv[1], filename);
+        p = load_profile(filename);
+        free(p);
+    }
+    else
+    {
+        for(e = readdir(profiles_dir); e != NULL; e = readdir(profiles_dir))
         {
-            prepare_filename(e->d_name, filename);
-            p = load_profile(filename);
-            free(p);
+            if(isdigit(e->d_name[0]))
+            {
+                prepare_filename(e->d_name, filename);
+                p = load_profile(filename);
+                free(p);
+            }
         }
     }
 
