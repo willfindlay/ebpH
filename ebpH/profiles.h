@@ -18,6 +18,7 @@
 
 #include <linux/sched.h>
 #include <linux/version.h>
+#include <linux/limits.h>
 #include "defs.h"
 
 // *** pH task data structures ***
@@ -56,6 +57,7 @@ pH_lookahead_pair;
 typedef struct
 {
     //u8 pairs[SEQLEN];
+    u8 pairs[256];
     u8 dummy; // FIXME: this just lets the program compile for now
 }
 pH_profile_data;
@@ -72,7 +74,7 @@ typedef struct
     u64 train_count;    // moved these over from pH_profile_data
     u64 anomalies;
     u64 key;
-    u8  comm[16];
+    char comm[128];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     //struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
 #endif

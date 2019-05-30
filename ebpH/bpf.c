@@ -14,6 +14,8 @@
  * Licensed under GPL v2 License */
 
 #include <linux/sched.h>
+#include <linux/fdtable.h>
+#include <uapi/linux/ptrace.h>
 #include <linux/fs.h>
 #include <linux/path.h>
 #include <linux/timekeeping.h>
@@ -513,34 +515,25 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     pH_profile *p;
     u64 key = 0;
 
-    if(!ctx)
-    {
-        bpf_trace_printk("failed to fetch ctx\n");
-        return -1;
-    }
-
     // yoink the file struct
     exec_file = (struct file *)PT_REGS_RC(ctx);
     if(!exec_file || IS_ERR(exec_file))
     {
-        bpf_trace_printk("failed to fetch exec_file\n");
-        return -1;
+        PH_ERROR("Couldn't fetch the file pointer for this executable.", ctx);
     }
 
     // fetch dentry for executable
     exec_entry = exec_file->f_path.dentry;
     if(!exec_entry)
     {
-        bpf_trace_printk("failed to fetch exec_entry\n");
-        return -1;
+        PH_ERROR("Couldn't fetch the dentry for this executable.", ctx);
     }
 
     // fetch inode for executable
     exec_inode = exec_entry->d_inode;
     if(!exec_inode)
     {
-        bpf_trace_printk("failed to fetch exec_inode\n");
-        return -1;
+        PH_ERROR("Couldn't fetch the inode for this executable.", ctx);
     }
 
     // we want a key to be comprised of device number in the upper 32 bits
@@ -552,6 +545,16 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
 
     // create a new profile with this key if necessary
     pH_create_profile(&key, ctx);
+
+    // update comm with a much better indication of the executable name
+    struct qstr dn = {};
+    struct task_struct *curr = (struct task_struct *)bpf_get_current_task();
+    pH_profile *pro = profile.lookup(&key);
+    if(!pro)
+        return 0;
+    bpf_probe_read(&dn, sizeof(dn), &exec_entry->d_name);
+    bpf_probe_read(&pro->comm, sizeof(pro->comm), dn.name);
+    profile.update(&key, pro);
 
     return 0;
 }
@@ -640,9 +643,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         pH_profile *pro = profile.lookup(key);
         if(!pro)
             return 0;
+
+        // FIXME: maybe deletet this
         // update comm
-        bpf_get_current_comm(&pro->comm, sizeof(pro->comm));
-        profile.update(key, pro);
+        //bpf_get_current_comm(&pro->comm, sizeof(pro->comm));
+        //profile.update(key, pro);
     }
 
     return 0;

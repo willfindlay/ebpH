@@ -30,6 +30,7 @@ from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
 from PySide2.QtCore import QThread
 from PySide2.QtCore import Signal
+from colors import *
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -93,8 +94,8 @@ class BPFThread(QThread):
         self.exiting = False
         self.profiles = 0
 
-    # save profiles to disk
-    def save_profiles(self):
+    # save a profile to disk
+    def save_profile(self, k):
         profile_hash = self.bpf["profile"]
         test_hash    = self.bpf["test_data"]
         train_hash   = self.bpf["train_data"]
@@ -103,29 +104,35 @@ class BPFThread(QThread):
         test_dict = dict([(k.value, v) for k, v in test_hash.items()])
         train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
-        #for profile, test, train in zip(profile_hash.values(), test_hash.values(), train_hash.values()):
+        profile  = profile_dict[k]
+        test     = test_dict[k]
+        train    = train_dict[k]
+        filename = str(profile.key)
+
+        # get rid of slash if it is the first character
+        if filename[0] == r'/':
+            filename = filename[1:]
+        profile_path = os.path.join(PROFILE_DIR, filename)
+
+        # create path if it doesn't exist
+        if not os.path.exists(os.path.dirname(profile_path)):
+            try:
+                os.makedirs(os.path.dirname(profile_path))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+        with open(profile_path, "w") as f:
+            printb(b"".join([profile,test,train]),file=f,nl=0)
+
+    # save all profiles to disk
+    def save_profiles(self, notify=True):
+        profile_hash = self.bpf["profile"]
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+
         for k in profile_dict:
-            profile  = profile_dict[k]
-            test     = test_dict[k]
-            train    = train_dict[k]
-            filename = str(profile.key)
+            self.save_profile(k)
 
-            # get rid of slash if it is the first character
-            if filename[0] == r'/':
-                filename = filename[1:]
-            profile_path = os.path.join(PROFILE_DIR, filename)
-
-            # create path if it doesn't exist
-            if not os.path.exists(os.path.dirname(profile_path)):
-                try:
-                    os.makedirs(os.path.dirname(profile_path))
-                except OSError as exc: # Guard against race condition
-                    if exc.errno != errno.EEXIST:
-                        raise
-            with open(profile_path, "w") as f:
-                printb(b"".join([profile,test,train]),file=f,nl=0)
-
-        if not self.exiting:
+        if notify and not self.exiting:
             self.sig_profiles_saved.emit()
 
     # load profiles from disk
@@ -155,12 +162,12 @@ class BPFThread(QThread):
 
         def on_profile_load(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
-            s = f"Profile {event.key} loaded."
+            s = f"Profile {event.key} ({event.comm.decode('utf-8')}) loaded."
             self.sig_event.emit(s)
 
         def on_profile_reload(cpu, data, size):
             event = self.bpf["profile_load_event"].event(data)
-            s = f"Profile {event.key} overwritten via load."
+            s = f"Profile {event.key} ({event.comm.decode('utf-8')}) overwritten via load."
             self.sig_warning.emit(s)
 
         def on_profile_assoc(cpu, data, size):
@@ -233,6 +240,7 @@ class BPFThread(QThread):
         while True:
             # update the hashmap of sequences
             self.bpf.perf_buffer_poll(100)
+            #self.bpf.trace_print()
             self.num_profiles = self.bpf["profiles"].values()[0].value
             self.num_syscalls = self.bpf["syscalls"].values()[0].value
             self.num_forks    = self.bpf["forks"].values()[0].value

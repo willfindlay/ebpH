@@ -31,22 +31,12 @@ from PySide2.QtCharts import *
 from mainwindow import Ui_MainWindow
 from profiledialog import Ui_ProfileDialog
 from bpf_thread import BPFThread
+from colors import *
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
 # path of profile loader executable
 LOADER_PATH = os.path.abspath("profile_loader")
-
-# --- HTML Color Definitions ---
-
-def color(color):
-    return "".join(["<font color=\"", color, "\">"])
-
-ORANGE = color("#ff6600")
-BLACK  = color("#000000")
-GREEN  = color("#009900")
-RED    = color("#990000")
-BLUE   = color("#000099")
 
 # --- Read Chunks From File ---
 # TODO: maybe remove
@@ -72,7 +62,16 @@ class ProfileStruct(ct.Structure):
                 ("train_count", ct.c_int64),
                 ("anomalies", ct.c_int64),
                 ("key", ct.c_int64),
-                ("comm", type(ct.create_string_buffer(16)))]
+                ("comm", type(ct.create_string_buffer(128)))]
+
+class ProfileData(ct.Structure):
+    _fields_ = [("pairs", (ct.c_int8 * 256)),
+                ("dummy", ct.c_int8)] # TODO: get rid of dummy
+
+class ProfilePayload(ct.Structure):
+    _fields_ = [("profile", ProfileStruct),
+                ("test", ProfileData),
+                ("train", ProfileData)]
 
 # --- Profile Dialog ---
 
@@ -87,20 +86,42 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.update_list()
 
     def update_list(self):
+        # attempt to save profiles before updating list
         try:
-            self.parent().bpf_thread.save_profiles()
+            self.parent().bpf_thread.save_profiles(notify=False)
         except:
             pass
+
+        # attempt to remember the last selected item
+        try:
+            self.last_selected_text = self.profile_list.currentItem().text()
+        except:
+            pass
+
+        # read filenames from profile directory
         filenames = os.listdir(PROFILE_DIR)
-        items = sorted([filename for filename in filenames])
+        profiles = [self.load_profile_data(filename) for filename in filenames]
+
+        # clear the list
         self.profile_list.clear()
-        self.profile_list.addItems(items)
+        # add profiles to the list
+        for payload in profiles:
+            profile = payload.profile
+            item = QListWidgetItem("".join([profile.comm.decode('utf-8')," (", str(profile.key), ")"]))
+            # set profile key as its data for UserRole
+            item.setData(Qt.UserRole, profile.key)
+            self.profile_list.addItem(item)
+
+        # sort the items
+        self.profile_list.sortItems()
+
+        # attempt to return to last selected profile
         if self.last_selected_text:
             for i in range(self.profile_list.count()):
                 if self.profile_list.item(i).text() == self.last_selected_text:
                     self.profile_list.setCurrentRow(i)
-                    #self.profile_list.setCurrentItem(i)
                     break
+        # otherwise, attempt return to position 0
         else:
             try:
                 self.profile_list.setCurrentRow(0)
@@ -113,7 +134,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
                 b = f.read()
 
             # read profile struct
-            p = ProfileStruct()
+            p = ProfilePayload()
             fit = min(len(b), ct.sizeof(p))
             ct.memmove(ct.addressof(p), b, fit)
 
@@ -130,31 +151,45 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         if curr is None:
             return
         try:
-            self.parent().bpf_thread.save_profiles()
+            self.parent().bpf_thread.save_profile(curr.data(Qt.UserRole))
         except:
             pass
-        self.last_selected_text = curr.text()
-        p = self.load_profile_data(curr.text())
+        p = self.load_profile_data(curr.data(Qt.UserRole))
+        # populate the fields of the form
         if p:
-            self.comm.setText(p.comm.decode('utf-8'))
-            self.train_count.setText(str(p.train_count))
-            self.normal_count.setText(str(p.train_count - p.last_mod_count))
+            anomalies = 0
+            self.comm.setText(p.profile.comm.decode('utf-8'))
+            self.key.setText(str(p.profile.key))
+            self.train_count.setText(str(p.profile.train_count))
+            self.last_mod_count.setText(str(p.profile.last_mod_count))
+            self.normal_count.setText(str(p.profile.train_count - p.profile.last_mod_count))
+            # TODO: calculate anomalies and populate system call list
+            self.anomalies.setText(str(anomalies))
 
     def reset_profile(self):
+        # get the currently selected item
         selected = self.profile_list.currentItem()
         if not selected:
             return
-        reply = QMessageBox.question(self, "Message", f"Are you sure you want to reset profile {selected.text()}?",
+
+        # ask the user if they are sure they want to reset the profile
+        text = f"""
+        Are you sure you want to reset the profile for {selected.text()}?
+        This is not a recoverable action.
+        """
+        reply = QMessageBox.question(self, "Message", textwrap.dedent(text),
                 QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return
-        p = self.load_profile_data(selected.text())
-        p.train_count = 0
-        p.last_mod_count = 0
+        p = self.load_profile_data(selected.data(Qt.UserRole))
+
+        # reset profile fields
+        p.profile.train_count = 0
+        p.profile.last_mod_count = 0
 
         # write profile, update selection, force reload
-        self.write_profile_data(p, p.key)
-        self.parent().bpf_thread.load_profiles(str(p.key))
+        self.write_profile_data(p, p.profile.key)
+        self.parent().bpf_thread.load_profiles(str(p.profile.key))
         self.select_profile(selected, None)
 
 # --- Main Window ---
@@ -303,17 +338,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.can_exit = can_exit
 
     def on_profiles_saved(self):
-        #text = """
-        #Profiles saved successfully!
-        #"""
-        #self.info_box(text=text, title="Success")
-        pass
+        text = """
+        Profiles saved successfully!
+        """
+        self.info_box(text=text, title="Success")
 
     def display_profiles_dialog(self):
-        try:
-            self.bpf_thread.save_profiles()
-        except:
-            pass
         d = ProfileDialog(self)
         d.show()
 
