@@ -34,11 +34,12 @@ typedef long time_t;
 #define TABLE_SIZE 10240
 
 // pH_task definitions
-#define PH_LOCALITY_WIN 9
+#define PH_LOCALITY_WIN 128
 
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  314
-#define PH_NORMAL_WAIT (u64) (24 * 7 * 3600) // one week in seconds
+//#define PH_NORMAL_WAIT (u64) (24 * 7 * 3600 * 1000000000) // one week in nanoseconds
+#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds
 #define PH_THAWED 0
 #define PH_FROZEN 1
 #define PH_NORMAL 2
@@ -53,6 +54,6 @@ typedef long time_t;
 #define EMPTY          9999
 
 // size of a filename string
-#define FILENAME_LEN 256
+#define FILENAME_LEN 128
 
 #endif // DEFS_H

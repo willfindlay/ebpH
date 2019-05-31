@@ -458,6 +458,9 @@ background-position: bottom left;
    </property>
   </action>
   <action name="action_View_Modify_Profile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/img/assets/img/icons/browser.png</normaloff>:/img/assets/img/icons/browser.png</iconset>

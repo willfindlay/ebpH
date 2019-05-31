@@ -69,12 +69,12 @@ typedef struct
     u8 state;
     u64 normal_time;
     u64 window_size;
-    u64 count;
+    u64 normal_count;
     u64 last_mod_count; // moved these over from pH_profile_data
     u64 train_count;    // moved these over from pH_profile_data
     u64 anomalies;
     u64 key;
-    char comm[128];
+    char comm[FILENAME_LEN];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     //struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
 #endif

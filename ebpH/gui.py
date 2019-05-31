@@ -57,7 +57,7 @@ class ProfileStruct(ct.Structure):
     _fields_ = [("state", ct.c_int8),
                 ("normal_time", ct.c_int64),
                 ("window_size", ct.c_int64),
-                ("count", ct.c_int64),
+                ("normal_count", ct.c_int64),
                 ("last_mod_count", ct.c_int64),
                 ("train_count", ct.c_int64),
                 ("anomalies", ct.c_int64),
@@ -162,7 +162,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
             self.key.setText(str(p.profile.key))
             self.train_count.setText(str(p.profile.train_count))
             self.last_mod_count.setText(str(p.profile.last_mod_count))
-            self.normal_count.setText(str(p.profile.train_count - p.profile.last_mod_count))
+            self.normal_count.setText(str(p.profile.normal_count))
             # TODO: calculate anomalies and populate system call list
             self.anomalies.setText(str(anomalies))
 
@@ -186,6 +186,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         # reset profile fields
         p.profile.train_count = 0
         p.profile.last_mod_count = 0
+        p.profile.normal_count = 0
 
         # write profile, update selection, force reload
         self.write_profile_data(p, p.profile.key)
@@ -285,6 +286,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.monitoring:
             self.action_Start_Monitoring.setEnabled(False)
             self.action_Stop_Monitoring.setEnabled(True)
+            self.action_View_Modify_Profile.setEnabled(True)
             self.action_Force_Save_Profiles.setEnabled(True)
             self.bpf_thread.start()
             self.log("Monitoring started.", "m")
@@ -295,10 +297,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.bpf_thread.exiting = True
             self.action_Start_Monitoring.setEnabled(True)
             self.action_Stop_Monitoring.setEnabled(False)
+            self.action_View_Modify_Profile.setEnabled(False)
+            self.action_Force_Save_Profiles.setEnabled(False)
             self.log("Detaching probe...", "w")
             self.monitoring_radio.setChecked(False)
             self.not_monitoring_radio.setChecked(True)
-            self.action_Force_Save_Profiles.setEnabled(False)
             print("----------------- detached -----------------")
 
     def log(self, event, etype="m"):
@@ -345,7 +348,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def display_profiles_dialog(self):
         d = ProfileDialog(self)
-        d.show()
+        d.exec_()
 
     def export_logs(self):
         now = datetime.datetime.now()

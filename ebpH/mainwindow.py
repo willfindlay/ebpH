@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Wed May 29 19:47:51 2019
+# Created: Fri May 31 17:05:07 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -194,6 +194,7 @@ class Ui_MainWindow(object):
         self.action_Stop_Monitoring.setIcon(icon3)
         self.action_Stop_Monitoring.setObjectName("action_Stop_Monitoring")
         self.action_View_Modify_Profile = QtWidgets.QAction(MainWindow)
+        self.action_View_Modify_Profile.setEnabled(False)
         icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap(":/img/assets/img/icons/browser.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.action_View_Modify_Profile.setIcon(icon4)
