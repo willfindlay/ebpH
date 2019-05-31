@@ -37,7 +37,7 @@ typedef long time_t;
 #define PH_LOCALITY_WIN 9
 
 // pH_profile definitions
-#define PH_NUM_SYSCALLS  313
+#define PH_NUM_SYSCALLS  314
 #define PH_NORMAL_WAIT (u64) (24 * 7 * 3600) // one week in seconds
 #define PH_THAWED 0
 #define PH_FROZEN 1

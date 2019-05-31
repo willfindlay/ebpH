@@ -27,9 +27,9 @@
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX)); return -1
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
 
-// hard-coded test profiles
-#define TEST_PROFILE(KEY) \
-    u64 __key = (KEY);
+// hard coded stuff
+#define THE_KEY 20983743 // this is the inode for ls on my system
+BPF_HASH(lookahead, u64, u8, 98596);
 
 // these structures help with PERF_OUTPUT messages
 struct profile_association
@@ -564,6 +564,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     pH_profile *p_pt;
+    pH_seq *s;
     u64 *key;
 
     // create or update the sequence for this pid_tgid
@@ -587,6 +588,37 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         // update train_count and last_mod_count
         pro.train_count++;
         pro.last_mod_count++;
+
+        // add the seq
+        if(*key == THE_KEY)
+        {
+            s = seq.lookup(&pid_tgid);
+            if(!s || s->count <= 1)
+                goto no_prev_seq; // we need a sequence of length at least 2 to register a pair
+
+            // access at index [syscall][prev]
+            for(int i = 1; i < SEQLEN; i++)
+            {
+                long prev = s->seq[i];
+                if(prev == EMPTY)
+                    break;
+
+                // determine which entry we need
+                // TODO: put this in a macro
+                u64 entry = syscall * PH_NUM_SYSCALLS + prev;
+
+                // either set the entry's data to 0 or retrieve it
+                u8 data = 0;
+                u8 *temp = lookahead.lookup_or_init(&entry, &data);
+                data = *temp;
+
+                // set the lookahead pair
+                data |= (1 << (i - 1));
+                lookahead.update(&entry, &data);
+            }
+        }
+
+no_prev_seq:
 
         profile.update(key, &pro);
     }
@@ -633,21 +665,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
         pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
-    }
-
-    if(syscall == SYS_EXECVE)
-    {
-        u64 *key = pid_tgid_to_profile_key.lookup(&pid_tgid);
-        if(!key)
-            return 0;
-        pH_profile *pro = profile.lookup(key);
-        if(!pro)
-            return 0;
-
-        // FIXME: maybe deletet this
-        // update comm
-        //bpf_get_current_comm(&pro->comm, sizeof(pro->comm));
-        //profile.update(key, pro);
     }
 
     return 0;
