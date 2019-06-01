@@ -222,15 +222,7 @@ static u8 pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     // insert the syscall at the beginning of the sequence
     s.seq[0] = *syscall;
 
-    if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
-    {
-        seq.delete(pid_tgid);
-        exits.increment(0);
-    }
-    else
-    {
-        seq.update(pid_tgid, &s);
-    }
+    seq.update(pid_tgid, &s);
 
     return 0;
 }
@@ -611,18 +603,24 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
 static u8 pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
 {
     u64 *key;
-
     key = pid_tgid_to_profile_key.lookup(&pid_tgid);
+    struct profile_association ass;
 
     if(!key)
     {
-        PH_ERROR("No profile key to be disassociated.", ctx);
+        return 0; // no key to be disassociated
     }
 
     pid_tgid_to_profile_key.delete(&pid_tgid);
 
     // notify userspace that the profile has been disassociated
-    struct profile_association ass = {*key, pid_tgid >> 32};
+    ass.key = *key;
+    ass.pid = pid_tgid;
+
+    // the verifier complains here
+    // this probe_read soothes it
+    bpf_probe_read(&ass, sizeof(ass), &ass);
+
     profile_disassoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
     return 0;
@@ -760,6 +758,8 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     exec_file = (struct file *)PT_REGS_RC(ctx);
     if(!exec_file || IS_ERR(exec_file))
     {
+        struct debug d = {(u64) exec_file};
+        output_number.perf_submit(ctx, &d, sizeof(d));
         PH_ERROR("Couldn't fetch the file pointer for this executable.", ctx);
     }
 
@@ -812,23 +812,12 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     key = pid_tgid_to_profile_key.lookup(&pid_tgid);
 
-    // we want to increment train_count of the profile if it exists
-    if(key)
-    {
-        p_pt = profile.lookup(key);
-        pH_process_syscall(p_pt, &pid_tgid, (struct pt_regs *)args);
-    }
-
-    // log if an execve occurred and disassociate pid with profile
+    // log if an execve occurred
     if(syscall == SYS_EXECVE)
     {
+        // disassociate the profile if it is already associated
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
         execves.increment(0);
-
-        // FIXME: move this down to execat callback
-        if(key)
-        {
-            pH_disassociate_profile(pid_tgid, (struct pt_regs*)args);
-        }
     }
 
     // log if a fork occurred
@@ -838,6 +827,22 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
 
     syscalls.increment(0);
+
+    // process the system call
+    if(key)
+    {
+        p_pt = profile.lookup(key);
+        pH_process_syscall(p_pt, &pid_tgid, (struct pt_regs *)args);
+    }
+
+    // delete the sequence and disassociate the profile if the process has exited
+    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
+    {
+        seq.delete(&pid_tgid);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+
+        exits.increment(0);
+    }
 
     return 0;
 }

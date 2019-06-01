@@ -50,30 +50,6 @@ def read_file(filename, chunksize=8192):
             else:
                 break
 
-# --- Profile Structures ---
-# WARNING: These MUST match the structs defined in profiles.h
-
-class ProfileStruct(ct.Structure):
-    _fields_ = [("frozen", ct.c_int8),
-                ("normal", ct.c_int8),
-                ("normal_time", ct.c_int64),
-                ("window_size", ct.c_int64),
-                ("normal_count", ct.c_int64),
-                ("last_mod_count", ct.c_int64),
-                ("train_count", ct.c_int64),
-                ("anomalies", ct.c_int64),
-                ("key", ct.c_int64),
-                ("comm", type(ct.create_string_buffer(128)))]
-
-class ProfileData(ct.Structure):
-    _fields_ = [("pairs", (ct.c_int8 * 256)),
-                ("dummy", ct.c_int8)] # TODO: get rid of dummy
-
-class ProfilePayload(ct.Structure):
-    _fields_ = [("profile", ProfileStruct),
-                ("test", ProfileData),
-                ("train", ProfileData)]
-
 # --- Profile Dialog ---
 
 class ProfileDialog(QDialog, Ui_ProfileDialog):
@@ -85,23 +61,18 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.refresh_button.pressed.connect(self.update_list)
         self.last_selected_text = None
         self.update_list()
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.tick)
+        self.update_timer.start(500)
 
     def update_list(self):
-        # attempt to save profiles before updating list
-        try:
-            self.parent().bpf_thread.save_profiles(notify=False)
-        except:
-            pass
-
         # attempt to remember the last selected item
         try:
             self.last_selected_text = self.profile_list.currentItem().text()
         except:
             pass
 
-        # read filenames from profile directory
-        filenames = os.listdir(PROFILE_DIR)
-        profiles = [self.load_profile_data(filename) for filename in filenames]
+        profiles = self.parent().bpf_thread.fetch_all_profiles()
 
         # clear the list
         self.profile_list.clear()
@@ -129,35 +100,13 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
             except:
                 pass
 
-    def load_profile_data(self, key):
+    # fill form with profile information
+    def populate_profile_info(self):
         try:
-            with open("".join([PROFILE_DIR,"/",str(key)]), "rb") as f:
-                b = f.read()
-
-            # read profile struct
-            p = ProfilePayload()
-            fit = min(len(b), ct.sizeof(p))
-            ct.memmove(ct.addressof(p), b, fit)
-
-            return p
-        except FileNotFoundError:
-            return None
-
-    def write_profile_data(self, p, key):
-        with open("".join([PROFILE_DIR,"/",str(key)]), "wb+") as f:
-            f.write(p)
-
-    # TODO: get profile information printing
-    def select_profile(self, curr, prev):
-        if curr is None:
-            return
-        try:
-            self.parent().bpf_thread.save_profile(curr.data(Qt.UserRole))
+            p = self.parent().bpf_thread.fetch_profile(self.profile_list.currentItem().data(Qt.UserRole))
         except:
-            pass
-        p = self.load_profile_data(curr.data(Qt.UserRole))
-        # populate the fields of the form
-        if p:
+            return
+        if p is not None:
             self.comm.setText(p.profile.comm.decode('utf-8'))
             self.key.setText(str(p.profile.key))
             states = []
@@ -172,6 +121,12 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
             self.last_mod_count.setText(str(p.profile.last_mod_count))
             self.normal_count.setText(str(p.profile.normal_count))
             self.anomalies.setText(str(p.profile.anomalies))
+
+    def select_profile(self, curr, prev):
+        self.populate_profile_info()
+
+    def tick(self):
+        self.populate_profile_info()
 
     def reset_profile(self):
         # get the currently selected item
@@ -188,17 +143,8 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
                 QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return
-        p = self.load_profile_data(selected.data(Qt.UserRole))
 
-        # reset profile fields
-        p.profile.train_count = 0
-        p.profile.last_mod_count = 0
-        p.profile.normal_count = 0
-
-        # write profile, update selection, force reload
-        self.write_profile_data(p, p.profile.key)
-        self.parent().bpf_thread.load_profiles(str(p.profile.key))
-        self.select_profile(selected, None)
+        # FIXME: issue a reset command with the new ebpH controller program
 
 # --- Main Window ---
 
@@ -221,7 +167,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.chart_view.chart().createDefaultAxes()
         self.chart_view.chart().layout().setContentsMargins(0, 0, 0, 0);
         self.chart_view.chart().setBackgroundRoundness(0);
-        #self.chart_view.chart().setTitle("ebpH Statistics Over Time")
         ell = QGridLayout()
         self.chart_container.setLayout(ell)
         self.chart_container.layout().addWidget(self.chart_view)
@@ -315,7 +260,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         now = datetime.datetime.now()
         time_str = now.strftime("[%m/%d/%Y %H:%M:%S]")
         event = re.sub(r"(\d+)", f"{RED}\\1{BLACK}", event)
-        #event = re.sub(r"(\r\n?|\n)+", "".join(["<br>"] + ["&nbsp;" for _ in range(31)]), event)
         etype = etype.lower()
         if etype == "w":
             etype_str = "WARNING:".replace(" ","&nbsp;")
@@ -356,6 +300,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def display_profiles_dialog(self):
         d = ProfileDialog(self)
         d.exec_()
+        d.update_timer.stop()
 
     def export_logs(self):
         now = datetime.datetime.now()

@@ -39,54 +39,18 @@ LOADER_PATH = os.path.abspath("profile_loader")
 # length of sequences
 SEQLEN = 8
 
-def print_sequences():
-    # fetch BPF hashmap
-    seq_hash = bpf["seq"]
-
-    # print system time
-    print()
-    print("[%s]" % strftime("%H:%M:%S %p"))
-
-    # print sequence for each inspected process
-    for p, s in seq_hash.items():
-        pid = p.value >> 32
-        names = map(syscall_name, s.seq);
-        calls = map(str, s.seq);
-
-        # separator
-        print()
-        print("----------------------------------------------------------")
-        print()
-
-        # print the process and the sequence length
-        print("%-8s %-8s" % ("PID","COUNT"))
-        print("%-8d %-8s" % (pid, s.count));
-
-        # list of sequences by "Call Name(Call Number),"
-        print()
-        print('Sequence:')
-        arr = []
-        for i,(call,name) in enumerate(zip(calls,names)):
-            if i >= SEQLEN or i >= s.count:
-                break;
-            arr.append("%s(%s)" % (name.decode('utf-8'), call))
-        print(textwrap.fill(", ".join(arr)))
-        print()
-
-# TODO: flesh this out... right now it just prints profile filenames
-def print_profiles():
-    # fetch hashmap
-    profile_hash = bpf["profile"]
-
-    for k, profile in profile_hash.items():
-        print(k)
-
 # load a bpf program from a file
 def load_bpf(code):
     with open(code, "r") as f:
         text = f.read()
-
     return text
+
+# used in fetch profile
+class ProfilePayload():
+    def __init__(self, profile, test, train):
+        self.profile = profile
+        self.test = test
+        self.train = train
 
 class BPFThread(QThread):
     def __init__(self, parent=None):
@@ -143,6 +107,37 @@ class BPFThread(QThread):
         else:
             subprocess.run([LOADER_PATH])
 
+    # fetch a profile from BPF program and return it in the form of profile payload
+    def fetch_profile(self, key):
+        try:
+            profile_hash = self.bpf["profile"]
+            test_hash    = self.bpf["test_data"]
+            train_hash   = self.bpf["train_data"]
+
+            profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+            test_dict = dict([(k.value, v) for k, v in test_hash.items()])
+            train_dict = dict([(k.value, v) for k, v in train_hash.items()])
+
+            profile  = profile_dict[key]
+            test     = test_dict[key]
+            train    = train_dict[key]
+
+            return ProfilePayload(profile, test, train)
+        except:
+            return None
+
+    # return a list of profile payloads for all profiles
+    def fetch_all_profiles(self):
+        profile_hash = self.bpf["profile"]
+        test_hash    = self.bpf["test_data"]
+        train_hash   = self.bpf["train_data"]
+
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
+        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
+
+        return [ProfilePayload(profile_dict[k], test_dict[k], train_dict[k]) for k in profile_dict]
+
     # --- Signals ---
     sig_event            = Signal(str)
     sig_warning          = Signal(str)
@@ -153,8 +148,8 @@ class BPFThread(QThread):
     sig_profiles_saved   = Signal()
 
     # --- Control Flow ---
-    # called when the thread is started
     def run(self):
+        # --- Perf Buffer Handler Definitions ---
         def on_profile_create(cpu, data, size):
             event = self.bpf["profile_create_event"].event(data)
             s = f"Profile {event.key} created."
@@ -205,6 +200,8 @@ class BPFThread(QThread):
             event = self.bpf["output_number"].event(data)
             s = f"{event.n}"
             self.sig_warning.emit(s)
+
+        # --- Main Control Flow ---
 
         self.sig_can_exit.emit(False)
         self.exiting = False
