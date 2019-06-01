@@ -54,7 +54,8 @@ def read_file(filename, chunksize=8192):
 # WARNING: These MUST match the structs defined in profiles.h
 
 class ProfileStruct(ct.Structure):
-    _fields_ = [("state", ct.c_int8),
+    _fields_ = [("frozen", ct.c_int8),
+                ("normal", ct.c_int8),
                 ("normal_time", ct.c_int64),
                 ("window_size", ct.c_int64),
                 ("normal_count", ct.c_int64),
@@ -157,14 +158,20 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         p = self.load_profile_data(curr.data(Qt.UserRole))
         # populate the fields of the form
         if p:
-            anomalies = 0
             self.comm.setText(p.profile.comm.decode('utf-8'))
             self.key.setText(str(p.profile.key))
+            states = []
+            if p.profile.frozen:
+                states.append("Frozen")
+            if p.profile.normal:
+                states.append("Normal")
+            if len(states) == 0:
+                states.append("Training")
+            self.state.setText("/".join(states))
             self.train_count.setText(str(p.profile.train_count))
             self.last_mod_count.setText(str(p.profile.last_mod_count))
             self.normal_count.setText(str(p.profile.normal_count))
-            # TODO: calculate anomalies and populate system call list
-            self.anomalies.setText(str(anomalies))
+            self.anomalies.setText(str(p.profile.anomalies))
 
     def reset_profile(self):
         # get the currently selected item

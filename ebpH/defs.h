@@ -43,6 +43,9 @@ typedef long time_t;
 #define PH_THAWED 0
 #define PH_FROZEN 1
 #define PH_NORMAL 2
+#define PH_NORMAL_FACTOR_DEN 32
+#define PH_NORMAL_FACTOR     128
+#define PH_ANOMALY_LIMIT     30
 
 // important syscall definitions
 #define SYS_CLONE      56

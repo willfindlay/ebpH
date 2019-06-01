@@ -66,7 +66,8 @@ pH_profile_data;
 // TODO: implement me
 typedef struct
 {
-    u8 state;
+    u8 frozen;
+    u8 normal;
     u64 normal_time;
     u64 window_size;
     u64 normal_count;
