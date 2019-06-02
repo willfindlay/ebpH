@@ -28,9 +28,12 @@ from bcc import BPF
 from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
 import ctypes as ct
-from PySide2.QtCore import QThread
-from PySide2.QtCore import Signal
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
+from PySide2.QtCore import *
 from colors import *
+from saveprogress import Ui_SaveProgress
+import globals
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -52,14 +55,15 @@ class ProfilePayload():
         self.test = test
         self.train = train
 
-class BPFThread(QThread):
-    def __init__(self, parent=None):
+class ProfileSaveThread(QThread):
+    def __init__(self, bpf, parent=None):
         QThread.__init__(self, parent)
-        self.exiting = False
-        self.profiles = 0
+        self.bpf = bpf
+        self.progress = 0
 
-    # save a profile to disk
-    def save_profile(self, k):
+    update_progress = Signal(float)
+
+    def save_profiles(self):
         profile_hash = self.bpf["profile"]
         test_hash    = self.bpf["test_data"]
         train_hash   = self.bpf["train_data"]
@@ -68,36 +72,75 @@ class BPFThread(QThread):
         test_dict = dict([(k.value, v) for k, v in test_hash.items()])
         train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
-        profile  = profile_dict[k]
-        test     = test_dict[k]
-        train    = train_dict[k]
-        filename = str(profile.key)
-
-        # get rid of slash if it is the first character
-        if filename[0] == r'/':
-            filename = filename[1:]
-        profile_path = os.path.join(PROFILE_DIR, filename)
-
-        # create path if it doesn't exist
-        if not os.path.exists(os.path.dirname(profile_path)):
-            try:
-                os.makedirs(os.path.dirname(profile_path))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-        with open(profile_path, "w") as f:
-            printb(b"".join([profile,test,train]),file=f,nl=0)
-
-    # save all profiles to disk
-    def save_profiles(self, notify=True):
-        profile_hash = self.bpf["profile"]
-        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+        total = len(profile_dict)
+        num_done = 0
 
         for k in profile_dict:
-            self.save_profile(k)
+            profile  = profile_dict[k]
+            test     = test_dict[k]
+            train    = train_dict[k]
+            filename = str(profile.key)
 
-        if notify and not self.exiting:
-            self.sig_profiles_saved.emit()
+            profile_path = os.path.join(PROFILE_DIR, filename)
+
+            # create path if it doesn't exist
+            if not os.path.exists(os.path.dirname(profile_path)):
+                try:
+                    os.makedirs(os.path.dirname(profile_path))
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+            with open(profile_path, "w") as f:
+                printb(b"".join([profile,test,train]),file=f,nl=0)
+
+            num_done = num_done + 1
+            self.progress = (num_done / float(total)) * 100
+            self.update_progress.emit(self.progress)
+
+    # save all profiles to disk
+    def run(self):
+        self.save_profiles()
+
+class BPFThread(QThread):
+    # --- Signals ---
+    sig_event            = Signal(str)
+    sig_warning          = Signal(str)
+    sig_error            = Signal(str)
+    sig_events           = Signal(list)
+    sig_stats            = Signal(int, int, int, int, int)
+    sig_save_profiles    = Signal()
+
+    def __init__(self, parent=None):
+        QThread.__init__(self, parent)
+        self.exiting = False
+        self.closing = False
+
+    def save_profiles(self):
+        profile_hash = self.bpf["profile"]
+        test_hash    = self.bpf["test_data"]
+        train_hash   = self.bpf["train_data"]
+
+        profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
+        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
+        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
+
+        for k in profile_dict:
+            profile  = profile_dict[k]
+            test     = test_dict[k]
+            train    = train_dict[k]
+            filename = str(profile.key)
+
+            profile_path = os.path.join(PROFILE_DIR, filename)
+
+            # create path if it doesn't exist
+            if not os.path.exists(os.path.dirname(profile_path)):
+                try:
+                    os.makedirs(os.path.dirname(profile_path))
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+            with open(profile_path, "w") as f:
+                printb(b"".join([profile,test,train]),file=f,nl=0)
 
     # load profiles from disk
     def load_profiles(self, profile=None):
@@ -137,15 +180,6 @@ class BPFThread(QThread):
         train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
         return [ProfilePayload(profile_dict[k], test_dict[k], train_dict[k]) for k in profile_dict]
-
-    # --- Signals ---
-    sig_event            = Signal(str)
-    sig_warning          = Signal(str)
-    sig_error            = Signal(str)
-    sig_events           = Signal(list)
-    sig_stats            = Signal(int, int, int, int, int)
-    sig_can_exit         = Signal(bool)
-    sig_profiles_saved   = Signal()
 
     # --- Control Flow ---
     def run(self):
@@ -203,8 +237,8 @@ class BPFThread(QThread):
 
         # --- Main Control Flow ---
 
-        self.sig_can_exit.emit(False)
         self.exiting = False
+        self.closing = False
 
         if not os.path.exists(PROFILE_DIR):
             os.makedirs(PROFILE_DIR)
@@ -237,7 +271,6 @@ class BPFThread(QThread):
         while True:
             # update the hashmap of sequences
             self.bpf.perf_buffer_poll(100)
-            #self.bpf.trace_print()
             self.num_profiles = self.bpf["profiles"].values()[0].value
             self.num_syscalls = self.bpf["syscalls"].values()[0].value
             self.num_forks    = self.bpf["forks"].values()[0].value
@@ -247,12 +280,16 @@ class BPFThread(QThread):
 
             # exit control flow
             if self.exiting:
+                self.sig_save_profiles.emit()
+                globals.mutex.lock()
+                globals.profiles_saved.wait(globals.mutex)
+                globals.mutex.unlock()
+
+            if self.closing:
                 self.save_profiles()
 
+            if self.exiting or self.closing:
                 # clear the BPF hashmap
-                #seq_hash.clear()
-                #pro_hash.clear()
                 self.bpf.cleanup()
                 self.sig_event.emit("Monitoring stopped.")
-                self.sig_can_exit.emit(True)
                 break

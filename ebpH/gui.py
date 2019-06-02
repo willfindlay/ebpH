@@ -30,8 +30,10 @@ from PySide2.QtCore import *
 from PySide2.QtCharts import *
 from mainwindow import Ui_MainWindow
 from profiledialog import Ui_ProfileDialog
-from bpf_thread import BPFThread
+from saveprogress import Ui_SaveProgress
+from bpf_thread import BPFThread, ProfileSaveThread
 from colors import *
+import globals
 
 # directory in which profiles are stored
 PROFILE_DIR = "/var/lib/pH/profiles"
@@ -64,6 +66,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.tick)
         self.update_timer.start(500)
+        self.update_timer.deleteLater()
 
     def update_list(self):
         # attempt to remember the last selected item
@@ -126,6 +129,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.populate_profile_info()
 
     def tick(self):
+        print("tick")
         self.populate_profile_info()
 
     def reset_profile(self):
@@ -146,6 +150,16 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
 
         # FIXME: issue a reset command with the new ebpH controller program
 
+# --- Save Progress Dialog ---
+
+class SaveProgressDialog(QDialog, Ui_SaveProgress):
+    def __init__(self, parent=None):
+        super(SaveProgressDialog, self).__init__(parent)
+        self.setupUi(self)
+
+    def update_progress(self, progress):
+        self.save_progress.setValue(progress)
+
 # --- Main Window ---
 
 # to recompile UI or Resources files, just run make
@@ -155,7 +169,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.monitoring = False
-        self.can_exit = True
+        self.exiting = False
 
         # setup thread
         self.bpf_thread = BPFThread(self)
@@ -179,8 +193,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def connect_slots(self):
         # --- File Menu ---
-        self.action_Force_Save_Profiles.triggered.connect(self.bpf_thread.save_profiles)
-        self.bpf_thread.sig_profiles_saved.connect(self.on_profiles_saved)
+        self.action_Force_Save_Profiles.triggered.connect(self.save_profiles)
         self.actionExport_Logs.triggered.connect(self.export_logs)
         self.export_logs_button.pressed.connect(self.export_logs)
         # quit is implicit in the .ui file
@@ -205,10 +218,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # --- Statistics ---
         self.bpf_thread.sig_stats.connect(self.update_stats)
 
-        # --- Housekeeping ---
-        self.bpf_thread.sig_can_exit.connect(self.update_can_exit)
+        # --- Profile Saving Thread ---
+        self.bpf_thread.sig_save_profiles.connect(self.save_profiles)
 
     # --- Slots ---
+
+    def save_profiles(self):
+        dialog = SaveProgressDialog()
+        self.save_thread = ProfileSaveThread(self.bpf_thread.bpf, self)
+        self.save_thread.finished.connect(self.save_thread.deleteLater)
+        self.save_thread.finished.connect(dialog.accept)
+        self.save_thread.update_progress.connect(dialog.update_progress)
+        self.save_thread.start()
+        dialog.exec_()
+        dialog.deleteLater()
+        globals.profiles_saved.wakeAll()
 
     def show_ebpH_help(self):
         text = """
@@ -288,19 +312,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.execve_count.setText(str(execves))
         self.exit_count.setText(str(exits))
 
-    def update_can_exit(self, can_exit):
-        self.can_exit = can_exit
-
-    def on_profiles_saved(self):
-        text = """
-        Profiles saved successfully!
-        """
-        self.info_box(text=text, title="Success")
-
     def display_profiles_dialog(self):
         d = ProfileDialog(self)
         d.exec_()
-        d.update_timer.stop()
 
     def export_logs(self):
         now = datetime.datetime.now()
@@ -322,7 +336,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.No:
             event.ignore()
             return
-        self.bpf_thread.exiting = True
+        self.bpf_thread.closing = True
         self.bpf_thread.wait()
         event.accept()
 
@@ -340,6 +354,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 # --- Main Control Flow ---
 if __name__ == '__main__':
+    globals.init()
     # check privileges
     if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
