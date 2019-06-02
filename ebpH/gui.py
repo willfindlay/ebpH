@@ -129,7 +129,6 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.populate_profile_info()
 
     def tick(self):
-        print("tick")
         self.populate_profile_info()
 
     def reset_profile(self):

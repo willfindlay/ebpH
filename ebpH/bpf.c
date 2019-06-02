@@ -28,7 +28,7 @@
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
 
 // hard coded stuff
-#define THE_KEY 20983743 // this is the inode for spotify on my system
+#define THE_KEY 41944417 // this is the inode for anomaly_test on my system
 BPF_HASH(lookahead, u64, u8, 98596);
 
 // these structures help with PERF_OUTPUT messages
@@ -277,7 +277,8 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     parent_key = pid_tgid_to_profile_key.lookup(ppid_tgid);
     if(!parent_key)
     {
-        PH_WARNING("No parent profile to copy on fork.", ctx);
+        // this message is commented out because it's extremely annoying when testing
+        //PH_WARNING("No parent profile to copy on fork.", ctx);
         return 0;
     }
     p = profile.lookup(parent_key);
@@ -498,6 +499,7 @@ static u8 pH_train(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
     p->train_count++;
     if(pH_test(p, s, ctx))
     {
+        PH_WARNING("One or more new sequences have been detected!", ctx);
         if(p->frozen)
             p->frozen = 0;
         pH_add_seq(p, s);
@@ -535,7 +537,6 @@ static u8 pH_stop_normal(pH_profile *p, pH_seq *s)
 // operate on a normal process
 static u8 pH_process_normal(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
 {
-
     int anomalies = 0;
 
     if(p->normal)
@@ -543,7 +544,6 @@ static u8 pH_process_normal(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
         anomalies = pH_test(p, s, ctx);
         if(anomalies)
         {
-            // TODO: log the anomaly
             if(p->anomalies > PH_ANOMALY_LIMIT)
             {
                 pH_stop_normal(p,s);
@@ -585,6 +585,8 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
         return 0;
     }
 
+    pH_process_normal(&pro, s, ctx);
+
     pH_train(&pro, s, ctx);
 
     // update normal status if we are frozen and have reached normal_time
@@ -592,8 +594,6 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
     {
         pH_start_normal(&pro, s);
     }
-
-    pH_process_normal(&pro, s, ctx);
 
     profile.update(&pro.key, &pro);
     return 0;
@@ -812,14 +812,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     key = pid_tgid_to_profile_key.lookup(&pid_tgid);
 
-    // log if an execve occurred
-    if(syscall == SYS_EXECVE)
-    {
-        // disassociate the profile if it is already associated
-        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
-        execves.increment(0);
-    }
-
     // log if a fork occurred
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
@@ -833,6 +825,14 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         p_pt = profile.lookup(key);
         pH_process_syscall(p_pt, &pid_tgid, (struct pt_regs *)args);
+    }
+
+    // log if an execve occurred
+    if(syscall == SYS_EXECVE)
+    {
+        // disassociate the profile if it is already associated
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+        execves.increment(0);
     }
 
     // delete the sequence and disassociate the profile if the process has exited
