@@ -831,7 +831,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     if(syscall == SYS_EXECVE)
     {
         // disassociate the profile if it is already associated
-        //pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
         execves.increment(0);
     }
 
