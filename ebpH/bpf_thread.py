@@ -56,12 +56,13 @@ class ProfilePayload():
         self.train = train
 
 class ProfileSaveThread(QThread):
+    # --- Signals ---
+    update_progress = Signal(float)
+
     def __init__(self, bpf, parent=None):
         QThread.__init__(self, parent)
         self.bpf = bpf
         self.progress = 0
-
-    update_progress = Signal(float)
 
     def save_profiles(self):
         profile_hash = self.bpf["profile"]

@@ -758,9 +758,8 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     exec_file = (struct file *)PT_REGS_RC(ctx);
     if(!exec_file || IS_ERR(exec_file))
     {
-        struct debug d = {(u64) exec_file};
-        output_number.perf_submit(ctx, &d, sizeof(d));
-        PH_ERROR("Couldn't fetch the file pointer for this executable.", ctx);
+        // if the file doesn't exist (invalid execve call), just return here
+        return 0;
     }
 
     // fetch dentry for executable
