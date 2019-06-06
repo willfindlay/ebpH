@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1467</width>
-    <height>804</height>
+    <width>989</width>
+    <height>703</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -46,28 +46,6 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QPushButton" name="refresh_button">
-           <property name="text">
-            <string>Refresh</string>
-           </property>
-           <property name="icon">
-            <iconset resource="resources.qrc">
-             <normaloff>:/img/assets/img/icons/redo.png</normaloff>:/img/assets/img/icons/redo.png</iconset>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_2">
        <property name="sizePolicy">
@@ -97,8 +75,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>712</width>
-          <height>647</height>
+          <width>473</width>
+          <height>548</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
@@ -277,19 +255,6 @@ System Calls</string>
        </widget>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QListWidget" name="profile_list">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>2</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="selectionBehavior">
-        <enum>QAbstractItemView::SelectRows</enum>
-       </property>
-      </widget>
-     </item>
      <item row="4" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
@@ -313,6 +278,19 @@ System Calls</string>
         </widget>
        </item>
       </layout>
+     </item>
+     <item row="3" column="0">
+      <widget class="QListView" name="profile_list">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>2</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'saveprogress.ui',
 # licensing of 'saveprogress.ui' applies.
 #
-# Created: Thu Jun  6 14:48:07 2019
+# Created: Thu Jun  6 16:00:05 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!

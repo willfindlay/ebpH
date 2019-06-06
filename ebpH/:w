@@ -169,20 +169,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.exiting = False
 
         # setup bpf worker
-        self.bpf_thread = QThread(self)
-
         self.bpf_worker = BPFWorker()
-        self.bpf_worker.moveToThread(self.bpf_thread)
         self.start_monitoring.connect(self.bpf_worker.start_monitoring)
         self.stop_monitoring.connect(self.bpf_worker.stop_monitoring)
 
-        self.update_timer = QTimer()
-        self.update_timer.setInterval(16)
-        self.update_timer.moveToThread(self.bpf_thread)
-        self.bpf_thread.started.connect(self.update_timer.start)
-        self.bpf_thread.finished.connect(self.update_timer.deleteLater)
+        self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.bpf_worker.tick)
+        self.update_timer.start(16)
 
+        self.bpf_thread = QThread(self)
+        self.bpf_worker.moveToThread(self.bpf_thread)
         self.bpf_thread.start()
 
         # add graph
@@ -350,7 +346,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             event.ignore()
             return
         self.bpf_worker.save_profiles()
-        self.bpf_thread.exit()
         event.accept()
 
     # --- Generic Helpers ---

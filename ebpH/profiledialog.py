@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'profiledialog.ui',
 # licensing of 'profiledialog.ui' applies.
 #
-# Created: Thu Jun  6 14:48:07 2019
+# Created: Thu Jun  6 16:00:05 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -13,7 +13,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 class Ui_ProfileDialog(object):
     def setupUi(self, ProfileDialog):
         ProfileDialog.setObjectName("ProfileDialog")
-        ProfileDialog.resize(1467, 804)
+        ProfileDialog.resize(989, 703)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/img/assets/img/icons/browser.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         ProfileDialog.setWindowIcon(icon)
@@ -35,19 +35,6 @@ class Ui_ProfileDialog(object):
         self.label.setSizePolicy(sizePolicy)
         self.label.setObjectName("label")
         self.gridLayout_2.addWidget(self.label, 2, 1, 1, 1)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setContentsMargins(-1, -1, -1, 0)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.refresh_button = QtWidgets.QPushButton(ProfileDialog)
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/img/assets/img/icons/redo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.refresh_button.setIcon(icon1)
-        self.refresh_button.setObjectName("refresh_button")
-        self.horizontalLayout_2.addWidget(self.refresh_button)
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
-        self.gridLayout_2.addLayout(self.verticalLayout_2, 4, 0, 1, 1)
         self.label_2 = QtWidgets.QLabel(ProfileDialog)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
@@ -65,7 +52,7 @@ class Ui_ProfileDialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 712, 647))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 473, 548))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_4.setObjectName("gridLayout_4")
@@ -147,15 +134,6 @@ class Ui_ProfileDialog(object):
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.gridLayout_2.addWidget(self.scrollArea, 3, 1, 1, 1)
-        self.profile_list = QtWidgets.QListWidget(ProfileDialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(2)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.profile_list.sizePolicy().hasHeightForWidth())
-        self.profile_list.setSizePolicy(sizePolicy)
-        self.profile_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.profile_list.setObjectName("profile_list")
-        self.gridLayout_2.addWidget(self.profile_list, 3, 0, 1, 1)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -164,6 +142,15 @@ class Ui_ProfileDialog(object):
         self.reset_profile_button.setObjectName("reset_profile_button")
         self.horizontalLayout.addWidget(self.reset_profile_button)
         self.gridLayout_2.addLayout(self.horizontalLayout, 4, 1, 1, 1)
+        self.profile_list = QtWidgets.QListView(ProfileDialog)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(2)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.profile_list.sizePolicy().hasHeightForWidth())
+        self.profile_list.setSizePolicy(sizePolicy)
+        self.profile_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.profile_list.setObjectName("profile_list")
+        self.gridLayout_2.addWidget(self.profile_list, 3, 0, 1, 1)
         self.gridLayout.addLayout(self.gridLayout_2, 0, 0, 1, 1)
 
         self.retranslateUi(ProfileDialog)
@@ -174,7 +161,6 @@ class Ui_ProfileDialog(object):
     def retranslateUi(self, ProfileDialog):
         ProfileDialog.setWindowTitle(QtWidgets.QApplication.translate("ProfileDialog", "View/Modify Profiles", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("ProfileDialog", "Details", None, -1))
-        self.refresh_button.setText(QtWidgets.QApplication.translate("ProfileDialog", "Refresh", None, -1))
         self.label_2.setText(QtWidgets.QApplication.translate("ProfileDialog", "Profiles", None, -1))
         self.label_4.setText(QtWidgets.QApplication.translate("ProfileDialog", "Anomalies", None, -1))
         self.label_3.setText(QtWidgets.QApplication.translate("ProfileDialog", "Comm", None, -1))
