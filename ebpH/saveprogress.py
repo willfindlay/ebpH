@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'saveprogress.ui',
 # licensing of 'saveprogress.ui' applies.
 #
-# Created: Sat Jun  1 13:34:28 2019
+# Created: Thu Jun  6 14:48:07 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -30,6 +30,6 @@ class Ui_SaveProgress(object):
         QtCore.QMetaObject.connectSlotsByName(SaveProgress)
 
     def retranslateUi(self, SaveProgress):
-        SaveProgress.setWindowTitle(QtWidgets.QApplication.translate("SaveProgress", "Dialog", None, -1))
+        SaveProgress.setWindowTitle(QtWidgets.QApplication.translate("SaveProgress", "Saving Profiles", None, -1))
         self.label.setText(QtWidgets.QApplication.translate("SaveProgress", "Saving profiles...", None, -1))
 

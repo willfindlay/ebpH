@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Sat Jun  1 13:34:28 2019
+# Created: Thu Jun  6 14:48:07 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -22,9 +22,9 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setStyleSheet("#centralwidget{\n"
 "background: #eee;\n"
-"background-image: url(:/img/assets/img/logos/logo_transparent.png);\n"
+"background-image: url(:/img/assets/img/logos/logo_word.png);\n"
 "background-repeat: no-repeat;\n"
-"background-position: bottom left;\n"
+"background-position:  bottom left;\n"
 "}")
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)

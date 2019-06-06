@@ -28,9 +28,9 @@
    <property name="styleSheet">
     <string notr="true">#centralwidget{
 background: #eee;
-background-image: url(:/img/assets/img/logos/logo_transparent.png);
+background-image: url(:/img/assets/img/logos/logo_word.png);
 background-repeat: no-repeat;
-background-position: bottom left;
+background-position:  bottom left;
 }</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">

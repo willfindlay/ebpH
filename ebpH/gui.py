@@ -67,6 +67,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
         self.update_timer.timeout.connect(self.tick)
         self.update_timer.start(500)
         self.update_timer.deleteLater()
+        self.resize(QDesktopWidget().availableGeometry().size() * 0.8)
 
     def update_list(self):
         # attempt to remember the last selected item
@@ -186,7 +187,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # connect slots and draw window
         self.connect_slots()
-        self.showMaximized()
+        self.resize(QDesktopWidget().availableGeometry().size() * 0.9)
+        self.show()
 
     # --- Initialization Helpers ---
 
