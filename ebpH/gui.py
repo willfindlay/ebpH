@@ -30,7 +30,6 @@ from PySide2.QtCore import *
 from PySide2.QtCharts import *
 from mainwindow import Ui_MainWindow
 from profiledialog import Ui_ProfileDialog
-from saveprogress import Ui_SaveProgress
 from bpf_worker import BPFWorker
 from colors import *
 import globals
@@ -137,16 +136,6 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
             return
 
         # FIXME: issue a reset command with the new ebpH controller program
-
-# --- Save Progress Dialog ---
-
-class SaveProgressDialog(QDialog, Ui_SaveProgress):
-    def __init__(self, parent=None):
-        super(SaveProgressDialog, self).__init__(parent)
-        self.setupUi(self)
-
-    def update_progress(self, progress):
-        self.save_progress.setValue(progress)
 
 # --- Main Window ---
 
