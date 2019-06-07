@@ -165,9 +165,6 @@ static void pH_reset_locality(pH_seq *s)
 
     s->lf.lfc     = 0;
     s->lf.lfc_max = 0;
-    //s->lf.total = 0;
-    //s->lf.max = 0;
-    //s->lf.first = PH_LOCALITY_WIN - 1;
 }
 
 // intialize a pH sequence
@@ -199,7 +196,9 @@ static u8 pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     s = *temp;
 
     // if we just execve'd we need to wipe the sequence
-    if(*syscall == SYS_EXECVE)
+    //if(*syscall == SYS_EXECVE) TODO: no longer resetting sequences on execve for now, this preserves execve anomalies
+    //                                 the below if-statement will never get executed at the moment...
+    if(0 == 1)
     {
         // leave the EXECVE call, wipe the rest
         for(i = 1; i < SEQLEN; i++)
@@ -429,7 +428,7 @@ static int pH_test(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
     // FIXME: this needs to become generic when maps of maps become available
     if(p->key == THE_KEY)
     {
-        if(!s || s->count <= 1)
+        if(!s || s->count < 1)
             return mismatches;
 
         // access at index [syscall][prev]
@@ -437,7 +436,7 @@ static int pH_test(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
         {
             long syscall = s->seq[0];
             long prev = s->seq[i];
-            if(prev == EMPTY)
+            if(prev == EMPTY) // commented this out for now
                 break;
 
             // determine which entry we need

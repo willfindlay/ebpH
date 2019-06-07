@@ -32,14 +32,8 @@ from mainwindow import Ui_MainWindow
 from profiledialog import Ui_ProfileDialog
 from saveprogress import Ui_SaveProgress
 from bpf_worker import BPFWorker
-from profile_save_thread import ProfileSaveThread
 from colors import *
 import globals
-
-# directory in which profiles are stored
-PROFILE_DIR = "/var/lib/pH/profiles"
-# path of profile loader executable
-LOADER_PATH = os.path.abspath("profile_loader")
 
 # --- Read Chunks From File ---
 # TODO: maybe remove
@@ -205,7 +199,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def connect_slots(self):
         # --- File Menu ---
-        self.action_Force_Save_Profiles.triggered.connect(self.save_profiles)
+        self.action_Force_Save_Profiles.triggered.connect(self.bpf_worker.save_profiles)
         self.actionExport_Logs.triggered.connect(self.export_logs)
         self.export_logs_button.pressed.connect(self.export_logs)
         # quit is implicit in the .ui file
@@ -230,21 +224,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # --- Statistics ---
         self.bpf_worker.sig_stats.connect(self.update_stats)
 
-        # --- Profile Saving Thread ---
-        self.bpf_worker.sig_save_profiles.connect(self.save_profiles)
-
     # --- Slots ---
-
-    def save_profiles(self):
-        dialog = SaveProgressDialog()
-        self.save_thread = ProfileSaveThread(self.bpf_worker.bpf, self)
-        self.save_thread.finished.connect(self.save_thread.deleteLater)
-        self.save_thread.finished.connect(dialog.accept)
-        self.save_thread.update_progress.connect(dialog.update_progress)
-        self.save_thread.start()
-        dialog.exec_()
-        dialog.deleteLater()
-        globals.profiles_saved.wakeAll()
 
     def show_ebpH_help(self):
         text = """

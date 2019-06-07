@@ -1,10 +1,12 @@
 #! /usr/bin/env python3
 
-from PySide2.QtCore import QWaitCondition, QMutex
+import os
 
 def init():
-    global can_exit
-    global profiles_saved
-    global mutex
-    profiles_saved = QWaitCondition()
-    mutex          = QMutex()
+    global PROFILE_DIR
+    global LOADER_PATH
+
+    # directory in which profiles are stored
+    PROFILE_DIR = "/var/lib/pH/profiles"
+    # path of profile loader executable
+    LOADER_PATH = os.path.abspath("profile_loader")
