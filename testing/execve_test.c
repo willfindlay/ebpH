@@ -9,7 +9,7 @@ int main()
     pid = getpid();
     printf("My PID is %d\n", pid);
 
-    char* args[] = {"pwd", NULL};
+    char* args[] = {"kill", NULL};
 
-    execvp("pwd", args);
+    execvp("kill", args);
 }
