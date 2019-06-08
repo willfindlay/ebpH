@@ -18,7 +18,7 @@ See the instructions below for information on how to choose which profile is mon
 ## Installation
 
 1. Install the prerequisites (see above).
-1. Clone this branch from the repo: `git clone --branch anil-test https://github.com/HousedHorse/ebpH`
+1. Clone this branch from the repo: `git clone --branch development https://github.com/HousedHorse/ebpH`
 1. Run the Makefile to compile the `ui` files and `profile_loader`: `sudo make` (running this as root is important to set the correct permissions on `profile_loader`)
 
 ## Running
