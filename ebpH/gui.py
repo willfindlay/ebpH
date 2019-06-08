@@ -206,6 +206,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionebpH_Help.triggered.connect(self.show_ebpH_help)
         self.action_About.triggered.connect(self.about_ebpH)
 
+        # --- Secret Menu --- TODO: delete this later
+        self.actionDelete_All_Saved_Profiles.triggered.connect(self.delete_all_profiles)
+
         # --- Log ebpH events ---
         self.bpf_worker.sig_event.connect(self.log_message)
         self.bpf_worker.sig_warning.connect(self.log_warning)
@@ -215,6 +218,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.bpf_worker.sig_stats.connect(self.update_stats)
 
     # --- Slots ---
+
+    # TODO: get rid of this later
+    def delete_all_profiles(self):
+        for the_file in os.listdir(globals.PROFILE_DIR):
+            file_path = os.path.join(globals.PROFILE_DIR, the_file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
 
     def show_ebpH_help(self):
         text = """

@@ -366,10 +366,17 @@ background-position:  bottom left;
     <addaction name="separator"/>
     <addaction name="action_View_Modify_Profile"/>
    </widget>
+   <widget class="QMenu" name="menuSecret_Menu">
+    <property name="title">
+     <string>Secret Menu</string>
+    </property>
+    <addaction name="actionDelete_All_Saved_Profiles"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Actions"/>
    <addaction name="menu_Settings"/>
    <addaction name="menu_Help"/>
+   <addaction name="menuSecret_Menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -498,6 +505,11 @@ background-position:  bottom left;
    </property>
    <property name="shortcut">
     <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionDelete_All_Saved_Profiles">
+   <property name="text">
+    <string>Delete All Saved Profiles</string>
    </property>
   </action>
  </widget>

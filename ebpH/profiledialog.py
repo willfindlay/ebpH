@@ -3,8 +3,8 @@
 # Form implementation generated from reading ui file 'profiledialog.ui',
 # licensing of 'profiledialog.ui' applies.
 #
-# Created: Fri Jun  7 17:30:20 2019
-#      by: pyside2-uic  running on PySide2 5.12.3
+# Created: Fri Jun  7 23:07:30 2019
+#      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
 

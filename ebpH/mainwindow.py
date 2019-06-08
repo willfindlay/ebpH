@@ -3,8 +3,8 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Fri Jun  7 17:30:20 2019
-#      by: pyside2-uic  running on PySide2 5.12.3
+# Created: Fri Jun  7 23:07:30 2019
+#      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -164,6 +164,8 @@ class Ui_MainWindow(object):
         self.menu_Help.setObjectName("menu_Help")
         self.menu_Actions = QtWidgets.QMenu(self.menubar)
         self.menu_Actions.setObjectName("menu_Actions")
+        self.menuSecret_Menu = QtWidgets.QMenu(self.menubar)
+        self.menuSecret_Menu.setObjectName("menuSecret_Menu")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -209,6 +211,8 @@ class Ui_MainWindow(object):
         self.action_Preferences.setObjectName("action_Preferences")
         self.actionExport_Logs = QtWidgets.QAction(MainWindow)
         self.actionExport_Logs.setObjectName("actionExport_Logs")
+        self.actionDelete_All_Saved_Profiles = QtWidgets.QAction(MainWindow)
+        self.actionDelete_All_Saved_Profiles.setObjectName("actionDelete_All_Saved_Profiles")
         self.menuExport.addAction(self.actionExport_Logs)
         self.menu_File.addAction(self.action_Force_Save_Profiles)
         self.menu_File.addAction(self.menuExport.menuAction())
@@ -222,10 +226,12 @@ class Ui_MainWindow(object):
         self.menu_Actions.addAction(self.action_Stop_Monitoring)
         self.menu_Actions.addSeparator()
         self.menu_Actions.addAction(self.action_View_Modify_Profile)
+        self.menuSecret_Menu.addAction(self.actionDelete_All_Saved_Profiles)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Actions.menuAction())
         self.menubar.addAction(self.menu_Settings.menuAction())
         self.menubar.addAction(self.menu_Help.menuAction())
+        self.menubar.addAction(self.menuSecret_Menu.menuAction())
         self.toolBar.addAction(self.action_Start_Monitoring)
         self.toolBar.addAction(self.action_Stop_Monitoring)
         self.toolBar.addSeparator()
@@ -262,6 +268,7 @@ class Ui_MainWindow(object):
         self.menu_Settings.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Settings", None, -1))
         self.menu_Help.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Help", None, -1))
         self.menu_Actions.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Monitoring", None, -1))
+        self.menuSecret_Menu.setTitle(QtWidgets.QApplication.translate("MainWindow", "Secret Menu", None, -1))
         self.toolBar.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "toolBar", None, -1))
         self.action_About.setText(QtWidgets.QApplication.translate("MainWindow", "&About ebpH", None, -1))
         self.actionebpH_Help.setText(QtWidgets.QApplication.translate("MainWindow", "ebpH &Help", None, -1))
@@ -282,5 +289,6 @@ class Ui_MainWindow(object):
         self.action_Preferences.setText(QtWidgets.QApplication.translate("MainWindow", "&Preferences", None, -1))
         self.actionExport_Logs.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Logs", None, -1))
         self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
+        self.actionDelete_All_Saved_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Delete All Saved Profiles", None, -1))
 
 import resources_rc
