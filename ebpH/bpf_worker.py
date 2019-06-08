@@ -63,20 +63,6 @@ class BPFWorker(QObject):
         if not os.path.exists(globals.PROFILE_DIR):
             os.makedirs(globals.PROFILE_DIR)
 
-        # read BPF embedded C from bpf.c
-        text = load_bpf("./bpf.c")
-
-        # compile ebpf code
-        self.bpf = BPF(text=text)
-        self.register_perf_buffers()
-        # register callback to load profiles
-        self.bpf.attach_uretprobe(name=globals.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
-
-        # load in any profiles
-        self.load_profiles()
-        self.tick()
-
     def save_profiles(self):
         profile_hash = self.bpf["profile"]
         test_hash    = self.bpf["test_data"]
@@ -214,10 +200,27 @@ class BPFWorker(QObject):
         self.bpf["output_number"].open_perf_buffer(on_debug)
 
     def start_monitoring(self):
+        # read BPF embedded C from bpf.c
+        text = load_bpf("./bpf.c")
+
+        # compile ebpf code
+        self.bpf = BPF(text=text)
+        self.register_perf_buffers()
+        # register callback to load profiles
+        self.bpf.attach_uretprobe(name=globals.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
+
+        # load in any profiles
+        self.load_profiles()
+        self.tick()
         self.monitoring = True
 
     def stop_monitoring(self):
+        self.save_profiles()
+        self.bpf.cleanup()
+        self.bpf = None
         self.monitoring = False
+        self.sig_event.emit("Monitoring stopped.")
 
     def tick(self):
         try:

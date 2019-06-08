@@ -319,7 +319,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.No:
             event.ignore()
             return
-        self.bpf_worker.save_profiles()
+        try:
+            self.bpf_worker.save_profiles()
+        except (TypeError, AttributeError):
+            pass
         self.bpf_thread.exit()
         event.accept()
 
