@@ -126,7 +126,7 @@ background-position:  bottom left;
          <number>0</number>
         </property>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="execve_count">
+         <widget class="LazyLineEdit" name="execve_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -136,7 +136,7 @@ background-position:  bottom left;
          </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLineEdit" name="exit_count">
+         <widget class="LazyLineEdit" name="exit_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -146,7 +146,7 @@ background-position:  bottom left;
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="syscall_count">
+         <widget class="LazyLineEdit" name="syscall_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -228,7 +228,7 @@ background-position:  bottom left;
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="fork_count">
+         <widget class="LazyLineEdit" name="fork_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -278,7 +278,7 @@ background-position:  bottom left;
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="profile_count">
+         <widget class="LazyLineEdit" name="profile_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -513,6 +513,13 @@ background-position:  bottom left;
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LazyLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>lazy_line_edit</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resources.qrc"/>
  </resources>

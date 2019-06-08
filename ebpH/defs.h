@@ -38,8 +38,8 @@ typedef long time_t;
 
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  314
-//#define PH_NORMAL_WAIT (u64) (24 * 7 * 3600 * 1000000000) // one week in nanoseconds
-#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds
+#define PH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 // one week in nanoseconds
+//#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds
 #define PH_NORMAL_FACTOR_DEN 32
 #define PH_NORMAL_FACTOR     128
 #define PH_ANOMALY_LIMIT     30

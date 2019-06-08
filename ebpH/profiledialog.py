@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'profiledialog.ui',
 # licensing of 'profiledialog.ui' applies.
 #
-# Created: Fri Jun  7 23:07:30 2019
+# Created: Sat Jun  8 11:13:15 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -74,17 +74,18 @@ class Ui_ProfileDialog(object):
         self.label_7.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_7.setObjectName("label_7")
         self.gridLayout_3.addWidget(self.label_7, 8, 2, 1, 1)
-        self.train_count = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.train_count = LazyLineEdit(self.scrollAreaWidgetContents)
         self.train_count.setInputMethodHints(QtCore.Qt.ImhDigitsOnly)
         self.train_count.setReadOnly(True)
         self.train_count.setObjectName("train_count")
         self.gridLayout_3.addWidget(self.train_count, 4, 2, 1, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_3.addItem(spacerItem, 10, 0, 1, 1)
-        self.key = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.key = LazyLineEdit(self.scrollAreaWidgetContents)
+        self.key.setReadOnly(True)
         self.key.setObjectName("key")
         self.gridLayout_3.addWidget(self.key, 1, 2, 1, 1)
-        self.anomalies = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.anomalies = LazyLineEdit(self.scrollAreaWidgetContents)
         self.anomalies.setInputMethodHints(QtCore.Qt.ImhDigitsOnly)
         self.anomalies.setReadOnly(True)
         self.anomalies.setObjectName("anomalies")
@@ -104,7 +105,8 @@ class Ui_ProfileDialog(object):
         self.label_9.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_9.setObjectName("label_9")
         self.gridLayout_3.addWidget(self.label_9, 1, 0, 1, 1)
-        self.normal_count = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.normal_count = LazyLineEdit(self.scrollAreaWidgetContents)
+        self.normal_count.setReadOnly(True)
         self.normal_count.setObjectName("normal_count")
         self.gridLayout_3.addWidget(self.normal_count, 6, 2, 1, 1)
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -116,11 +118,11 @@ class Ui_ProfileDialog(object):
         spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem1)
         self.gridLayout_3.addLayout(self.verticalLayout, 7, 0, 1, 1)
-        self.last_mod_count = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.last_mod_count = LazyLineEdit(self.scrollAreaWidgetContents)
         self.last_mod_count.setReadOnly(True)
         self.last_mod_count.setObjectName("last_mod_count")
         self.gridLayout_3.addWidget(self.last_mod_count, 5, 2, 1, 1)
-        self.comm = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.comm = LazyLineEdit(self.scrollAreaWidgetContents)
         self.comm.setReadOnly(True)
         self.comm.setObjectName("comm")
         self.gridLayout_3.addWidget(self.comm, 0, 2, 1, 1)
@@ -128,7 +130,8 @@ class Ui_ProfileDialog(object):
         self.label_11.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_11.setObjectName("label_11")
         self.gridLayout_3.addWidget(self.label_11, 2, 0, 1, 1)
-        self.state = QtWidgets.QLineEdit(self.scrollAreaWidgetContents)
+        self.state = LazyLineEdit(self.scrollAreaWidgetContents)
+        self.state.setReadOnly(True)
         self.state.setObjectName("state")
         self.gridLayout_3.addWidget(self.state, 2, 2, 1, 1)
         self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
@@ -174,4 +177,5 @@ class Ui_ProfileDialog(object):
         self.label_11.setText(QtWidgets.QApplication.translate("ProfileDialog", "Profile State", None, -1))
         self.reset_profile_button.setText(QtWidgets.QApplication.translate("ProfileDialog", "Reset Profile", None, -1))
 
+from lazy_line_edit import LazyLineEdit
 import resources_rc

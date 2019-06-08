@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Fri Jun  7 23:07:30 2019
+# Created: Sat Jun  8 11:13:15 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -76,15 +76,15 @@ class Ui_MainWindow(object):
         self.gridLayout_4 = QtWidgets.QGridLayout()
         self.gridLayout_4.setContentsMargins(-1, 0, -1, -1)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.execve_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.execve_count = LazyLineEdit(self.centralwidget)
         self.execve_count.setReadOnly(True)
         self.execve_count.setObjectName("execve_count")
         self.gridLayout_4.addWidget(self.execve_count, 4, 1, 1, 1)
-        self.exit_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.exit_count = LazyLineEdit(self.centralwidget)
         self.exit_count.setReadOnly(True)
         self.exit_count.setObjectName("exit_count")
         self.gridLayout_4.addWidget(self.exit_count, 5, 1, 1, 1)
-        self.syscall_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.syscall_count = LazyLineEdit(self.centralwidget)
         self.syscall_count.setReadOnly(True)
         self.syscall_count.setObjectName("syscall_count")
         self.gridLayout_4.addWidget(self.syscall_count, 2, 1, 1, 1)
@@ -114,7 +114,7 @@ class Ui_MainWindow(object):
         self.label_7.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_7.setObjectName("label_7")
         self.gridLayout_4.addWidget(self.label_7, 4, 0, 1, 1)
-        self.fork_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.fork_count = LazyLineEdit(self.centralwidget)
         self.fork_count.setReadOnly(True)
         self.fork_count.setObjectName("fork_count")
         self.gridLayout_4.addWidget(self.fork_count, 3, 1, 1, 1)
@@ -134,7 +134,7 @@ class Ui_MainWindow(object):
         self.label_3.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_3.setObjectName("label_3")
         self.gridLayout_4.addWidget(self.label_3, 1, 0, 1, 1)
-        self.profile_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.profile_count = LazyLineEdit(self.centralwidget)
         self.profile_count.setReadOnly(True)
         self.profile_count.setObjectName("profile_count")
         self.gridLayout_4.addWidget(self.profile_count, 1, 1, 1, 1)
@@ -291,4 +291,5 @@ class Ui_MainWindow(object):
         self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
         self.actionDelete_All_Saved_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Delete All Saved Profiles", None, -1))
 
+from lazy_line_edit import LazyLineEdit
 import resources_rc
