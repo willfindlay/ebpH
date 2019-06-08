@@ -9,4 +9,4 @@ def init():
     # directory in which profiles are stored
     PROFILE_DIR = "/var/lib/pH/profiles"
     # path of profile loader executable
-    LOADER_PATH = os.path.abspath("profile_loader")
+    LOADER_PATH = os.path.abspath("ebpH_command")

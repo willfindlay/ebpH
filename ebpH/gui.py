@@ -81,6 +81,7 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
                 continue
             self.profiles_listed.append(profile.key)
             item = QStandardItem()
+            item.setEditable(False)
             # set item data
             item.setData("".join([profile.comm.decode('utf-8')," (", str(profile.key), ")"]), Qt.DisplayRole)
             item.setData(profile.key, Qt.UserRole)

@@ -27,10 +27,15 @@
 
 const char *profile_dir = "/var/lib/pH/profiles";
 
-// uses laod_profile to load all profiles in profile_dir
-void load_profiles()
-{
+int load_profiles();
+pH_profile_payload *load_profile(char *path);
+void prepare_filename(char *entry, char* filename);
+int check_argc(int argc, int desired);
+int print_usage();
 
+// uses laod_profile to load all profiles in profile_dir
+int load_profiles()
+{
     DIR *profiles_dir;
     struct dirent *e;
     char filename[512];
@@ -52,6 +57,8 @@ void load_profiles()
             free(p);
         }
     }
+
+    return 0;
 }
 
 // TODO: get this working with the training and testing data as well
@@ -93,23 +100,24 @@ void prepare_filename(char *entry, char* filename)
 int check_argc(int argc, int desired)
 {
     if(argc < desired)
-        print_usage()
+    {
+        print_usage();
         return 0;
+    }
     return 1;
 }
 
 int print_usage()
 {
-    fprintf(stderr, "Possible commands:\n")
-    fprintf(stderr, "load-all\n")
-    fprintf(stderr, "load <profile-number>\n")
-    fprintf(stderr, "reset-profile <profile-number>\n")
+    fprintf(stderr, "Possible commands:\n");
+    fprintf(stderr, "load-all\n");
+    fprintf(stderr, "load <profile-number>\n");
+    fprintf(stderr, "reset-profile <profile-number>\n");
     return -1;
 }
 
 int main(int argc, char **argv)
 {
-
     char *command;
 
     if(argc < 2)
@@ -130,8 +138,9 @@ int main(int argc, char **argv)
     {
         if(check_argc(argc, 2) && isdigit(argv[2]))
         {
-            int profile_number = atoi(argv[2]);
-            load_profile(profile_number);
+            char *path;
+            prepare_filename(argv[2], path);
+            load_profile(path);
         }
     }
 

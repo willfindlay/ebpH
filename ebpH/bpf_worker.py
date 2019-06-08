@@ -109,9 +109,9 @@ class BPFWorker(QObject):
     def load_profiles(self, profile=None):
         # run the profile_loader which is registered with a uretprobe
         if profile:
-            subprocess.run([globals.LOADER_PATH, profile])
+            subprocess.run([globals.LOADER_PATH, f"load {profile}"])
         else:
-            subprocess.run([globals.LOADER_PATH])
+            subprocess.run([globals.LOADER_PATH, f"load-all"])
 
     # fetch a profile from BPF program and return it in the form of profile payload
     def fetch_profile(self, key):
