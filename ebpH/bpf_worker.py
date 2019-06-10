@@ -36,6 +36,7 @@ import globals
 
 # load a bpf program from a file
 def load_bpf(code):
+    code = f"{os.path.dirname(__file__)}/{code}"
     with open(code, "r") as f:
         text = f.read()
     return text
@@ -178,7 +179,7 @@ class BPFWorker(QObject):
         # anomaly detected FIXME: not yet implemented
         def on_anomaly(cpu, data, size):
             event = self.bpf["anomaly_event"].event(data)
-            s = " ".join(["Anomaly"])
+            s = f"Anomalous systemcall made by process {event.pid} associated with {event.comm.decode('utf-8')} ({event.profile_key})."
             self.sig_warning.emit(s)
         self.bpf["anomaly_event"].open_perf_buffer(on_anomaly)
 
@@ -201,7 +202,9 @@ class BPFWorker(QObject):
 
     def start_monitoring(self):
         # read BPF embedded C from bpf.c
-        text = load_bpf("./bpf.c")
+        text = load_bpf("bpf.c")
+        text = text.replace("DEFS_H", globals.DEFS_H, 1)
+        text = text.replace("PROFILES_H", globals.PROFILES_H, 1)
 
         # compile ebpf code
         self.bpf = BPF(text=text)

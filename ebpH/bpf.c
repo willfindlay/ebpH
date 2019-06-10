@@ -19,8 +19,8 @@
 #include <linux/fs.h>
 #include <linux/path.h>
 #include <linux/timekeeping.h>
-#include "defs.h"
-#include "profiles.h"
+#include "DEFS_H"
+#include "PROFILES_H"
 
 #define BPF_LICENSE GPL
 
@@ -48,6 +48,13 @@ struct profile_copy
 struct debug
 {
     u64 n;
+};
+
+struct anomaly
+{
+    u64 pid;
+    u64 profile_key;
+    char comm[128];
 };
 
 // profile events
@@ -498,7 +505,6 @@ static u8 pH_train(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
     p->train_count++;
     if(pH_test(p, s, ctx))
     {
-        PH_WARNING("One or more new sequences have been detected!", ctx);
         if(p->frozen)
             p->frozen = 0;
         pH_add_seq(p, s);
@@ -543,6 +549,10 @@ static u8 pH_process_normal(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
         anomalies = pH_test(p, s, ctx);
         if(anomalies)
         {
+            struct anomaly event = {.pid = (bpf_get_current_pid_tgid() >> 32), .profile_key = p->key};
+            bpf_probe_read_str(event.comm, sizeof(event.comm), p->comm);
+            anomaly_event.perf_submit(ctx, &event, sizeof(event));
+
             if(p->anomalies > PH_ANOMALY_LIMIT)
             {
                 pH_stop_normal(p,s);
