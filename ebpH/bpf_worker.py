@@ -201,22 +201,25 @@ class BPFWorker(QObject):
         self.bpf["output_number"].open_perf_buffer(on_debug)
 
     def start_monitoring(self):
-        # read BPF embedded C from bpf.c
-        text = load_bpf("bpf.c")
-        text = text.replace("DEFS_H", globals.DEFS_H, 1)
-        text = text.replace("PROFILES_H", globals.PROFILES_H, 1)
+        try:
+            # read BPF embedded C from bpf.c
+            text = load_bpf("bpf.c")
+            text = text.replace("DEFS_H", globals.DEFS_H, 1)
+            text = text.replace("PROFILES_H", globals.PROFILES_H, 1)
 
-        # compile ebpf code
-        self.bpf = BPF(text=text)
-        self.register_perf_buffers()
-        # register callback to load profiles
-        self.bpf.attach_uretprobe(name=globals.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
+            # compile ebpf code
+            self.bpf = BPF(text=text)
+            self.register_perf_buffers()
+            # register callback to load profiles
+            self.bpf.attach_uretprobe(name=globals.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+            self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
-        # load in any profiles
-        self.load_profiles()
-        self.tick()
-        self.monitoring = True
+            # load in any profiles
+            self.load_profiles()
+            self.tick()
+            self.monitoring = True
+        except Exception as e:
+            print(e)
 
     def stop_monitoring(self):
         self.save_profiles()
