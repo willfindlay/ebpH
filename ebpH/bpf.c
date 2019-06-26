@@ -28,7 +28,7 @@
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
 
 // hard coded stuff
-#define THE_KEY 41944417 // this is the inode for anomaly_test on my system
+#define THE_KEY 20978485 // this is the inode for bash on my system
 BPF_HASH(lookahead, u64, u8, 98596);
 
 // these structures help with PERF_OUTPUT messages
