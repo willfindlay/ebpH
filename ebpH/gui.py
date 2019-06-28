@@ -352,7 +352,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 if __name__ == '__main__':
     globals.init()
     # check privileges
-    if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
+    if not (os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
         sys.exit(-1)
     app = QApplication(sys.argv)
