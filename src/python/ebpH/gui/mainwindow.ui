@@ -28,9 +28,9 @@
    <property name="styleSheet">
     <string notr="true">#centralwidget{
 background: #eee;
-background-image: url(:/img/assets/img/logos/logo_transparent.png);
+background-image: url(:/img/assets/img/logos/logo_word.png);
 background-repeat: no-repeat;
-background-position: bottom left;
+background-position:  bottom left;
 }</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
@@ -126,7 +126,7 @@ background-position: bottom left;
          <number>0</number>
         </property>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="execve_count">
+         <widget class="LazyLineEdit" name="execve_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -136,7 +136,7 @@ background-position: bottom left;
          </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLineEdit" name="exit_count">
+         <widget class="LazyLineEdit" name="exit_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -146,7 +146,7 @@ background-position: bottom left;
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="syscall_count">
+         <widget class="LazyLineEdit" name="syscall_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -228,7 +228,7 @@ background-position: bottom left;
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="fork_count">
+         <widget class="LazyLineEdit" name="fork_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -278,7 +278,7 @@ background-position: bottom left;
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="profile_count">
+         <widget class="LazyLineEdit" name="profile_count">
           <property name="text">
            <string>0</string>
           </property>
@@ -325,7 +325,7 @@ background-position: bottom left;
      <x>0</x>
      <y>0</y>
      <width>903</width>
-     <height>29</height>
+     <height>12</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -366,10 +366,17 @@ background-position: bottom left;
     <addaction name="separator"/>
     <addaction name="action_View_Modify_Profile"/>
    </widget>
+   <widget class="QMenu" name="menuSecret_Menu">
+    <property name="title">
+     <string>Secret Menu</string>
+    </property>
+    <addaction name="actionDelete_All_Saved_Profiles"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Actions"/>
    <addaction name="menu_Settings"/>
    <addaction name="menu_Help"/>
+   <addaction name="menuSecret_Menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -458,6 +465,9 @@ background-position: bottom left;
    </property>
   </action>
   <action name="action_View_Modify_Profile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources.qrc">
      <normaloff>:/img/assets/img/icons/browser.png</normaloff>:/img/assets/img/icons/browser.png</iconset>
@@ -497,7 +507,19 @@ background-position: bottom left;
     <string>Ctrl+E</string>
    </property>
   </action>
+  <action name="actionDelete_All_Saved_Profiles">
+   <property name="text">
+    <string>Delete All Saved Profiles</string>
+   </property>
+  </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LazyLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>ebpH.gui.lazy_line_edit</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resources.qrc"/>
  </resources>

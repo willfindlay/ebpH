@@ -19,17 +19,17 @@
 #include <linux/fs.h>
 #include <linux/path.h>
 #include <linux/timekeeping.h>
-#include "defs.h"
-#include "profiles.h"
+#include "DEFS_H"
+#include "PROFILES_H"
 
 #define BPF_LICENSE GPL
 
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX)); return -1
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
 
-// hard-coded test profiles
-#define TEST_PROFILE(KEY) \
-    u64 __key = (KEY);
+// hard coded stuff
+#define THE_KEY 20978485 // this is the inode for bash on my system
+BPF_HASH(lookahead, u64, u8, 98596);
 
 // these structures help with PERF_OUTPUT messages
 struct profile_association
@@ -48,6 +48,13 @@ struct profile_copy
 struct debug
 {
     u64 n;
+};
+
+struct anomaly
+{
+    u64 pid;
+    u64 profile_key;
+    char comm[128];
 };
 
 // profile events
@@ -120,13 +127,36 @@ static u64 pH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-static u64 pH_update_set_normal_time(pH_profile *p)
+// set profile normal time on creation to be one week after creation
+static u8 pH_set_normal_time(pH_profile *p, struct pt_regs *ctx)
 {
-    u64 time_ns = bpf_ktime_get_ns();
+    if(!p)
+    {
+        PH_ERROR("Profile does not exist -- pH_set_normal_time", ctx);
+    }
 
-    time_ns += PH_NORMAL_WAIT * 1000000000;
+    u64 time_ns = (u64) bpf_ktime_get_ns();
+    time_ns += PH_NORMAL_WAIT;
 
-    return time_ns / 1000000000;
+    p->normal_time = time_ns;
+
+    return 0;
+}
+
+// change pH normality based on normal time
+static u8 pH_check_normal_time(pH_profile *p, struct pt_regs *ctx)
+{
+    if(!p)
+    {
+        PH_WARNING("Profile does not exist -- pH_check_normal_time", ctx);
+        return 0;
+    }
+
+    u64 time_ns = (u64) bpf_ktime_get_ns();
+    if(p->frozen && (time_ns > p->normal_time))
+        return 1;
+
+    return 0;
 }
 
 // }}}
@@ -142,9 +172,6 @@ static void pH_reset_locality(pH_seq *s)
 
     s->lf.lfc     = 0;
     s->lf.lfc_max = 0;
-    //s->lf.total = 0;
-    //s->lf.max = 0;
-    //s->lf.first = PH_LOCALITY_WIN - 1;
 }
 
 // intialize a pH sequence
@@ -155,7 +182,7 @@ static void pH_init_sequence(pH_seq *s)
 
 // TODO: this could be a little more performant if we optimize for sequences
 //       that don't need to be initialized
-static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
+static u8 pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
 {
     int i;
     pH_seq s = {.count = 0};
@@ -176,7 +203,9 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     s = *temp;
 
     // if we just execve'd we need to wipe the sequence
-    if(*syscall == SYS_EXECVE)
+    //if(*syscall == SYS_EXECVE) TODO: no longer resetting sequences on execve for now, this preserves execve anomalies
+    //                                 the below if-statement will never get executed at the moment...
+    if(0 == 1)
     {
         // leave the EXECVE call, wipe the rest
         for(i = 1; i < SEQLEN; i++)
@@ -199,22 +228,14 @@ static int pH_create_or_update_sequence(long *syscall, u64 *pid_tgid)
     // insert the syscall at the beginning of the sequence
     s.seq[0] = *syscall;
 
-    if ((*syscall == SYS_EXIT) || (*syscall == SYS_EXIT_GROUP))
-    {
-        seq.delete(pid_tgid);
-        exits.increment(0);
-    }
-    else
-    {
-        seq.update(pid_tgid, &s);
-    }
+    seq.update(pid_tgid, &s);
 
     return 0;
 }
 
 // called when pH detects a fork system call
 // we use this to copy the parent's sequence to the child
-static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
+static u8 pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret)
 {
     // child sequence
     pH_seq s = {.count = 0};
@@ -246,7 +267,7 @@ static int pH_copy_sequence_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret
     return 0;
 }
 
-static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, struct pt_regs *ctx)
+static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, struct pt_regs *ctx)
 {
     pH_profile *p;
     u64* parent_key;
@@ -262,7 +283,8 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret,
     parent_key = pid_tgid_to_profile_key.lookup(ppid_tgid);
     if(!parent_key)
     {
-        PH_WARNING("No parent profile to copy on fork.", ctx);
+        // this message is commented out because it's extremely annoying when testing
+        //PH_WARNING("No parent profile to copy on fork.", ctx);
         return 0;
     }
     p = profile.lookup(parent_key);
@@ -284,7 +306,7 @@ static int pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret,
 // }}}
 // Profiles and Profile Data {{{
 
-static int pH_reset_test_data(u64 key)
+static u8 pH_reset_test_data(u64 key)
 {
     pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
@@ -294,7 +316,7 @@ static int pH_reset_test_data(u64 key)
     return 0;
 }
 
-static int pH_reset_train_data(u64 key)
+static u8 pH_reset_train_data(u64 key)
 {
     pH_profile_data d = {};
     // TODO: initialize lookahead pairs here
@@ -304,16 +326,19 @@ static int pH_reset_train_data(u64 key)
     return 0;
 }
 
-static int pH_create_profile(u64 *key, struct pt_regs *ctx)
+static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     // init the profile
-    pH_profile p = {.state = PH_THAWED, .normal_time = 0,
+    pH_profile p = {.frozen = 0, .normal = 0, .normal_time = 0,
                     .last_mod_count = 0, .train_count = 0,
-                    .window_size = 0, .count = 0, .anomalies = 0};
+                    .window_size = 0, .normal_count = 0, .anomalies = 0};
     pH_profile *p_pt;
     pH_profile *temp;
+
+    // set normal_time
+    pH_set_normal_time(&p, ctx);
 
     // set initial comm (this will be overwritten later)
     bpf_get_current_comm(&p.comm, sizeof(p.comm));
@@ -366,10 +391,254 @@ created:
 }
 
 // }}}
+
+// reset locality frame for a given sequence
+static u8 pH_reset_ALF(pH_seq *s)
+{
+    if(!s)
+        return -1;
+
+    for(int i=0; i < PH_LOCALITY_WIN; i++)
+    {
+        s->lf.win[i] = 0;
+    }
+
+    s->lf.lfc = 0;
+    s->lf.lfc_max = 0;
+
+    // reset task delay
+    s->delay = 0;
+
+    return 0;
+}
+
+// start normal mode on a profile
+static u8 pH_start_normal(pH_profile *p, pH_seq *s)
+{
+    p->normal = 1;
+    p->frozen = 0;
+    p->anomalies = 0;
+    p->last_mod_count = 0;
+
+    pH_reset_ALF(s);
+
+    //pH_copy_train_to_test TODO: implement this (probably not as an actual function)
+
+    return 0;
+}
+
+// test a profile
+static int pH_test(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
+{
+    int mismatches = 0;
+
+    // FIXME: this needs to become generic when maps of maps become available
+    if(p->key == THE_KEY)
+    {
+        if(!s || s->count < 1)
+            return mismatches;
+
+        // access at index [syscall][prev]
+        for(int i = 1; i < SEQLEN; i++)
+        {
+            long syscall = s->seq[0];
+            long prev = s->seq[i];
+            if(prev == EMPTY) // commented this out for now
+                break;
+
+            // determine which entry we need
+            // TODO: put this in a macro for easy access
+            u64 entry = syscall * PH_NUM_SYSCALLS + prev;
+
+            // lookup the syscall data
+            u8 init = 0;
+            u8 *data = lookahead.lookup_or_init(&entry, &init);
+
+            // check for mismatch
+            if(((*data) & (1 << (i-1))) == 0)
+                mismatches++;
+        }
+    }
+
+    return mismatches;
+}
+
+// add a sequence to the profile
+static u8 pH_add_seq(pH_profile *p, pH_seq *s)
+{
+    // FIXME: this needs to become generic when maps of maps become available
+    if(p->key == THE_KEY)
+    {
+        if(!s || s->count <= 1)
+            return 0;
+
+        // access at index [syscall][prev]
+        for(int i = 1; i < SEQLEN; i++)
+        {
+            long syscall = s->seq[0];
+            long prev = s->seq[i];
+            if(prev == EMPTY)
+                break;
+
+            // determine which entry we need
+            // TODO: put this in a macro for easy access
+            u64 entry = syscall * PH_NUM_SYSCALLS + prev;
+
+            // either set the entry's data to 0 or retrieve it
+            u8 data = 0;
+            u8 *temp = lookahead.lookup_or_init(&entry, &data);
+            data = *temp;
+
+            // set the lookahead pair
+            data |= (1 << (i - 1));
+            lookahead.update(&entry, &data);
+        }
+    }
+
+    return 0;
+}
+
+// train a profile on a sequence
+static u8 pH_train(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
+{
+    // update train_count and last_mod_count
+    p->train_count++;
+    if(pH_test(p, s, ctx))
+    {
+        if(p->frozen)
+            p->frozen = 0;
+        pH_add_seq(p, s);
+        p->last_mod_count = 0;
+    }
+    else
+    {
+        p->last_mod_count++;
+
+        if(p->frozen)
+            return 0;
+
+        p->normal_count = p->train_count - p->last_mod_count;
+
+        if((p->normal_count > 0) && (p->train_count * PH_NORMAL_FACTOR_DEN >
+                    p->normal_count * PH_NORMAL_FACTOR))
+        {
+            p->frozen = 1;
+            pH_set_normal_time(p, ctx);
+        }
+    }
+
+    return 0;
+}
+
+// stop normal mode
+static u8 pH_stop_normal(pH_profile *p, pH_seq *s)
+{
+    p->normal = 0;
+    pH_reset_ALF(s);
+
+    return 0;
+}
+
+// operate on a normal process
+static u8 pH_process_normal(pH_profile *p, pH_seq *s, struct pt_regs *ctx)
+{
+    int anomalies = 0;
+
+    if(p->normal)
+    {
+        anomalies = pH_test(p, s, ctx);
+        if(anomalies)
+        {
+            struct anomaly event = {.pid = (bpf_get_current_pid_tgid() >> 32), .profile_key = p->key};
+            bpf_probe_read_str(event.comm, sizeof(event.comm), p->comm);
+            anomaly_event.perf_submit(ctx, &event, sizeof(event));
+
+            if(p->anomalies > PH_ANOMALY_LIMIT)
+            {
+                pH_stop_normal(p,s);
+            }
+        }
+    }
+
+    p->anomalies += anomalies;
+
+    return 0;
+}
+
+// process a system call with respect to the process' profile
+static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
+{
+    if(!p)
+    {
+        PH_ERROR("Could not find profile with key.", ctx);
+    }
+    if(!pid_tgid)
+    {
+        PH_ERROR("PID does not exist.", ctx);
+    }
+    if(!ctx)
+    {
+        PH_ERROR("Context does not exist.", ctx);
+    }
+
+    pH_seq *s;
+    pH_profile pro;
+    // FIXME: really we should be operating on the profile pointer directly here
+    //        in order to do this, we need bpf_spin_lock support, so fix this when it comes out
+    //        (we will be locking the profile here)
+    bpf_probe_read(&pro, sizeof(pro), p);
+    s = seq.lookup(pid_tgid);
+    if(!s)
+    {
+        PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        return 0;
+    }
+
+    pH_process_normal(&pro, s, ctx);
+
+    pH_train(&pro, s, ctx);
+
+    // update normal status if we are frozen and have reached normal_time
+    if(pH_check_normal_time(&pro, ctx))
+    {
+        pH_start_normal(&pro, s);
+    }
+
+    profile.update(&pro.key, &pro);
+    return 0;
+}
+
+// disassociate a profile from a pid
+static u8 pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
+{
+    u64 *key;
+    key = pid_tgid_to_profile_key.lookup(&pid_tgid);
+    struct profile_association ass;
+
+    if(!key)
+    {
+        return 0; // no key to be disassociated
+    }
+
+    pid_tgid_to_profile_key.delete(&pid_tgid);
+
+    // notify userspace that the profile has been disassociated
+    ass.key = *key;
+    ass.pid = pid_tgid;
+
+    // the verifier complains here
+    // this probe_read soothes it
+    bpf_probe_read(&ass, sizeof(ass), &ass);
+
+    profile_disassoc_event.perf_submit(ctx, &ass, sizeof(ass));
+
+    return 0;
+}
+
 // Profile Loading {{{
 
 // load a profile's test data from userspace
-static int pH_load_test_data(pH_profile_payload *payload)
+static u8 pH_load_test_data(pH_profile_payload *payload)
 {
     pH_profile_data d;
     pH_profile_data *temp;
@@ -406,7 +675,7 @@ static int pH_load_test_data(pH_profile_payload *payload)
 }
 
 // load a profile's train data from userspace
-static int pH_load_train_data(pH_profile_payload *payload)
+static u8 pH_load_train_data(pH_profile_payload *payload)
 {
     pH_profile_data d;
     pH_profile_data *temp;
@@ -442,7 +711,7 @@ static int pH_load_train_data(pH_profile_payload *payload)
     return 0;
 }
 
-static int pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
+static u8 pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 {
     pH_profile p;
     pH_profile *temp;
@@ -481,27 +750,6 @@ static int pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx
 
 // }}}
 
-// disassociate a profile from a pid
-static int pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
-{
-    u64 *key;
-
-    key = pid_tgid_to_profile_key.lookup(&pid_tgid);
-
-    if(!key)
-    {
-        PH_ERROR("No profile key to be disassociated.", ctx);
-    }
-
-    pid_tgid_to_profile_key.delete(&pid_tgid);
-
-    // notify userspace that the profile has been disassociated
-    struct profile_association ass = {*key, pid_tgid >> 32};
-    profile_disassoc_event.perf_submit(ctx, &ass, sizeof(ass));
-
-    return 0;
-}
-
 // }}}
 // Tracepoints and Hooks {{{
 
@@ -519,7 +767,8 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     exec_file = (struct file *)PT_REGS_RC(ctx);
     if(!exec_file || IS_ERR(exec_file))
     {
-        PH_ERROR("Couldn't fetch the file pointer for this executable.", ctx);
+        // if the file doesn't exist (invalid execve call), just return here
+        return 0;
     }
 
     // fetch dentry for executable
@@ -571,43 +820,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     key = pid_tgid_to_profile_key.lookup(&pid_tgid);
 
-    // we want to increment train_count of the profile if it exists
-    if(key)
-    {
-        pH_profile pro;
-        p_pt = profile.lookup(key);
-
-        if(!p_pt)
-        {
-            PH_ERROR("Could not find profile with key.", (struct pt_regs *)args);
-        }
-
-        bpf_probe_read(&pro, sizeof(pro), p_pt);
-
-        // update train_count and last_mod_count
-        pro.train_count++;
-        pro.last_mod_count++;
-
-        profile.update(key, &pro);
-    }
-    else
-    {
-        //if()
-        //PH_WARNING("No key for this profile.", args);
-    }
-
-    // log if an execve occurred and disassociate pid with profile
-    if(syscall == SYS_EXECVE)
-    {
-        execves.increment(0);
-
-        // FIXME: move this down to execat callback
-        if(key)
-        {
-            pH_disassociate_profile(pid_tgid, (struct pt_regs*)args);
-        }
-    }
-
     // log if a fork occurred
     if(syscall == SYS_FORK || syscall == SYS_CLONE || syscall == SYS_VFORK)
     {
@@ -615,6 +827,30 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
 
     syscalls.increment(0);
+
+    // process the system call
+    if(key)
+    {
+        p_pt = profile.lookup(key);
+        pH_process_syscall(p_pt, &pid_tgid, (struct pt_regs *)args);
+    }
+
+    // log if an execve occurred
+    if(syscall == SYS_EXECVE)
+    {
+        // disassociate the profile if it is already associated
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+        execves.increment(0);
+    }
+
+    // delete the sequence and disassociate the profile if the process has exited
+    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
+    {
+        seq.delete(&pid_tgid);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+
+        exits.increment(0);
+    }
 
     return 0;
 }
@@ -633,21 +869,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
         pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
-    }
-
-    if(syscall == SYS_EXECVE)
-    {
-        u64 *key = pid_tgid_to_profile_key.lookup(&pid_tgid);
-        if(!key)
-            return 0;
-        pH_profile *pro = profile.lookup(key);
-        if(!pro)
-            return 0;
-
-        // FIXME: maybe deletet this
-        // update comm
-        //bpf_get_current_comm(&pro->comm, sizeof(pro->comm));
-        //profile.update(key, pro);
     }
 
     return 0;

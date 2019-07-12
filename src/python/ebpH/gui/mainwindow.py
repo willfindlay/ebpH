@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Wed May 29 19:47:51 2019
+# Created: Fri Jul 12 14:56:12 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -22,9 +22,9 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setStyleSheet("#centralwidget{\n"
 "background: #eee;\n"
-"background-image: url(:/img/assets/img/logos/logo_transparent.png);\n"
+"background-image: url(:/img/assets/img/logos/logo_word.png);\n"
 "background-repeat: no-repeat;\n"
-"background-position: bottom left;\n"
+"background-position:  bottom left;\n"
 "}")
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -76,15 +76,15 @@ class Ui_MainWindow(object):
         self.gridLayout_4 = QtWidgets.QGridLayout()
         self.gridLayout_4.setContentsMargins(-1, 0, -1, -1)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.execve_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.execve_count = LazyLineEdit(self.centralwidget)
         self.execve_count.setReadOnly(True)
         self.execve_count.setObjectName("execve_count")
         self.gridLayout_4.addWidget(self.execve_count, 4, 1, 1, 1)
-        self.exit_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.exit_count = LazyLineEdit(self.centralwidget)
         self.exit_count.setReadOnly(True)
         self.exit_count.setObjectName("exit_count")
         self.gridLayout_4.addWidget(self.exit_count, 5, 1, 1, 1)
-        self.syscall_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.syscall_count = LazyLineEdit(self.centralwidget)
         self.syscall_count.setReadOnly(True)
         self.syscall_count.setObjectName("syscall_count")
         self.gridLayout_4.addWidget(self.syscall_count, 2, 1, 1, 1)
@@ -114,7 +114,7 @@ class Ui_MainWindow(object):
         self.label_7.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_7.setObjectName("label_7")
         self.gridLayout_4.addWidget(self.label_7, 4, 0, 1, 1)
-        self.fork_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.fork_count = LazyLineEdit(self.centralwidget)
         self.fork_count.setReadOnly(True)
         self.fork_count.setObjectName("fork_count")
         self.gridLayout_4.addWidget(self.fork_count, 3, 1, 1, 1)
@@ -134,7 +134,7 @@ class Ui_MainWindow(object):
         self.label_3.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_3.setObjectName("label_3")
         self.gridLayout_4.addWidget(self.label_3, 1, 0, 1, 1)
-        self.profile_count = QtWidgets.QLineEdit(self.centralwidget)
+        self.profile_count = LazyLineEdit(self.centralwidget)
         self.profile_count.setReadOnly(True)
         self.profile_count.setObjectName("profile_count")
         self.gridLayout_4.addWidget(self.profile_count, 1, 1, 1, 1)
@@ -152,7 +152,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.label_2, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 903, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 903, 12))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
@@ -164,6 +164,8 @@ class Ui_MainWindow(object):
         self.menu_Help.setObjectName("menu_Help")
         self.menu_Actions = QtWidgets.QMenu(self.menubar)
         self.menu_Actions.setObjectName("menu_Actions")
+        self.menuSecret_Menu = QtWidgets.QMenu(self.menubar)
+        self.menuSecret_Menu.setObjectName("menuSecret_Menu")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -194,6 +196,7 @@ class Ui_MainWindow(object):
         self.action_Stop_Monitoring.setIcon(icon3)
         self.action_Stop_Monitoring.setObjectName("action_Stop_Monitoring")
         self.action_View_Modify_Profile = QtWidgets.QAction(MainWindow)
+        self.action_View_Modify_Profile.setEnabled(False)
         icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap(":/img/assets/img/icons/browser.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.action_View_Modify_Profile.setIcon(icon4)
@@ -208,6 +211,8 @@ class Ui_MainWindow(object):
         self.action_Preferences.setObjectName("action_Preferences")
         self.actionExport_Logs = QtWidgets.QAction(MainWindow)
         self.actionExport_Logs.setObjectName("actionExport_Logs")
+        self.actionDelete_All_Saved_Profiles = QtWidgets.QAction(MainWindow)
+        self.actionDelete_All_Saved_Profiles.setObjectName("actionDelete_All_Saved_Profiles")
         self.menuExport.addAction(self.actionExport_Logs)
         self.menu_File.addAction(self.action_Force_Save_Profiles)
         self.menu_File.addAction(self.menuExport.menuAction())
@@ -221,10 +226,12 @@ class Ui_MainWindow(object):
         self.menu_Actions.addAction(self.action_Stop_Monitoring)
         self.menu_Actions.addSeparator()
         self.menu_Actions.addAction(self.action_View_Modify_Profile)
+        self.menuSecret_Menu.addAction(self.actionDelete_All_Saved_Profiles)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Actions.menuAction())
         self.menubar.addAction(self.menu_Settings.menuAction())
         self.menubar.addAction(self.menu_Help.menuAction())
+        self.menubar.addAction(self.menuSecret_Menu.menuAction())
         self.toolBar.addAction(self.action_Start_Monitoring)
         self.toolBar.addAction(self.action_Stop_Monitoring)
         self.toolBar.addSeparator()
@@ -261,6 +268,7 @@ class Ui_MainWindow(object):
         self.menu_Settings.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Settings", None, -1))
         self.menu_Help.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Help", None, -1))
         self.menu_Actions.setTitle(QtWidgets.QApplication.translate("MainWindow", "&Monitoring", None, -1))
+        self.menuSecret_Menu.setTitle(QtWidgets.QApplication.translate("MainWindow", "Secret Menu", None, -1))
         self.toolBar.setWindowTitle(QtWidgets.QApplication.translate("MainWindow", "toolBar", None, -1))
         self.action_About.setText(QtWidgets.QApplication.translate("MainWindow", "&About ebpH", None, -1))
         self.actionebpH_Help.setText(QtWidgets.QApplication.translate("MainWindow", "ebpH &Help", None, -1))
@@ -281,5 +289,7 @@ class Ui_MainWindow(object):
         self.action_Preferences.setText(QtWidgets.QApplication.translate("MainWindow", "&Preferences", None, -1))
         self.actionExport_Logs.setText(QtWidgets.QApplication.translate("MainWindow", "Export &Logs", None, -1))
         self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
+        self.actionDelete_All_Saved_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Delete All Saved Profiles", None, -1))
 
-import resources_rc
+from ebpH.gui.lazy_line_edit import LazyLineEdit
+from . import resources_rc

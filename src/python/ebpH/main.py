@@ -24,19 +24,17 @@ import atexit
 import ctypes as ct
 from time import sleep
 from pprint import pprint
+
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 from PySide2.QtCharts import *
-from mainwindow import Ui_MainWindow
-from profiledialog import Ui_ProfileDialog
-from bpf_thread import BPFThread
-from colors import *
 
-# directory in which profiles are stored
-PROFILE_DIR = "/var/lib/pH/profiles"
-# path of profile loader executable
-LOADER_PATH = os.path.abspath("profile_loader")
+from ebpH.gui.mainwindow import Ui_MainWindow
+from ebpH.gui.profiledialog import Ui_ProfileDialog
+from ebpH.bpf.bpf_worker import BPFWorker
+from ebpH.colors import *
+import ebpH.defs as defs
 
 # --- Read Chunks From File ---
 # TODO: maybe remove
@@ -50,121 +48,79 @@ def read_file(filename, chunksize=8192):
             else:
                 break
 
-# --- Profile Structures ---
-# WARNING: These MUST match the structs defined in profiles.h
-
-class ProfileStruct(ct.Structure):
-    _fields_ = [("state", ct.c_int8),
-                ("normal_time", ct.c_int64),
-                ("window_size", ct.c_int64),
-                ("count", ct.c_int64),
-                ("last_mod_count", ct.c_int64),
-                ("train_count", ct.c_int64),
-                ("anomalies", ct.c_int64),
-                ("key", ct.c_int64),
-                ("comm", type(ct.create_string_buffer(128)))]
-
-class ProfileData(ct.Structure):
-    _fields_ = [("pairs", (ct.c_int8 * 256)),
-                ("dummy", ct.c_int8)] # TODO: get rid of dummy
-
-class ProfilePayload(ct.Structure):
-    _fields_ = [("profile", ProfileStruct),
-                ("test", ProfileData),
-                ("train", ProfileData)]
-
 # --- Profile Dialog ---
 
 class ProfileDialog(QDialog, Ui_ProfileDialog):
     def __init__(self, parent=None):
         super(ProfileDialog, self).__init__(parent)
         self.setupUi(self)
-        self.profile_list.currentItemChanged.connect(self.select_profile)
+
+        self.profiles_listed = []
+
+        # --- connect buttons ---
         self.reset_profile_button.pressed.connect(self.reset_profile)
-        self.refresh_button.pressed.connect(self.update_list)
-        self.last_selected_text = None
+
+        self.parent().bpf_worker.sig_profile_created.connect(self.update_list)
+
+        # --- setup list of profiles ---
+        self.profile_list_model = QStandardItemModel(self.profile_list)
+        self.selection_model = QItemSelectionModel(self.profile_list_model)
+        self.profile_list.setModel(self.profile_list_model)
+        self.profile_list.setSelectionModel(self.selection_model)
+        self.selection_model.currentRowChanged.connect(self.select_profile)
         self.update_list()
 
+        self.resize(QDesktopWidget().availableGeometry().size() * 0.8)
+
     def update_list(self):
-        # attempt to save profiles before updating list
-        try:
-            self.parent().bpf_thread.save_profiles(notify=False)
-        except:
-            pass
+        profiles = self.parent().bpf_worker.fetch_all_profiles()
 
-        # attempt to remember the last selected item
-        try:
-            self.last_selected_text = self.profile_list.currentItem().text()
-        except:
-            pass
-
-        # read filenames from profile directory
-        filenames = os.listdir(PROFILE_DIR)
-        profiles = [self.load_profile_data(filename) for filename in filenames]
-
-        # clear the list
-        self.profile_list.clear()
         # add profiles to the list
         for payload in profiles:
             profile = payload.profile
-            item = QListWidgetItem("".join([profile.comm.decode('utf-8')," (", str(profile.key), ")"]))
-            # set profile key as its data for UserRole
-            item.setData(Qt.UserRole, profile.key)
-            self.profile_list.addItem(item)
+            # check to see if the profile is already in the list
+            if profile.key in self.profiles_listed:
+                continue
+            self.profiles_listed.append(profile.key)
+            item = QStandardItem()
+            item.setEditable(False)
+            # set item data
+            item.setData("".join([profile.comm.decode('utf-8')," (", str(profile.key), ")"]), Qt.DisplayRole)
+            item.setData(profile.key, Qt.UserRole)
+            self.profile_list_model.appendRow(item)
 
         # sort the items
-        self.profile_list.sortItems()
+        self.profile_list_model.sort(0, Qt.AscendingOrder)
 
-        # attempt to return to last selected profile
-        if self.last_selected_text:
-            for i in range(self.profile_list.count()):
-                if self.profile_list.item(i).text() == self.last_selected_text:
-                    self.profile_list.setCurrentRow(i)
-                    break
-        # otherwise, attempt return to position 0
-        else:
-            try:
-                self.profile_list.setCurrentRow(0)
-            except:
-                pass
-
-    def load_profile_data(self, key):
+    # fill form with profile information
+    def populate_profile_info(self):
         try:
-            with open("".join([PROFILE_DIR,"/",str(key)]), "rb") as f:
-                b = f.read()
-
-            # read profile struct
-            p = ProfilePayload()
-            fit = min(len(b), ct.sizeof(p))
-            ct.memmove(ct.addressof(p), b, fit)
-
-            return p
-        except FileNotFoundError:
-            return None
-
-    def write_profile_data(self, p, key):
-        with open("".join([PROFILE_DIR,"/",str(key)]), "wb+") as f:
-            f.write(p)
-
-    # TODO: get profile information printing
-    def select_profile(self, curr, prev):
-        if curr is None:
-            return
-        try:
-            self.parent().bpf_thread.save_profile(curr.data(Qt.UserRole))
+            index = self.selection_model.selectedRows()[0]
+            item = self.profile_list_model.itemFromIndex(index)
+            p = self.parent().bpf_worker.fetch_profile(item.data(Qt.UserRole))
         except:
-            pass
-        p = self.load_profile_data(curr.data(Qt.UserRole))
-        # populate the fields of the form
-        if p:
-            anomalies = 0
+            return
+        if p is not None:
             self.comm.setText(p.profile.comm.decode('utf-8'))
             self.key.setText(str(p.profile.key))
+            states = []
+            if p.profile.frozen:
+                states.append("Frozen")
+            if p.profile.normal:
+                states.append("Normal")
+            if len(states) == 0:
+                states.append("Training")
+            self.state.setText("/".join(states))
             self.train_count.setText(str(p.profile.train_count))
             self.last_mod_count.setText(str(p.profile.last_mod_count))
-            self.normal_count.setText(str(p.profile.train_count - p.profile.last_mod_count))
-            # TODO: calculate anomalies and populate system call list
-            self.anomalies.setText(str(anomalies))
+            self.normal_count.setText(str(p.profile.normal_count))
+            self.anomalies.setText(str(p.profile.anomalies))
+
+    def select_profile(self, curr, prev):
+        self.populate_profile_info()
+
+    def tick(self):
+        self.populate_profile_info()
 
     def reset_profile(self):
         # get the currently selected item
@@ -181,30 +137,39 @@ class ProfileDialog(QDialog, Ui_ProfileDialog):
                 QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return
-        p = self.load_profile_data(selected.data(Qt.UserRole))
 
-        # reset profile fields
-        p.profile.train_count = 0
-        p.profile.last_mod_count = 0
-
-        # write profile, update selection, force reload
-        self.write_profile_data(p, p.profile.key)
-        self.parent().bpf_thread.load_profiles(str(p.profile.key))
-        self.select_profile(selected, None)
+        # FIXME: issue a reset command with the new ebpH controller program
 
 # --- Main Window ---
 
 # to recompile UI or Resources files, just run make
 
 class MainWindow(QMainWindow, Ui_MainWindow):
+    start_monitoring = Signal()
+    stop_monitoring = Signal()
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.monitoring = False
-        self.can_exit = True
+        self.exiting = False
 
-        # setup thread
-        self.bpf_thread = BPFThread(self)
+        # setup bpf worker
+        self.bpf_thread = QThread(self)
+
+        self.bpf_worker = BPFWorker()
+        self.bpf_worker.moveToThread(self.bpf_thread)
+        self.start_monitoring.connect(self.bpf_worker.start_monitoring)
+        self.stop_monitoring.connect(self.bpf_worker.stop_monitoring)
+
+        self.update_timer = QTimer()
+        self.update_timer.setInterval(16)
+        self.update_timer.moveToThread(self.bpf_thread)
+        self.bpf_thread.started.connect(self.update_timer.start)
+        self.bpf_thread.finished.connect(self.update_timer.deleteLater)
+        self.update_timer.timeout.connect(self.bpf_worker.tick)
+
+        self.bpf_thread.start()
 
         # add graph
         self.series = QtCharts.QLineSeries()
@@ -213,21 +178,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.chart_view.chart().createDefaultAxes()
         self.chart_view.chart().layout().setContentsMargins(0, 0, 0, 0);
         self.chart_view.chart().setBackgroundRoundness(0);
-        #self.chart_view.chart().setTitle("ebpH Statistics Over Time")
         ell = QGridLayout()
         self.chart_container.setLayout(ell)
         self.chart_container.layout().addWidget(self.chart_view)
 
         # connect slots and draw window
         self.connect_slots()
-        self.showMaximized()
+        self.resize(QDesktopWidget().availableGeometry().size() * 0.9)
+        self.show()
 
     # --- Initialization Helpers ---
 
     def connect_slots(self):
         # --- File Menu ---
-        self.action_Force_Save_Profiles.triggered.connect(self.bpf_thread.save_profiles)
-        self.bpf_thread.sig_profiles_saved.connect(self.on_profiles_saved)
+        self.action_Force_Save_Profiles.triggered.connect(self.bpf_worker.save_profiles)
         self.actionExport_Logs.triggered.connect(self.export_logs)
         self.export_logs_button.pressed.connect(self.export_logs)
         # quit is implicit in the .ui file
@@ -244,18 +208,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionebpH_Help.triggered.connect(self.show_ebpH_help)
         self.action_About.triggered.connect(self.about_ebpH)
 
+        # --- Secret Menu --- TODO: delete this later
+        self.actionDelete_All_Saved_Profiles.triggered.connect(self.delete_all_profiles)
+
         # --- Log ebpH events ---
-        self.bpf_thread.sig_event.connect(self.log_message)
-        self.bpf_thread.sig_warning.connect(self.log_warning)
-        self.bpf_thread.sig_error.connect(self.log_error)
+        self.bpf_worker.sig_event.connect(self.log_message)
+        self.bpf_worker.sig_warning.connect(self.log_warning)
+        self.bpf_worker.sig_error.connect(self.log_error)
 
         # --- Statistics ---
-        self.bpf_thread.sig_stats.connect(self.update_stats)
-
-        # --- Housekeeping ---
-        self.bpf_thread.sig_can_exit.connect(self.update_can_exit)
+        self.bpf_worker.sig_stats.connect(self.update_stats)
 
     # --- Slots ---
+
+    # TODO: get rid of this later
+    def delete_all_profiles(self):
+        for the_file in os.listdir(defs.PROFILE_DIR):
+            file_path = os.path.join(defs.PROFILE_DIR, the_file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
 
     def show_ebpH_help(self):
         text = """
@@ -285,27 +256,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.monitoring:
             self.action_Start_Monitoring.setEnabled(False)
             self.action_Stop_Monitoring.setEnabled(True)
+            self.action_View_Modify_Profile.setEnabled(True)
             self.action_Force_Save_Profiles.setEnabled(True)
-            self.bpf_thread.start()
+            self.start_monitoring.emit()
             self.log("Monitoring started.", "m")
             self.monitoring_radio.setChecked(True)
             self.not_monitoring_radio.setChecked(False)
             print("----------------- attached -----------------")
         else:
-            self.bpf_thread.exiting = True
             self.action_Start_Monitoring.setEnabled(True)
             self.action_Stop_Monitoring.setEnabled(False)
+            self.action_View_Modify_Profile.setEnabled(False)
+            self.action_Force_Save_Profiles.setEnabled(False)
+            self.stop_monitoring.emit()
             self.log("Detaching probe...", "w")
             self.monitoring_radio.setChecked(False)
             self.not_monitoring_radio.setChecked(True)
-            self.action_Force_Save_Profiles.setEnabled(False)
             print("----------------- detached -----------------")
 
     def log(self, event, etype="m"):
         now = datetime.datetime.now()
         time_str = now.strftime("[%m/%d/%Y %H:%M:%S]")
         event = re.sub(r"(\d+)", f"{RED}\\1{BLACK}", event)
-        #event = re.sub(r"(\r\n?|\n)+", "".join(["<br>"] + ["&nbsp;" for _ in range(31)]), event)
         etype = etype.lower()
         if etype == "w":
             etype_str = "WARNING:".replace(" ","&nbsp;")
@@ -334,18 +306,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.execve_count.setText(str(execves))
         self.exit_count.setText(str(exits))
 
-    def update_can_exit(self, can_exit):
-        self.can_exit = can_exit
-
-    def on_profiles_saved(self):
-        text = """
-        Profiles saved successfully!
-        """
-        self.info_box(text=text, title="Success")
-
     def display_profiles_dialog(self):
         d = ProfileDialog(self)
-        d.show()
+        self.update_timer.timeout.connect(d.tick)
+        d.exec_()
 
     def export_logs(self):
         now = datetime.datetime.now()
@@ -367,8 +331,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if reply == QMessageBox.No:
             event.ignore()
             return
-        self.bpf_thread.exiting = True
-        self.bpf_thread.wait()
+        try:
+            self.bpf_worker.save_profiles()
+        except (TypeError, AttributeError):
+            pass
+        self.bpf_thread.exit()
         event.accept()
 
     # --- Generic Helpers ---
@@ -385,8 +352,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 # --- Main Control Flow ---
 if __name__ == '__main__':
+    defs.init()
     # check privileges
-    if not ('SUDO_USER' in os.environ and os.geteuid() == 0):
+    if not (os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
         sys.exit(-1)
     app = QApplication(sys.argv)
