@@ -1,4 +1,4 @@
-# ebpH v0.1.1-AA (Aggressively Alpha)
+# ebpH v0.1.2
 
 ## Description
 
