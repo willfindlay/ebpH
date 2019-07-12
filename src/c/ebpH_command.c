@@ -25,7 +25,7 @@
 #include "defs.h"
 #include "profiles.h"
 
-const char *profile_dir = "/var/lib/pH/profiles";
+const char *profile_dir = "/var/lib/ebpH/profiles";
 
 int load_profiles();
 pH_profile_payload *load_profile(char *path);

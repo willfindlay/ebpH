@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'mainwindow.ui',
 # licensing of 'mainwindow.ui' applies.
 #
-# Created: Fri Jul 12 13:16:02 2019
+# Created: Fri Jul 12 14:56:12 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -152,7 +152,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.label_2, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 903, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 903, 12))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
@@ -291,5 +291,5 @@ class Ui_MainWindow(object):
         self.actionExport_Logs.setShortcut(QtWidgets.QApplication.translate("MainWindow", "Ctrl+E", None, -1))
         self.actionDelete_All_Saved_Profiles.setText(QtWidgets.QApplication.translate("MainWindow", "Delete All Saved Profiles", None, -1))
 
-from lazy_line_edit import LazyLineEdit
-import resources_rc
+from ebpH.gui.lazy_line_edit import LazyLineEdit
+from . import resources_rc

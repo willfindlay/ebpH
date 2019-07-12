@@ -14,7 +14,7 @@ ebpH_command: $(CDIR)/ebpH_command.c
 
 # TODO: change this to install the script for real
 install:
-	chown root:root ebpH_command && chmod 700 ebpH_command
+	cd $(SCRIPTSDIR) && ./install.sh
 
 clean:
 	@rm ebpH_command

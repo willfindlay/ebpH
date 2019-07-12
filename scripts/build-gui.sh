@@ -8,7 +8,7 @@ cd $GUIDIR
 
 # compile .ui files
 for f in *.ui; do
-    pyside2-uic "$f" > "${f%.*}.py"
+    pyside2-uic --from-imports "$f" > "${f%.*}.py"
 done
 
 # compile .qrc files

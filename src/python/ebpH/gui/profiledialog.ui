@@ -75,8 +75,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>473</width>
-          <height>548</height>
+          <width>487</width>
+          <height>647</height>
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
@@ -312,7 +312,7 @@ System Calls</string>
   <customwidget>
    <class>LazyLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>lazy_line_edit</header>
+   <header>ebpH.gui.lazy_line_edit</header>
   </customwidget>
  </customwidgets>
  <resources>

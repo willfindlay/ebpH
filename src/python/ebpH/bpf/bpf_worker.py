@@ -32,11 +32,10 @@ from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 from colors import *
-import globals
+import ebpH.defs as defs
 
 # load a bpf program from a file
 def load_bpf(code):
-    code = f"{os.path.dirname(__file__)}/{code}"
     with open(code, "r") as f:
         text = f.read()
     return text
@@ -61,8 +60,8 @@ class BPFWorker(QObject):
         super(BPFWorker, self).__init__(parent)
         self.monitoring = False
 
-        if not os.path.exists(globals.PROFILE_DIR):
-            os.makedirs(globals.PROFILE_DIR)
+        if not os.path.exists(defs.PROFILE_DIR):
+            os.makedirs(defs.PROFILE_DIR)
 
     def save_profiles(self):
         profile_hash = self.bpf["profile"]
@@ -79,7 +78,7 @@ class BPFWorker(QObject):
             train    = train_dict[k]
             filename = str(profile.key)
 
-            profile_path = os.path.join(globals.PROFILE_DIR, filename)
+            profile_path = os.path.join(defs.PROFILE_DIR, filename)
 
             # create path if it doesn't exist
             if not os.path.exists(os.path.dirname(profile_path)):
@@ -96,9 +95,9 @@ class BPFWorker(QObject):
     def load_profiles(self, profile=None):
         # run the profile_loader which is registered with a uretprobe
         if profile:
-            subprocess.run([globals.LOADER_PATH, f"load {profile}"])
+            subprocess.run([defs.LOADER_PATH, f"load {profile}"])
         else:
-            subprocess.run([globals.LOADER_PATH, f"load-all"])
+            subprocess.run([defs.LOADER_PATH, f"load-all"])
 
     # fetch a profile from BPF program and return it in the form of profile payload
     def fetch_profile(self, key):
@@ -203,15 +202,15 @@ class BPFWorker(QObject):
     def start_monitoring(self):
         try:
             # read BPF embedded C from bpf.c
-            text = load_bpf("bpf.c")
-            text = text.replace("DEFS_H", globals.DEFS_H, 1)
-            text = text.replace("PROFILES_H", globals.PROFILES_H, 1)
+            text = load_bpf(defs.BPF_C)
+            text = text.replace("DEFS_H", defs.DEFS_H, 1)
+            text = text.replace("PROFILES_H", defs.PROFILES_H, 1)
 
             # compile ebpf code
             self.bpf = BPF(text=text)
             self.register_perf_buffers()
             # register callback to load profiles
-            self.bpf.attach_uretprobe(name=globals.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+            self.bpf.attach_uretprobe(name=defs.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
             self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
             # load in any profiles
