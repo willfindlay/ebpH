@@ -325,7 +325,7 @@ background-position:  bottom left;
      <x>0</x>
      <y>0</y>
      <width>903</width>
-     <height>29</height>
+     <height>12</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -517,7 +517,7 @@ background-position:  bottom left;
   <customwidget>
    <class>LazyLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>lazy_line_edit</header>
+   <header>ebpH.gui.lazy_line_edit</header>
   </customwidget>
  </customwidgets>
  <resources>

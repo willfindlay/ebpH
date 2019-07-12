@@ -1,4 +1,4 @@
-# ebpH v0.1.1-AA (Aggressively Alpha)
+# ebpH v0.1.2
 
 ## Description
 
@@ -12,18 +12,18 @@ See the instructions below for information on how to choose which profile is mon
 
 1. The **latest version** of bcc and bcc-python from https://github.com/iovisor/bcc (I used the AUR to install mine; follow the instructions in their README)
     - The latest version is important because previous versions had a horrible bug that effectively broke python3 support
-1. Python3.7
+1. Python 3.7
 1. Pyside2 (5.12.0) `sudo pip3 install pyside2` (last time I checked the usual `--user` method does **not** work)
 
 ## Installation
 
 1. Install the prerequisites (see above).
-1. Clone this branch from the repo: `git clone --branch development https://github.com/HousedHorse/ebpH`
-1. Run the Makefile to compile the `ui` files and `profile_loader`: `sudo make` (running this as root is important to set the correct permissions on `profile_loader`)
+1. Clone the development branch from the repo: `git clone --branch development https://github.com/HousedHorse/ebpH`
+1. Run `$ make && make install`. The scripts will ask for sudo as needed.
 
 ## Running
 
-Change directory into `ebpH` and run `sudo ./gui.py`.
+Run `$ ./ebpH` in the root directory of this project.
 
 ## Selecting a Binary to Monitor (Recommended Method)
 

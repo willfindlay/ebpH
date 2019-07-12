@@ -24,15 +24,17 @@ import atexit
 import ctypes as ct
 from time import sleep
 from pprint import pprint
+
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 from PySide2.QtCharts import *
-from mainwindow import Ui_MainWindow
-from profiledialog import Ui_ProfileDialog
-from bpf_worker import BPFWorker
-from colors import *
-import globals
+
+from ebpH.gui.mainwindow import Ui_MainWindow
+from ebpH.gui.profiledialog import Ui_ProfileDialog
+from ebpH.bpf.bpf_worker import BPFWorker
+from ebpH.colors import *
+import ebpH.defs as defs
 
 # --- Read Chunks From File ---
 # TODO: maybe remove
@@ -221,8 +223,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # TODO: get rid of this later
     def delete_all_profiles(self):
-        for the_file in os.listdir(globals.PROFILE_DIR):
-            file_path = os.path.join(globals.PROFILE_DIR, the_file)
+        for the_file in os.listdir(defs.PROFILE_DIR):
+            file_path = os.path.join(defs.PROFILE_DIR, the_file)
             if os.path.isfile(file_path):
                 os.unlink(file_path)
 
@@ -350,7 +352,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 # --- Main Control Flow ---
 if __name__ == '__main__':
-    globals.init()
+    defs.init()
     # check privileges
     if not (os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")

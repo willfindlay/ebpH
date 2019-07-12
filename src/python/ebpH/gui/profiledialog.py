@@ -3,7 +3,7 @@
 # Form implementation generated from reading ui file 'profiledialog.ui',
 # licensing of 'profiledialog.ui' applies.
 #
-# Created: Sat Jun  8 18:37:23 2019
+# Created: Fri Jul 12 14:56:12 2019
 #      by: pyside2-uic  running on PySide2 5.12.0
 #
 # WARNING! All changes made in this file will be lost!
@@ -52,7 +52,7 @@ class Ui_ProfileDialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 473, 548))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 487, 647))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_4.setObjectName("gridLayout_4")
@@ -177,5 +177,5 @@ class Ui_ProfileDialog(object):
         self.label_11.setText(QtWidgets.QApplication.translate("ProfileDialog", "Profile State", None, -1))
         self.reset_profile_button.setText(QtWidgets.QApplication.translate("ProfileDialog", "Reset Profile", None, -1))
 
-from lazy_line_edit import LazyLineEdit
-import resources_rc
+from ebpH.gui.lazy_line_edit import LazyLineEdit
+from . import resources_rc
