@@ -24,14 +24,17 @@ import itertools
 import sys
 import signal
 import os
+import ctypes as ct
+
 from bcc import BPF
 from bcc.utils import printb
 from bcc.syscall import syscall_name, syscalls
-import ctypes as ct
+
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
-from colors import *
+
+from ebpH.colors import *
 import ebpH.defs as defs
 
 # load a bpf program from a file

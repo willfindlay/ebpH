@@ -24,6 +24,7 @@ import atexit
 import ctypes as ct
 from time import sleep
 from pprint import pprint
+
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
