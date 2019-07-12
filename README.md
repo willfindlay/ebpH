@@ -8,6 +8,17 @@ It "monitors" all executables on the system but can only really detect anomalies
 
 See the instructions below for information on how to choose which profile is monitored.
 
+## Docker
+
+**Make sure you have `docker` and `docker-compose` installed.**
+
+Run the following commands:
+
+```
+$ docker-compose build app
+$ docker-compose up
+```
+
 ## Prerequisites
 
 1. The **latest version** of bcc and bcc-python from https://github.com/iovisor/bcc (I used the AUR to install mine; follow the instructions in their README)
@@ -23,7 +34,7 @@ See the instructions below for information on how to choose which profile is mon
 
 ## Running
 
-Run `$ ./ebpH` in the root directory of this project.
+Run `$ sudo ./ebpH` in the root directory of this project.
 
 ## Selecting a Binary to Monitor (Recommended Method)
 

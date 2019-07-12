@@ -1,4 +1,4 @@
-#! /usr/bin/env -S bash -e
+#! /usr/bin/env bash
 
 DIR=$(dirname $(readlink -f $0))/..
 GUIDIR=$(dirname $(readlink -f $(find $DIR -name mainwindow.ui)))
