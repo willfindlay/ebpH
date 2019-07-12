@@ -1,4 +1,4 @@
-#! /usr/bin/env -S bash -e
+#! /usr/bin/env bash
 
 DIR=$(dirname $(readlink -f $0))/..
 INSTALLDIR=/opt/ebpH
