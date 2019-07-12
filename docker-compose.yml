@@ -1,0 +1,15 @@
+app:
+    build: .
+    command: ebpH
+    volumes:
+        - .:/app:ro
+        - /var/lib/ebpH:/var/lib/ebpH:rw
+        - $HOME/.Xauthority:/root/.Xauthority:rw
+        - /lib/modules:/lib/modules:ro
+        - /usr/src:/usr/src:ro
+        - /etc/localtime:/etc/localtime:ro
+        - /sys/kernel/debug:/sys/kernel/debug
+    privileged: true
+    net: host
+    environment:
+        - DISPLAY

@@ -1,10 +1,10 @@
-#! /usr/bin/env -S bash -e
+#! /usr/bin/env bash
 
 DIR=$(dirname $(readlink -f $0))
 
 unset PYTHONPATH
-export PYTHONPATH=$DIR/src/python
 #(cd $DIR && (pipenv --venv > /dev/null || pipenv install) && source $(pipenv --venv)/bin/activate)
-exec sudo /usr/bin/env python3 $DIR/src/python/ebpH/main.py $*
+export PYTHONPATH=$DIR/src/python
+exec /usr/bin/env python3 $DIR/src/python/ebpH/main.py $*
 
 # vim:ft=sh
