@@ -93,11 +93,6 @@ BPF_HISTOGRAM(exits);
 BPF_HASH(profile, u64, pH_profile);
 BPF_HASH(pid_tgid_to_profile_key, u64, u64);
 
-/* test data hashed by executable filename */
-BPF_HASH(test_data,  u64, pH_profile_data);
-/* training data hashed by executable filename */
-BPF_HASH(train_data, u64, pH_profile_data);
-
 /* sequences hashed by pid_tgid */
 BPF_HASH(seq, u64, pH_seq);
 
@@ -302,28 +297,6 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     return 0;
 }
 
-/* Profiles and Profile Data */
-
-static u8 pH_reset_test_data(u64 key)
-{
-    pH_profile_data d = {};
-    /* TODO: initialize lookahead pairs here */
-
-    test_data.update(&key, &d);
-
-    return 0;
-}
-
-static u8 pH_reset_train_data(u64 key)
-{
-    pH_profile_data d = {};
-    /* TODO: initialize lookahead pairs here */
-
-    train_data.update(&key, &d);
-
-    return 0;
-}
-
 static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
@@ -357,9 +330,6 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
         return 0;
 
     bpf_probe_read(&p.key, sizeof(p.key), key);
-
-    pH_reset_test_data(p.key);
-    pH_reset_train_data(p.key);
 
     temp = profile.lookup(key);
     if(temp != NULL)
@@ -637,80 +607,6 @@ static u8 pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
 
 /* Profile Loading */
 
-/* load a profile's test data from userspace */
-static u8 pH_load_test_data(pH_profile_payload *payload)
-{
-    pH_profile_data d;
-    pH_profile_data *temp;
-    pH_profile *p;
-    u64 key = 0;
-
-    if(!payload)
-    {
-        bpf_trace_printk("could not load full profile data -- pH_load_test_data \n");
-        return -1;
-    }
-
-    /* grab the appropriate key */
-    key = payload->profile.key;
-
-    /* read in the test data */
-    bpf_probe_read(&d, sizeof(d), &payload->test);
-
-    /* check to see if test data exists in memory */
-    temp = test_data.lookup(&key);
-
-    /* if it does, update it */
-    if(temp != NULL)
-    {
-        test_data.update(&key, &d);
-    }
-    /* otherwise, create it */
-    else
-    {
-        test_data.lookup_or_init(&key, &d);
-    }
-
-    return 0;
-}
-
-/* load a profile's train data from userspace */
-static u8 pH_load_train_data(pH_profile_payload *payload)
-{
-    pH_profile_data d;
-    pH_profile_data *temp;
-    pH_profile *p;
-    u64 key = 0;
-
-    if(!payload)
-    {
-        bpf_trace_printk("could not load full profile data -- pH_load_train_data \n");
-        return -1;
-    }
-
-    /* grab the appropriate key */
-    key = payload->profile.key;
-
-    /* read in the train data */
-    bpf_probe_read(&d, sizeof(d), &payload->train);
-
-    /* check to see if train data exists in memory */
-    temp = train_data.lookup(&key);
-
-    /* if it does, update it */
-    if(temp != NULL)
-    {
-        train_data.update(&key, &d);
-    }
-    /* otherwise, create it */
-    else
-    {
-        train_data.lookup_or_init(&key, &d);
-    }
-
-    return 0;
-}
-
 static u8 pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 {
     pH_profile p;
@@ -901,8 +797,6 @@ int pH_load_profile(struct pt_regs *ctx)
 reload:
 
     pH_load_base_profile(payload, ctx);
-    pH_load_test_data(payload);
-    pH_load_train_data(payload);
 
     return 0;
 }

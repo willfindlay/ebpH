@@ -51,17 +51,6 @@ typedef struct
 }
 pH_lookahead_pair;
 
-// profile data
-// FIXME: given the way I may be implementing this, this struct could be useless
-//        might want to get rid of it... for now, added a dumym value so the program will still compile
-typedef struct
-{
-    //u8 pairs[SEQLEN];
-    u8 pairs[256];
-    u8 dummy; // FIXME: this just lets the program compile for now
-}
-pH_profile_data;
-
 // per executable profile
 // TODO: implement me
 typedef struct
@@ -85,8 +74,7 @@ pH_profile;
 typedef struct
 {
     pH_profile profile;
-    pH_profile_data test;
-    pH_profile_data train;
+    // add more stuff here
 }
 pH_profile_payload;
 
