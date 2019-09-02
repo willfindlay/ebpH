@@ -45,10 +45,8 @@ def load_bpf(code):
 
 # used in fetch profile
 class ProfilePayload():
-    def __init__(self, profile, test, train):
+    def __init__(self, profile):
         self.profile = profile
-        self.test = test
-        self.train = train
 
 class BPFWorker(QObject):
     # --- Signals ---
@@ -68,17 +66,11 @@ class BPFWorker(QObject):
 
     def save_profiles(self):
         profile_hash = self.bpf["profile"]
-        test_hash    = self.bpf["test_data"]
-        train_hash   = self.bpf["train_data"]
 
         profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
-        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
-        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
         for k in profile_dict:
             profile  = profile_dict[k]
-            test     = test_dict[k]
-            train    = train_dict[k]
             filename = str(profile.key)
 
             profile_path = os.path.join(defs.PROFILE_DIR, filename)
@@ -91,7 +83,7 @@ class BPFWorker(QObject):
                     if exc.errno != errno.EEXIST:
                         raise
             with open(profile_path, "w") as f:
-                printb(b"".join([profile,test,train]),file=f,nl=0)
+                printb(b"".join([profile]),file=f,nl=0)
         self.sig_event.emit("Profiles saved successfully.")
 
     # load profiles from disk
@@ -106,32 +98,22 @@ class BPFWorker(QObject):
     def fetch_profile(self, key):
         try:
             profile_hash = self.bpf["profile"]
-            test_hash    = self.bpf["test_data"]
-            train_hash   = self.bpf["train_data"]
 
             profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
-            test_dict = dict([(k.value, v) for k, v in test_hash.items()])
-            train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
             profile  = profile_dict[key]
-            test     = test_dict[key]
-            train    = train_dict[key]
 
-            return ProfilePayload(profile, test, train)
+            return ProfilePayload(profile)
         except:
             return None
 
     # return a list of profile payloads for all profiles
     def fetch_all_profiles(self):
         profile_hash = self.bpf["profile"]
-        test_hash    = self.bpf["test_data"]
-        train_hash   = self.bpf["train_data"]
 
         profile_dict = dict([(k.value, v) for k, v in profile_hash.items()])
-        test_dict = dict([(k.value, v) for k, v in test_hash.items()])
-        train_dict = dict([(k.value, v) for k, v in train_hash.items()])
 
-        return [ProfilePayload(profile_dict[k], test_dict[k], train_dict[k]) for k in profile_dict]
+        return [ProfilePayload(profile_dict[k]) for k in profile_dict]
 
     def register_perf_buffers(self):
         # profile has been created for the first time
