@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+
+DIR=$(dirname $(readlink -f $0))
+
+unset PYTHONPATH
+#(cd $DIR && (pipenv --venv > /dev/null || pipenv install) && source $(pipenv --venv)/bin/activate)
+export PYTHONPATH=$DIR/src/python
+exec /usr/bin/env python3 $DIR/src/python/ebpH/main.py $*
+
+# vim:ft=sh
