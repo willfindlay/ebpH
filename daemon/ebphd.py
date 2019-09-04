@@ -11,14 +11,29 @@ from bcc import BPF, lib
 
 from config import Config
 
+OPERATIONS = ["start", "stop", "restart"]
+
+def parse_args(args=[]):
+    parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebpH", epilog="To change any of the defaults above, edit config.py",
+            formatter_class=argparse.RawTextHelpFormatter)
+
+    #parser.add_argument('-s', dest='kernel_src', metavar="path/to/kernel/source/",
+    #        help=f"Path to Linux Kernel source. Config.py will try some sensible defaults if this is not set.")
+
+    parser.add_argument('operation', metavar="OPERATION", type=str,
+            help=f"Operation you want to perform. Choices are {', '.join(OPERATIONS)}")
+
+    args = parser.parse_args(args)
+    return args
+
 class Ebphd:
-    def __init__(self):
+    def __init__(self, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
         self.pidfile = Config.daemon_pid_file
         self.socket_adr = Config.daemon_socket_adr
 
-        self.stdin = "/dev/null"
-        self.stdout = "/dev/null"
-        self.stderr = "/dev/null"
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
 
     def _bind_socket(self):
         # make sure socket doesn't already exist
@@ -124,8 +139,8 @@ class Ebphd:
 
         # kill the process
         try:
+            self._del_pidfile()
             os.kill(pid, SIGTERM)
-            time.sleep(0.1)
         except OSError as e:
             if e.strerror.find("No such process") >= 0:
                 if os.path.exists(self.pidfile):
@@ -139,14 +154,21 @@ class Ebphd:
 
     def main(self):
         while True:
-            print("listening...")
             time.sleep(1)
 
 if __name__ == "__main__":
+    args = parse_args(sys.argv[1:])
+
     # check for root
     if not (os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
         sys.exit(-1)
 
     ebphd = Ebphd()
-    ebphd.start()
+
+    if args.operation == "start":
+        ebphd.start()
+    elif args.operation == "stop":
+        ebphd.stop()
+    elif args.operation == "restart":
+        ebphd.restart()
