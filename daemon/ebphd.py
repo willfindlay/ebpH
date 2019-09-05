@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import os, sys, socket, atexit, time, argparse
+import os, sys, socket, atexit, time, argparse, logging
 from threading import Thread
 from signal import SIGTERM
 
@@ -20,7 +20,7 @@ def parse_args(args=[]):
     #parser.add_argument('-s', dest='kernel_src', metavar="path/to/kernel/source/",
     #        help=f"Path to Linux Kernel source. Config.py will try some sensible defaults if this is not set.")
 
-    parser.add_argument('operation', metavar="OPERATION", type=str,
+    parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS,
             help=f"Operation you want to perform. Choices are {', '.join(OPERATIONS)}")
 
     args = parser.parse_args(args)
@@ -31,9 +31,12 @@ class Ebphd:
         self.pidfile = Config.daemon_pid_file
         self.socket_adr = Config.daemon_socket_adr
 
-        self.stdin = stdin
+        self.stdin  = stdin
         self.stdout = stdout
         self.stderr = stderr
+
+        # configure logging
+        self.logger = logging.getLogger("ebph")
 
     def _bind_socket(self):
         # make sure socket doesn't already exist
@@ -121,6 +124,7 @@ class Ebphd:
             sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete /run/ebphd.pid.\n")
             sys.exit(-1)
 
+        print("Starting ebpH daemon...")
         self._daemonize()
         self._bind_socket()
         self.main()
@@ -141,6 +145,7 @@ class Ebphd:
         try:
             self._del_pidfile()
             os.kill(pid, SIGTERM)
+            print("Killed ebpH daemon successfully!")
         except OSError as e:
             if e.strerror.find("No such process") >= 0:
                 if os.path.exists(self.pidfile):
@@ -163,6 +168,8 @@ if __name__ == "__main__":
     if not (os.geteuid() == 0):
         print("This script must be run with root privileges! Exiting.")
         sys.exit(-1)
+
+    Config.init()
 
     ebphd = Ebphd()
 
