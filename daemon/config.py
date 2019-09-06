@@ -20,8 +20,8 @@ class Config():
             os.makedirs(Config.logdir)
 
         # configure file locations
-        Config.daemon_socket_adr = os.path.join(Config.socketdir, 'ebph.sock')
-        Config.daemon_pid_file = os.path.join(Config.socketdir, 'ebph.pid')
+        Config.socket = os.path.join(Config.socketdir, 'ebph.sock')
+        Config.pidfile = os.path.join(Config.socketdir, 'ebph.pid')
         Config.logfile = os.path.join(Config.logdir, 'ebph.log')
 
         # configure logging

@@ -1,42 +1,17 @@
-#! /usr/bin/env python3
-
-import os, sys, socket, atexit, time, argparse, logging
-from threading import Thread
+import os, sys, socket, atexit, time
 from signal import SIGTERM
 
-from bcc import BPF, lib
-
-# TODO: check bcc version here
-#       maybe we could also somehow integrate bcc into the pipfile
-
 from config import Config
+import utils
 
-OPERATIONS = ["start", "stop", "restart"]
-
-def parse_args(args=[]):
-    parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebpH", epilog="To change any of the defaults above, edit config.py",
-            formatter_class=argparse.RawTextHelpFormatter)
-
-    #parser.add_argument('-s', dest='kernel_src', metavar="path/to/kernel/source/",
-    #        help=f"Path to Linux Kernel source. Config.py will try some sensible defaults if this is not set.")
-
-    parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS,
-            help=f"Operation you want to perform. Choices are {', '.join(OPERATIONS)}")
-
-    args = parser.parse_args(args)
-    return args
-
-class Ebphd:
+class Daemon:
     def __init__(self, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
-        self.pidfile = Config.daemon_pid_file
-        self.socket_adr = Config.daemon_socket_adr
+        self.pidfile = Config.pidfile
+        self.socket_adr = Config.socket
 
         self.stdin  = stdin
         self.stdout = stdout
         self.stderr = stderr
-
-        # configure logging
-        self.logger = logging.getLogger("ebph")
 
     def _bind_socket(self):
         # make sure socket doesn't already exist
@@ -83,7 +58,7 @@ class Ebphd:
             sys.exit(-1)
 
         # create stdin, stdout, stderr files if they don't exist
-        stdin_path = os.path.dirname(self.stdin)
+        stdin_path  = os.path.dirname(self.stdin)
         stdout_path = os.path.dirname(self.stdout)
         stderr_path = os.path.dirname(self.stderr)
         if not stdin_path:
@@ -121,7 +96,7 @@ class Ebphd:
             pid = None
 
         if pid:
-            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete /run/ebphd.pid.\n")
+            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {Config.pidfile}.\n")
             sys.exit(-1)
 
         print("Starting ebpH daemon...")
@@ -157,25 +132,7 @@ class Ebphd:
         self.stop()
         self.start()
 
+    # overload this
     def main(self):
         while True:
             time.sleep(1)
-
-if __name__ == "__main__":
-    args = parse_args(sys.argv[1:])
-
-    # check for root
-    if not (os.geteuid() == 0):
-        print("This script must be run with root privileges! Exiting.")
-        sys.exit(-1)
-
-    Config.init()
-
-    ebphd = Ebphd()
-
-    if args.operation == "start":
-        ebphd.start()
-    elif args.operation == "stop":
-        ebphd.stop()
-    elif args.operation == "restart":
-        ebphd.restart()
