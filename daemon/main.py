@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 import os, sys, argparse, logging
-from threading import Thread
 from signal import SIGTERM
 
 # TODO: check bcc version here

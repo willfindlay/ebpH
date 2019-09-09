@@ -1,13 +1,10 @@
 import os, sys, socket, atexit, time
 from signal import SIGTERM
 
-from config import Config
-import utils
-
 class Daemon:
-    def __init__(self, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
-        self.pidfile = Config.pidfile
-        self.socket_adr = Config.socket
+    def __init__(self, pidfile, socket, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
+        self.pidfile = pidfile
+        self.socket_adr = socket
 
         self.stdin  = stdin
         self.stdout = stdout

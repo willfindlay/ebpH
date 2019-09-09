@@ -1,4 +1,6 @@
 import os, sys, socket, atexit, time, logging
+from threading import Thread
+import ctypes as ct
 
 from bcc import BPF, lib
 
@@ -6,7 +8,7 @@ from daemon import Daemon
 from config import Config
 import utils
 
-TICKSLEEP = 0.1
+TICKSLEEP = 1
 
 BPF_C = utils.path('src/c/bpf.c')
 DEFS_H = utils.path('src/c/defs.h')
@@ -14,7 +16,7 @@ PROFILES_H = utils.path('src/c/profiles.h')
 
 class ebpHD(Daemon):
     def __init__(self, monitoring=True):
-        super().__init__()
+        super().__init__(Config.pidfile, Config.socket)
 
         self.monitoring = monitoring
 
@@ -131,10 +133,12 @@ class ebpHD(Daemon):
 
         # compile ebpf code
         self.bpf = BPF(text=text)
-        self.register_perf_buffers()
+        self.register_perf_buffers() #FIXME: commented for now to test something
+
         # register callback to load profiles
         # FIXME: might fundamentally change how this works, so leaving it commented for now
         #self.bpf.attach_uretprobe(name=defs.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
+
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
         self.logger.warning('Started monitoring the system.')
@@ -153,18 +157,17 @@ class ebpHD(Daemon):
     # save profiles to disk
     def save_profiles(self):
         # FIXME: might fundamentally change how this works, so leaving it empty for now
-        print('save_profiles called')
+        pass
 
     # load profiles from disk
     def load_profiles(self, profile=None):
         # FIXME: might fundamentally change how this works, so leaving it empty for now
-        print('load_profiles called')
+        pass
 
     def tick(self):
-        self.bpf.perf_buffer_poll(100)
+        self.bpf.perf_buffer_poll(30)
         self.num_profiles = self.bpf["profiles"].values()[0].value
         self.num_syscalls = self.bpf["syscalls"].values()[0].value
         self.num_forks    = self.bpf["forks"].values()[0].value
         self.num_execves  = self.bpf["execves"].values()[0].value
         self.num_exits    = self.bpf["exits"].values()[0].value
-        time.sleep(0.1)
