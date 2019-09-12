@@ -27,6 +27,7 @@
 /* macros for error and warning message events */
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX))
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
+#define PH_DEBUG(MSG, CTX) __pH_log_debug(MSG, sizeof(MSG), (CTX))
 
 /* hard coded stuff */
 #define THE_KEY 20978485 /* this is the inode for bash on my system */
@@ -46,7 +47,7 @@ struct profile_copy
     u64 key;
 };
 
-struct debug
+struct number
 {
     u64 n;
 };
@@ -73,7 +74,7 @@ BPF_PERF_OUTPUT(pH_error);
 BPF_PERF_OUTPUT(pH_warning);
 
 /* debugging events */
-BPF_PERF_OUTPUT(output_number);
+BPF_PERF_OUTPUT(pH_debug);
 
 /* monitoring events */
 BPF_PERF_OUTPUT(anomaly_event); /* TODO: implement this */
@@ -108,6 +109,12 @@ static inline void __pH_log_error(char *m, int size, struct pt_regs *ctx)
 static inline void __pH_log_warning(char *m, int size, struct pt_regs *ctx)
 {
     pH_warning.perf_submit(ctx, m, size);
+}
+
+/* log a debug message -- this function should not be called, use macro PH_DEBUG instead */
+static inline void __pH_log_debug(void *m, int size, struct pt_regs *ctx)
+{
+    pH_debug.perf_submit(ctx, m, size);
 }
 
 /* function that returns the pid_tgid of a process' parent */
@@ -337,7 +344,6 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 
     /* create the profile if it does not exist */
     temp = profile.lookup_or_init(key, &p);
-    bpf_trace_printk("created profile %llu\n", *key);
 
     /* notify userspace of profile creation */
     profile_create_event.perf_submit(ctx, &p, sizeof(p));
@@ -346,7 +352,6 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
-    bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
 
     /* notify userspace of profile asssociation */
     struct profile_association ass = {*key, pid_tgid >> 32};
@@ -558,6 +563,7 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
     /*        (we will be locking the profile here) */
     bpf_probe_read(&pro, sizeof(pro), p);
     s = seq.lookup(pid_tgid);
+
     if(!s)
     {
         PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
@@ -615,7 +621,6 @@ static u8 pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 
     if(!payload)
     {
-        bpf_trace_printk("could not load full profile data -- pH_load_base_profile \n");
         return -1;
     }
 
