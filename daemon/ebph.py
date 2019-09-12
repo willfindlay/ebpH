@@ -115,10 +115,11 @@ class ebpHD(Daemon):
         self.bpf["pH_warning"].open_perf_buffer(on_warning)
 
         def on_debug(cpu, data, size):
-            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
-            s = f"{event}"
+            #event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            event = self.bpf["pH_debug"].event(data)
+            s = f"{event.comm}"
             self.logger.debug(s)
-        self.bpf["output_number"].open_perf_buffer(on_debug)
+        self.bpf["pH_debug"].open_perf_buffer(on_debug)
 
         self.logger.debug('Registered perf buffers successfully.')
 
@@ -133,7 +134,7 @@ class ebpHD(Daemon):
 
         # compile ebpf code
         self.bpf = BPF(text=text)
-        self.register_perf_buffers() #FIXME: commented for now to test something
+        self.register_perf_buffers()
 
         # register callback to load profiles
         # FIXME: might fundamentally change how this works, so leaving it commented for now
