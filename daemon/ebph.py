@@ -115,9 +115,9 @@ class ebpHD(Daemon):
         self.bpf["pH_warning"].open_perf_buffer(on_warning)
 
         def on_debug(cpu, data, size):
-            #event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
-            event = self.bpf["pH_debug"].event(data)
-            s = f"{event.comm}"
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            #event = self.bpf["pH_debug"].event(data)
+            s = f"{event}"
             self.logger.debug(s)
         self.bpf["pH_debug"].open_perf_buffer(on_debug)
 
