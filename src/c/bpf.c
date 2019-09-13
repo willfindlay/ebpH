@@ -27,7 +27,7 @@
 /* macros for error and warning message events */
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX))
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
-#define PH_DEBUG(MSG, CTX) __pH_log_debug(MSG, sizeof(MSG), (CTX))
+#define PH_DEBUG(MSG, CTX) char m[] = (MSG); __pH_log_debug(m, sizeof(m), (CTX))
 
 /* hard coded stuff */
 #define THE_KEY 20978485 /* this is the inode for bash on my system */
@@ -112,7 +112,7 @@ static inline void __pH_log_warning(char *m, int size, struct pt_regs *ctx)
 }
 
 /* log a debug message -- this function should not be called, use macro PH_DEBUG instead */
-static inline void __pH_log_debug(void *m, int size, struct pt_regs *ctx)
+static inline void __pH_log_debug(char *m, int size, struct pt_regs *ctx)
 {
     pH_debug.perf_submit(ctx, m, size);
 }
@@ -353,9 +353,10 @@ created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
 
-    /* notify userspace of profile asssociation */
-    struct profile_association ass = {*key, pid_tgid >> 32};
-    profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
+    /* verifier hates this all of a sudden.... */
+    ///* notify userspace of profile association */
+    //struct profile_association ass = {*key, pid_tgid >> 32};
+    //profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
 /*    bpf_spin_unlock(&p.lock); */
@@ -566,9 +567,20 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
 
     if(!s)
     {
-        PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        //PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
         return 0;
     }
+
+    //for (int i = 0; i < SEQLEN; i++)
+    //{
+    //    if (i >= s->count)
+    //        break;
+    //    if (s->seq[i] == 1)
+    //    {
+    //        PH_DEBUG("Read systemcall detected while processing!", ctx);
+    //        break;
+    //    }
+    //}
 
     pH_process_normal(&pro, s, ctx);
 
