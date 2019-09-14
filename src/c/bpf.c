@@ -81,6 +81,9 @@ BPF_PERF_OUTPUT(anomaly_event); /* TODO: implement this */
 
 /* --- histograms --- */
 
+/* debugging */
+BPF_HISTOGRAM(breakpoint);
+
 /* counting syscalls */
 BPF_HISTOGRAM(profiles);
 BPF_HISTOGRAM(syscalls);
@@ -568,19 +571,13 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
     if(!s)
     {
         //PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        // we hit the trap
+        breakpoint.increment(0);
         return 0;
     }
 
-    //for (int i = 0; i < SEQLEN; i++)
-    //{
-    //    if (i >= s->count)
-    //        break;
-    //    if (s->seq[i] == 1)
-    //    {
-    //        PH_DEBUG("Read systemcall detected while processing!", ctx);
-    //        break;
-    //    }
-    //}
+    // we made it
+    breakpoint.increment(1);
 
     pH_process_normal(&pro, s, ctx);
 

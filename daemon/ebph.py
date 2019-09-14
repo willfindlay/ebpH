@@ -1,4 +1,4 @@
-import os, sys, socket, atexit, time, logging
+import os, sys, socket, signal, atexit, time, logging
 from threading import Thread
 import ctypes as ct
 
@@ -30,6 +30,7 @@ class ebpHD(Daemon):
         self.logger = logging.getLogger('ebpH')
 
     def main(self):
+        atexit.register(self.cleanup)
         if self.monitoring:
             self.start_monitoring()
         while True:
@@ -147,6 +148,10 @@ class ebpHD(Daemon):
         # load in any profiles
         self.load_profiles()
 
+    def cleanup(self):
+        if self.monitoring:
+            self.stop_monitoring()
+
     def stop_monitoring(self):
         self.save_profiles()
         self.bpf.cleanup()
@@ -172,3 +177,30 @@ class ebpHD(Daemon):
         self.num_forks    = self.bpf["forks"].values()[0].value
         self.num_execves  = self.bpf["execves"].values()[0].value
         self.num_exits    = self.bpf["exits"].values()[0].value
+
+        # debugging stuff
+        breakpoint = self.bpf["breakpoint"].values()
+
+        try:
+            self.ticks = self.ticks + 1
+        except:
+            self.ticks = 1
+
+        print(f'Tick: {self.ticks}')
+        print(f'Hit failures: {breakpoint[0].value}')
+        print(f'Hit successes: {breakpoint[1].value}')
+        try:
+            sr = breakpoint[1].value / (breakpoint[0].value + breakpoint[1].value) * 100
+        except:
+            sr = 100
+        print(f'Success ratio: {sr}%')
+        print(f'exits: {self.num_exits}')
+        print(f'forks: {self.num_forks}')
+        print(f'profiles: {self.num_profiles}')
+        print(f'syscalls: {self.num_syscalls}')
+        if sr < 100:
+            print(self.ticks)
+            sys.exit(0)
+
+        print()
+
