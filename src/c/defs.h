@@ -39,7 +39,7 @@ typedef long time_t;
 // pH_profile definitions
 #define PH_NUM_SYSCALLS  314
 #define PH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 // one week in nanoseconds
-//#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds
+//#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds uncomment this and comment the above for quick testing
 #define PH_NORMAL_FACTOR_DEN 32
 #define PH_NORMAL_FACTOR     128
 #define PH_ANOMALY_LIMIT     30
@@ -55,5 +55,9 @@ typedef long time_t;
 
 // size of a filename string
 #define FILENAME_LEN 128
+
+/* size of the pid hashed maps */
+/* TODO: fine tune this        */
+#define PID_TGID_SIZE
 
 #endif // DEFS_H

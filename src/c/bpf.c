@@ -27,7 +27,7 @@
 /* macros for error and warning message events */
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX))
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
-#define PH_DEBUG(MSG, CTX) __pH_log_debug(MSG, sizeof(MSG), (CTX))
+#define PH_DEBUG(MSG, CTX) char m[] = (MSG); __pH_log_debug(m, sizeof(m), (CTX))
 
 /* hard coded stuff */
 #define THE_KEY 20978485 /* this is the inode for bash on my system */
@@ -81,6 +81,9 @@ BPF_PERF_OUTPUT(anomaly_event); /* TODO: implement this */
 
 /* --- histograms --- */
 
+/* debugging */
+BPF_HISTOGRAM(breakpoint);
+
 /* counting syscalls */
 BPF_HISTOGRAM(profiles);
 BPF_HISTOGRAM(syscalls);
@@ -92,10 +95,10 @@ BPF_HISTOGRAM(exits);
 
 /* profiles hashed by device number << 32 | inode number */
 BPF_HASH(profile, u64, pH_profile);
-BPF_HASH(pid_tgid_to_profile_key, u64, u64);
+BPF_HASH(pid_tgid_to_profile_key, u64, u64, PID_TGID_SIZE);
 
 /* sequences hashed by pid_tgid */
-BPF_HASH(seq, u64, pH_seq);
+BPF_HASH(seq, u64, pH_seq, PID_TGID_SIZE);
 
 /* --- helpers --- */
 
@@ -112,7 +115,7 @@ static inline void __pH_log_warning(char *m, int size, struct pt_regs *ctx)
 }
 
 /* log a debug message -- this function should not be called, use macro PH_DEBUG instead */
-static inline void __pH_log_debug(void *m, int size, struct pt_regs *ctx)
+static inline void __pH_log_debug(char *m, int size, struct pt_regs *ctx)
 {
     pH_debug.perf_submit(ctx, m, size);
 }
@@ -353,8 +356,11 @@ created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
 
-    /* notify userspace of profile asssociation */
+    /* notify userspace of profile association */
     struct profile_association ass = {*key, pid_tgid >> 32};
+    /* the verifier complains here */
+    /* this probe_read soothes it */
+    bpf_probe_read(&ass, sizeof(ass), &ass);
     profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
@@ -566,21 +572,26 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
 
     if(!s)
     {
-        PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        //PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        // we hit the trap
+        breakpoint.increment(0);
         return 0;
     }
 
-    pH_process_normal(&pro, s, ctx);
+    // we made it
+    breakpoint.increment(1);
 
-    pH_train(&pro, s, ctx);
+    //pH_process_normal(&pro, s, ctx);
 
-    /* update normal status if we are frozen and have reached normal_time */
-    if(pH_check_normal_time(&pro, ctx))
-    {
-        pH_start_normal(&pro, s);
-    }
+    //pH_train(&pro, s, ctx);
 
-    profile.update(&pro.key, &pro);
+    ///* update normal status if we are frozen and have reached normal_time */
+    //if(pH_check_normal_time(&pro, ctx))
+    //{
+    //    pH_start_normal(&pro, s);
+    //}
+
+    //profile.update(&pro.key, &pro);
     return 0;
 }
 
@@ -715,6 +726,17 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     pH_profile *p_pt;
     u64 *key;
 
+    /* delete the sequence and disassociate the profile if the process has exited */
+    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
+    {
+        seq.delete(&pid_tgid);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+
+        exits.increment(0);
+
+        return 0;
+    }
+
     /* create or update the sequence for this pid_tgid */
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
@@ -741,15 +763,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         /* disassociate the profile if it is already associated */
         pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
         execves.increment(0);
-    }
-
-    /* delete the sequence and disassociate the profile if the process has exited */
-    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
-    {
-        seq.delete(&pid_tgid);
-        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
-
-        exits.increment(0);
     }
 
     return 0;

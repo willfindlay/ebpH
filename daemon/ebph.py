@@ -1,4 +1,4 @@
-import os, sys, socket, atexit, time, logging
+import os, sys, socket, signal, atexit, time, logging
 from threading import Thread
 import ctypes as ct
 
@@ -30,6 +30,7 @@ class ebpHD(Daemon):
         self.logger = logging.getLogger('ebpH')
 
     def main(self):
+        atexit.register(self.cleanup)
         if self.monitoring:
             self.start_monitoring()
         while True:
@@ -115,9 +116,9 @@ class ebpHD(Daemon):
         self.bpf["pH_warning"].open_perf_buffer(on_warning)
 
         def on_debug(cpu, data, size):
-            #event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
-            event = self.bpf["pH_debug"].event(data)
-            s = f"{event.comm}"
+            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
+            #event = self.bpf["pH_debug"].event(data)
+            s = f"{event}"
             self.logger.debug(s)
         self.bpf["pH_debug"].open_perf_buffer(on_debug)
 
@@ -147,6 +148,10 @@ class ebpHD(Daemon):
         # load in any profiles
         self.load_profiles()
 
+    def cleanup(self):
+        if self.monitoring:
+            self.stop_monitoring()
+
     def stop_monitoring(self):
         self.save_profiles()
         self.bpf.cleanup()
@@ -172,3 +177,16 @@ class ebpHD(Daemon):
         self.num_forks    = self.bpf["forks"].values()[0].value
         self.num_execves  = self.bpf["execves"].values()[0].value
         self.num_exits    = self.bpf["exits"].values()[0].value
+
+        # debugging stuff
+        breakpoint = self.bpf["breakpoint"].values()
+
+        try:
+            self.ticks = self.ticks + 1
+        except:
+            self.ticks = 1
+
+        if breakpoint[0].value > 0:
+            self.logger.error("Hit the breakpoint on tick {self.ticks}!")
+            sys.exit(0)
+
