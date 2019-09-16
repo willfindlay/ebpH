@@ -58,6 +58,6 @@ typedef long time_t;
 
 /* size of the pid hashed maps */
 /* TODO: fine tune this        */
-#define PID_TGID_SIZE
+#define PID_TGID_SIZE 1024000
 
 #endif // DEFS_H

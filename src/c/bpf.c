@@ -310,6 +310,7 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
 static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
+    int already_created = 0;
 
     /* init the profile */
     pH_profile p = {.frozen = 0, .normal = 0, .normal_time = 0,
@@ -337,19 +338,20 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
     /* prevent shared libraries from being written on top of a binary */
     u64 *test_key = pid_tgid_to_profile_key.lookup(& pid_tgid);
     if(test_key)
-        return 0;
+        return -1;
 
     bpf_probe_read(&p.key, sizeof(p.key), key);
 
     temp = profile.lookup(key);
-    if(temp != NULL)
+    if(temp)
+    {
+        already_created = 1;
         goto created;
+    }
 
     /* create the profile if it does not exist */
     temp = profile.lookup_or_init(key, &p);
 
-    /* notify userspace of profile creation */
-    profile_create_event.perf_submit(ctx, &p, sizeof(p));
     profiles.increment(0);
 
 created:
@@ -367,7 +369,7 @@ created:
 /*    bpf_spin_unlock(&p.lock); */
 /*#endif */
 
-    return 0;
+    return already_created ? -1 : 0;
 }
 
 /* reset locality frame for a given sequence */
@@ -671,6 +673,7 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     struct inode *exec_inode;
     pH_profile *p;
     u64 key = 0;
+    int created = 0;
 
     /* yoink the file struct */
     exec_file = (struct file *)PT_REGS_RC(ctx);
@@ -704,17 +707,24 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
     /* create a new profile with this key if necessary */
-    pH_create_profile(&key, ctx);
+    created = !pH_create_profile(&key, ctx);
 
     /* update comm with a much better indication of the executable name */
     struct qstr dn = {};
     struct task_struct *curr = (struct task_struct *)bpf_get_current_task();
     pH_profile *pro = profile.lookup(&key);
     if(!pro)
-        return 0;
+        return -1;
     bpf_probe_read(&dn, sizeof(dn), &exec_entry->d_name);
     bpf_probe_read(&pro->comm, sizeof(pro->comm), dn.name);
     profile.update(&key, pro);
+
+    /* This has to happen here because we need the updated comm */
+    if (created)
+    {
+        /* notify userspace of profile creation */
+        profile_create_event.perf_submit(ctx, pro, sizeof(*pro));
+    }
 
     return 0;
 }

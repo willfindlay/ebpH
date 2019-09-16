@@ -21,11 +21,16 @@ class ebpHD(Daemon):
         self.monitoring = monitoring
 
         self.bpf = None
+
+        # bpf stats
         self.num_profiles = 0
         self.num_syscalls = 0
         self.num_forks    = 0
         self.num_execves  = 0
         self.num_exits    = 0
+
+        # number of elapsed ticks since creation
+        self.ticks = 0
 
         self.logger = logging.getLogger('ebpH')
 
@@ -56,7 +61,7 @@ class ebpHD(Daemon):
         # profile has been created for the first time
         def on_profile_create(cpu, data, size):
             event = self.bpf["profile_create_event"].event(data)
-            s = f"Profile {event.key} created."
+            s = f"Profile {event.comm.decode('utf-8')} ({event.key}) created."
             self.logger.info(s)
         self.bpf["profile_create_event"].open_perf_buffer(on_profile_create)
 
@@ -171,6 +176,8 @@ class ebpHD(Daemon):
         pass
 
     def tick(self):
+        self.ticks = self.ticks + 1
+
         self.bpf.perf_buffer_poll(30)
         self.num_profiles = self.bpf["profiles"].values()[0].value
         self.num_syscalls = self.bpf["syscalls"].values()[0].value
@@ -179,12 +186,8 @@ class ebpHD(Daemon):
         self.num_exits    = self.bpf["exits"].values()[0].value
 
         # debugging stuff
+        # leave this in until we can run for about a day straight
         breakpoint = self.bpf["breakpoint"].values()
-
-        try:
-            self.ticks = self.ticks + 1
-        except:
-            self.ticks = 1
 
         if breakpoint[0].value > 0:
             self.logger.error("Hit the breakpoint on tick {self.ticks}!")
