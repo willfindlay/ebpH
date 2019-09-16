@@ -95,10 +95,10 @@ BPF_HISTOGRAM(exits);
 
 /* profiles hashed by device number << 32 | inode number */
 BPF_HASH(profile, u64, pH_profile);
-BPF_HASH(pid_tgid_to_profile_key, u64, u64);
+BPF_HASH(pid_tgid_to_profile_key, u64, u64, PID_TGID_SIZE);
 
 /* sequences hashed by pid_tgid */
-BPF_HASH(seq, u64, pH_seq);
+BPF_HASH(seq, u64, pH_seq, PID_TGID_SIZE);
 
 /* --- helpers --- */
 
@@ -356,10 +356,12 @@ created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
 
-    /* verifier hates this all of a sudden.... */
-    ///* notify userspace of profile association */
-    //struct profile_association ass = {*key, pid_tgid >> 32};
-    //profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
+    /* notify userspace of profile association */
+    struct profile_association ass = {*key, pid_tgid >> 32};
+    /* the verifier complains here */
+    /* this probe_read soothes it */
+    bpf_probe_read(&ass, sizeof(ass), &ass);
+    profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
 /*    bpf_spin_unlock(&p.lock); */
@@ -579,17 +581,17 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
     // we made it
     breakpoint.increment(1);
 
-    pH_process_normal(&pro, s, ctx);
+    //pH_process_normal(&pro, s, ctx);
 
-    pH_train(&pro, s, ctx);
+    //pH_train(&pro, s, ctx);
 
-    /* update normal status if we are frozen and have reached normal_time */
-    if(pH_check_normal_time(&pro, ctx))
-    {
-        pH_start_normal(&pro, s);
-    }
+    ///* update normal status if we are frozen and have reached normal_time */
+    //if(pH_check_normal_time(&pro, ctx))
+    //{
+    //    pH_start_normal(&pro, s);
+    //}
 
-    profile.update(&pro.key, &pro);
+    //profile.update(&pro.key, &pro);
     return 0;
 }
 
@@ -724,6 +726,17 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     pH_profile *p_pt;
     u64 *key;
 
+    /* delete the sequence and disassociate the profile if the process has exited */
+    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
+    {
+        seq.delete(&pid_tgid);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+
+        exits.increment(0);
+
+        return 0;
+    }
+
     /* create or update the sequence for this pid_tgid */
     pH_create_or_update_sequence(&args->id, &pid_tgid);
 
@@ -750,15 +763,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         /* disassociate the profile if it is already associated */
         pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
         execves.increment(0);
-    }
-
-    /* delete the sequence and disassociate the profile if the process has exited */
-    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
-    {
-        seq.delete(&pid_tgid);
-        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
-
-        exits.increment(0);
     }
 
     return 0;

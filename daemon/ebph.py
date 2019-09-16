@@ -186,21 +186,7 @@ class ebpHD(Daemon):
         except:
             self.ticks = 1
 
-        print(f'Tick: {self.ticks}')
-        print(f'Hit failures: {breakpoint[0].value}')
-        print(f'Hit successes: {breakpoint[1].value}')
-        try:
-            sr = breakpoint[1].value / (breakpoint[0].value + breakpoint[1].value) * 100
-        except:
-            sr = 100
-        print(f'Success ratio: {sr}%')
-        print(f'exits: {self.num_exits}')
-        print(f'forks: {self.num_forks}')
-        print(f'profiles: {self.num_profiles}')
-        print(f'syscalls: {self.num_syscalls}')
-        if sr < 100:
-            print(self.ticks)
+        if breakpoint[0].value > 0:
+            self.logger.error("Hit the breakpoint on tick {self.ticks}!")
             sys.exit(0)
-
-        print()
 
