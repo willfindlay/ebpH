@@ -94,7 +94,11 @@ BPF_HISTOGRAM(exits);
 /* --- hashmaps --- */
 
 /* profiles hashed by device number << 32 | inode number */
+#ifdef LOAD_PROFILES
+BPF_TABLE_PINNED("hash", u64, pH_profile, profile, 10240, "/sys/fs/bpf/ebpH/profile");
+#else
 BPF_HASH(profile, u64, pH_profile);
+#endif
 BPF_HASH(pid_tgid_to_profile_key, u64, u64, PID_TGID_SIZE);
 
 /* sequences hashed by pid_tgid */
@@ -287,7 +291,7 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     if(!parent_key)
     {
         /* FIXME: this message is commented out because it's extremely annoying when testing */
-        /*PH_WARNING("No parent profile to copy on fork.", ctx); */
+        //PH_WARNING("No parent profile to copy on fork.", ctx);
         return 0;
     }
     p = profile.lookup(parent_key);
@@ -307,7 +311,7 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     return 0;
 }
 
-static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
+static u8 pH_create_profile(u64 *key, struct pt_regs *ctx, char *comm)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     int already_created = 0;
@@ -322,8 +326,16 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
     /* set normal_time */
     pH_set_normal_time(&p, ctx);
 
-    /* set initial comm (this will be overwritten later) */
-    bpf_get_current_comm(&p.comm, sizeof(p.comm));
+    /* set comm */
+    if (comm)
+    {
+        bpf_probe_read_str(p.comm, sizeof(p.comm), comm);
+    }
+    /* fallback */
+    else
+    {
+        bpf_get_current_comm(&p.comm, sizeof(p.comm));
+    }
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
 /*    bpf_spin_lock(&p.lock); */
@@ -345,7 +357,6 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
     temp = profile.lookup(key);
     if(temp)
     {
-        already_created = 1;
         goto created;
     }
 
@@ -354,6 +365,9 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
 
     profiles.increment(0);
 
+    profile_create_event.perf_submit(ctx, &p, sizeof(p));
+
+    /* TODO: move this to another function */
 created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
@@ -369,7 +383,7 @@ created:
 /*    bpf_spin_unlock(&p.lock); */
 /*#endif */
 
-    return already_created ? -1 : 0;
+    return 0;
 }
 
 /* reset locality frame for a given sequence */
@@ -673,7 +687,7 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     struct inode *exec_inode;
     pH_profile *p;
     u64 key = 0;
-    int created = 0;
+    char comm[FILENAME_LEN];
 
     /* yoink the file struct */
     exec_file = (struct file *)PT_REGS_RC(ctx);
@@ -706,25 +720,14 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
 
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    /* create a new profile with this key if necessary */
-    created = !pH_create_profile(&key, ctx);
-
     /* update comm with a much better indication of the executable name */
     struct qstr dn = {};
     struct task_struct *curr = (struct task_struct *)bpf_get_current_task();
-    pH_profile *pro = profile.lookup(&key);
-    if(!pro)
-        return -1;
     bpf_probe_read(&dn, sizeof(dn), &exec_entry->d_name);
-    bpf_probe_read(&pro->comm, sizeof(pro->comm), dn.name);
-    profile.update(&key, pro);
+    bpf_probe_read(&comm, sizeof(comm), dn.name);
 
-    /* This has to happen here because we need the updated comm */
-    if (created)
-    {
-        /* notify userspace of profile creation */
-        profile_create_event.perf_submit(ctx, pro, sizeof(*pro));
-    }
+    /* create a new profile with this key if necessary */
+    pH_create_profile(&key, ctx, comm);
 
     return 0;
 }
