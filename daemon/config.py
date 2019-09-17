@@ -16,15 +16,26 @@ class Config():
 
     # Do not edit anything below this line ------------------------------------
 
+    # bpf filesystem config
+    bpffs = '/sys/fs/bpf'
+    ebphfs = os.path.join(bpffs, 'ebpH')
+    profiles_path = os.path.join(ebphfs, 'profiles')
+
+    # configure file locations
+    socket = os.path.join(socketdir, 'ebph.sock')
+    pidfile = os.path.join(socketdir, 'ebph.pid')
+    logfile = os.path.join(logdir, 'ebph.log')
+
+    @staticmethod
+    def setup_dir(d):
+        if not os.path.exists(d):
+            os.makedirs(d)
+
     @staticmethod
     def init():
-        if not os.path.exists(Config.logdir):
-            os.makedirs(Config.logdir)
-
-        # configure file locations
-        Config.socket = os.path.join(Config.socketdir, 'ebph.sock')
-        Config.pidfile = os.path.join(Config.socketdir, 'ebph.pid')
-        Config.logfile = os.path.join(Config.logdir, 'ebph.log')
+        # make sure directories are setup
+        Config.setup_dir(Config.logdir)
+        Config.setup_dir(Config.ebphfs)
 
         # configure logging
         logger = logging.getLogger('ebpH')

@@ -8,6 +8,10 @@ from signal import SIGTERM
 
 from config import Config
 import utils
+
+def cleanup(ebph):
+    ebph.cleanup()
+
 from ebph import ebpHD
 
 OPERATIONS = ["start", "stop", "restart", "test"]

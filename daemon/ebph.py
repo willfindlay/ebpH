@@ -1,4 +1,4 @@
-import os, sys, socket, signal, atexit, time, logging
+import os, sys, socket, signal, time, logging
 from threading import Thread
 import ctypes as ct
 
@@ -34,8 +34,16 @@ class ebpHD(Daemon):
 
         self.logger = logging.getLogger('ebpH')
 
+        # temporary to test
+        self.logger.addHandler(logging.StreamHandler())
+
     def main(self):
-        atexit.register(self.cleanup)
+        self.logger.warning("Starting ebpH daemon...")
+
+        # register handlers
+        signal.signal(signal.SIGTERM, self.on_term)
+        signal.signal(signal.SIGINT, self.on_term)
+
         if self.monitoring:
             self.start_monitoring()
         while True:
@@ -43,17 +51,9 @@ class ebpHD(Daemon):
                 self.tick()
             time.sleep(TICKSLEEP)
 
-    def start(self):
-        self.logger.warning("Starting ebpH daemon...")
-        super().start()
-
     def stop(self):
         self.logger.warning("Stopping ebpH daemon...")
         super().stop()
-
-    def restart(self):
-        self.logger.warning("Restarting ebpH daemon...")
-        super().restart()
 
     # BPF stuff below this line --------------------
 
@@ -138,9 +138,16 @@ class ebpHD(Daemon):
             text = text.replace("DEFS_H", DEFS_H, 1)
             text = text.replace("PROFILES_H", PROFILES_H, 1)
 
+        # add flag to load in profiles if save file exists
+        if self.check_for_profile_save():
+            text = '\n'.join(["#define LOAD_PROFILES", text])
+
         # compile ebpf code
         self.bpf = BPF(text=text)
         self.register_perf_buffers()
+
+        if self.check_for_profile_save():
+            self.logger.info("Profiles loaded successfully.")
 
         # register callback to load profiles
         # FIXME: might fundamentally change how this works, so leaving it commented for now
@@ -148,14 +155,12 @@ class ebpHD(Daemon):
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='pH_on_do_open_execat')
 
-        self.logger.warning('Started monitoring the system.')
+        self.logger.info('Started monitoring the system.')
 
-        # load in any profiles
-        self.load_profiles()
-
-    def cleanup(self):
+    def on_term(self, sn=None, frame=None):
         if self.monitoring:
             self.stop_monitoring()
+        sys.exit(0)
 
     def stop_monitoring(self):
         self.save_profiles()
@@ -165,15 +170,24 @@ class ebpHD(Daemon):
 
         self.logger.warning('Stopped monitoring the system.')
 
-    # save profiles to disk
+    # pin a profile map
     def save_profiles(self):
-        # FIXME: might fundamentally change how this works, so leaving it empty for now
-        pass
+        self.pin_map("profile", dir=Config.ebphfs)
 
-    # load profiles from disk
-    def load_profiles(self, profile=None):
-        # FIXME: might fundamentally change how this works, so leaving it empty for now
-        pass
+    # Check to see if a savefile exists for profiles
+    def check_for_profile_save(self):
+        return os.path.exists(os.path.join(Config.ebphfs, 'profile'))
+
+    def pin_map(self, name, dir=Config.ebphfs):
+        fn = os.path.join(dir, name)
+        # remove filename before trying to pin
+        if os.path.exists(fn):
+            os.unlink(fn)
+
+        # pin the map
+        ret = lib.bpf_obj_pin(self.bpf[f"{name}"].map_fd, f"{fn}".encode('utf-8'))
+        if ret:
+            self.logger.error(f"Unable to pin map {fn}: {os.strerror(ct.get_errno())}")
 
     def tick(self):
         self.ticks = self.ticks + 1
