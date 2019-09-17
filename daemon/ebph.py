@@ -186,7 +186,6 @@ class ebpHD(Daemon):
         self.num_exits    = self.bpf["exits"].values()[0].value
 
         # debugging stuff
-        # leave this in until we can run for about a day straight
         breakpoint = self.bpf["breakpoint"].values()
 
         if breakpoint[0].value > 0:

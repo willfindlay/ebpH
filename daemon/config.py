@@ -1,4 +1,4 @@
-import os, sys, logging
+import os, sys, logging, logging.handlers
 
 class Config():
     # Location where socket and pidfile should be stored
@@ -27,7 +27,14 @@ class Config():
         Config.logfile = os.path.join(Config.logdir, 'ebph.log')
 
         # configure logging
-        logging.basicConfig(filename=Config.logfile, filemode='a',
-                format='%(asctime)s - %(levelname)s: %(message)s',
-                level=Config.verbosity,
-                datefmt='%Y-%m-%d %H:%M:%S')
+        logger = logging.getLogger('ebpH')
+        logger.setLevel(Config.verbosity)
+
+        handler = logging.handlers.WatchedFileHandler(Config.logfile)
+        handler.setLevel(Config.verbosity)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+        formatter.datefmt = '%Y-%m-%d %H:%M:%S'
+        handler.setFormatter(formatter)
+
+        logger.addHandler(handler)
