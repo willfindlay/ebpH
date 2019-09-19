@@ -144,7 +144,9 @@ class ebpHD(Daemon):
         self.register_perf_buffers()
 
         if self.check_for_profile_save():
-            self.logger.info("Profiles loaded successfully.")
+            self.logger.info("Loaded profiles successfully.")
+            loaded = sorted([''.join([v.comm.decode('utf-8'), ' (', str(v.key), ')']) for v in self.bpf['profile'].values()], key=lambda x: x.upper())
+            self.logger.info('\n\t\t\t'.join(['The following profiles have been loaded:'] + loaded))
 
         # register callback to load profiles
         # FIXME: might fundamentally change how this works, so leaving it commented for now

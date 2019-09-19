@@ -24,7 +24,7 @@ def parse_args(args=[]):
     #        help=f"Path to Linux Kernel source. Config.py will try some sensible defaults if this is not set.")
 
     parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS, nargs='?',
-            help=f"Operation you want to perform. Not allowed with --nodaemon. Choices are {', '.join(OPERATIONS)}")
+            help=f"Operation you want to perform. Not allowed with --nodaemon. Choices are: {', '.join(OPERATIONS)}.")
     parser.add_argument('--nodaemon', dest='nodaemon', action='store_true',
             help=f"Run this as a foreground process instead of a daemon.")
     parser.add_argument('--nolog', dest='nolog', action='store_true',
@@ -38,7 +38,7 @@ def parse_args(args=[]):
     if args.nodaemon and args.operation:
         parser.error("You cannot specify an operation with the --nodaemon flag.")
     if not (args.nodaemon or args.operation):
-        parser.error("You must specify either an operation or set the --nodaemon flag.")
+        parser.error("You must either specify an operation or set the --nodaemon flag.")
 
     return args
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         formatter.datefmt = '%Y-%m-%d %H:%M:%S'
         stream_handler.setFormatter(formatter)
 
-        # disable other handlers
+        # disable file handlers
         logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
     e = ebpHD()
