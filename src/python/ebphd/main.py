@@ -81,4 +81,5 @@ if __name__ == "__main__":
     elif args.operation == "restart":
         e.restart()
     elif args.nodaemon:
+        e._bind_socket()
         e.main()

@@ -8,8 +8,6 @@ from daemon import Daemon
 from config import Config
 import utils
 
-TICKSLEEP = 1
-
 BPF_C = utils.path('src/c/bpf.c')
 DEFS_H = utils.path('src/c/defs.h')
 PROFILES_H = utils.path('src/c/profiles.h')
@@ -46,7 +44,7 @@ class ebpHD(Daemon):
         while True:
             if self.monitoring:
                 self.tick()
-            time.sleep(TICKSLEEP)
+            time.sleep(Config.ticksleep)
 
     def stop(self):
         self.logger.warning("Stopping ebpH daemon...")
@@ -191,17 +189,23 @@ class ebpHD(Daemon):
     def tick(self):
         self.ticks = self.ticks + 1
 
-        self.bpf.perf_buffer_poll(30)
-        self.num_profiles = self.bpf["profiles"].values()[0].value
-        self.num_syscalls = self.bpf["syscalls"].values()[0].value
-        self.num_forks    = self.bpf["forks"].values()[0].value
-        self.num_execves  = self.bpf["execves"].values()[0].value
-        self.num_exits    = self.bpf["exits"].values()[0].value
+        # socket stuff below this line ----------------------
+        #connection, client_address = self._socket.accept()
 
-        # debugging stuff
-        breakpoint = self.bpf["breakpoint"].values()
+        # bpf stuff below this line -------------------------
+        if self.monitoring:
+            self.bpf.perf_buffer_poll(30)
+            self.num_profiles = self.bpf["profiles"].values()[0].value
+            self.num_syscalls = self.bpf["syscalls"].values()[0].value
+            self.num_forks    = self.bpf["forks"].values()[0].value
+            self.num_execves  = self.bpf["execves"].values()[0].value
+            self.num_exits    = self.bpf["exits"].values()[0].value
 
-        if breakpoint[0].value > 0:
-            self.logger.error("Hit the breakpoint on tick {self.ticks}!")
-            sys.exit(0)
+            # debugging stuff delete later
+            # don't forget to remove bpf portion as well
+            breakpoint = self.bpf["breakpoint"].values()
+
+            if breakpoint[0].value > 0:
+                self.logger.error("Hit the breakpoint on tick {self.ticks}!")
+                sys.exit(0)
 

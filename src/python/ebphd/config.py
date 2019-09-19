@@ -13,6 +13,11 @@ class Config():
     #                  logging.INFO,     logging.DEBUG
     verbosity = logging.INFO
 
+    # How long ebpH should sleep between ticks in seconds
+    # Lower values imply higher CPU usage
+    # Recommended value is around 1 second
+    ticksleep = 1
+
     # Do not edit anything below this line ------------------------------------
 
     # bpf filesystem config

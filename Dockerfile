@@ -5,7 +5,8 @@ MAINTAINER William Findlay <williamfindlay@cmail.carleton.ca>
 RUN apt-get -qq update && \
     apt-get -y install git
 
-RUN git clone --branch hhdev https://github.com/HousedHorse/bcc
+#RUN git clone --branch hhdev https://github.com/HousedHorse/bcc
+RUN git clone https://github.com/iovisor/bcc
 
 FROM ubuntu:bionic
 
