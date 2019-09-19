@@ -27,6 +27,7 @@
 /* macros for error and warning message events */
 #define PH_ERROR(MSG, CTX) char m[] = (MSG); __pH_log_error(m, sizeof(m), (CTX))
 #define PH_WARNING(MSG, CTX) char m[] = (MSG); __pH_log_warning(m, sizeof(m), (CTX))
+#define PH_DEBUG(MSG, CTX) char m[] = (MSG); __pH_log_debug(m, sizeof(m), (CTX))
 
 /* hard coded stuff */
 #define THE_KEY 20978485 /* this is the inode for bash on my system */
@@ -46,7 +47,7 @@ struct profile_copy
     u64 key;
 };
 
-struct debug
+struct number
 {
     u64 n;
 };
@@ -73,12 +74,15 @@ BPF_PERF_OUTPUT(pH_error);
 BPF_PERF_OUTPUT(pH_warning);
 
 /* debugging events */
-BPF_PERF_OUTPUT(output_number);
+BPF_PERF_OUTPUT(pH_debug);
 
 /* monitoring events */
 BPF_PERF_OUTPUT(anomaly_event); /* TODO: implement this */
 
 /* --- histograms --- */
+
+/* debugging */
+BPF_HISTOGRAM(breakpoint);
 
 /* counting syscalls */
 BPF_HISTOGRAM(profiles);
@@ -90,11 +94,15 @@ BPF_HISTOGRAM(exits);
 /* --- hashmaps --- */
 
 /* profiles hashed by device number << 32 | inode number */
+#ifdef LOAD_PROFILES
+BPF_TABLE_PINNED("hash", u64, pH_profile, profile, 10240, "/sys/fs/bpf/ebpH/profile");
+#else
 BPF_HASH(profile, u64, pH_profile);
-BPF_HASH(pid_tgid_to_profile_key, u64, u64);
+#endif
+BPF_HASH(pid_tgid_to_profile_key, u64, u64, PID_TGID_SIZE);
 
 /* sequences hashed by pid_tgid */
-BPF_HASH(seq, u64, pH_seq);
+BPF_HASH(seq, u64, pH_seq, PID_TGID_SIZE);
 
 /* --- helpers --- */
 
@@ -108,6 +116,12 @@ static inline void __pH_log_error(char *m, int size, struct pt_regs *ctx)
 static inline void __pH_log_warning(char *m, int size, struct pt_regs *ctx)
 {
     pH_warning.perf_submit(ctx, m, size);
+}
+
+/* log a debug message -- this function should not be called, use macro PH_DEBUG instead */
+static inline void __pH_log_debug(char *m, int size, struct pt_regs *ctx)
+{
+    pH_debug.perf_submit(ctx, m, size);
 }
 
 /* function that returns the pid_tgid of a process' parent */
@@ -277,7 +291,7 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     if(!parent_key)
     {
         /* FIXME: this message is commented out because it's extremely annoying when testing */
-        /*PH_WARNING("No parent profile to copy on fork.", ctx); */
+        //PH_WARNING("No parent profile to copy on fork.", ctx);
         return 0;
     }
     p = profile.lookup(parent_key);
@@ -297,9 +311,10 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
     return 0;
 }
 
-static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
+static u8 pH_create_profile(u64 *key, struct pt_regs *ctx, char *comm)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
+    int already_created = 0;
 
     /* init the profile */
     pH_profile p = {.frozen = 0, .normal = 0, .normal_time = 0,
@@ -311,8 +326,16 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
     /* set normal_time */
     pH_set_normal_time(&p, ctx);
 
-    /* set initial comm (this will be overwritten later) */
-    bpf_get_current_comm(&p.comm, sizeof(p.comm));
+    /* set comm */
+    if (comm)
+    {
+        bpf_probe_read_str(p.comm, sizeof(p.comm), comm);
+    }
+    /* fallback */
+    else
+    {
+        bpf_get_current_comm(&p.comm, sizeof(p.comm));
+    }
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
 /*    bpf_spin_lock(&p.lock); */
@@ -327,29 +350,33 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx)
     /* prevent shared libraries from being written on top of a binary */
     u64 *test_key = pid_tgid_to_profile_key.lookup(& pid_tgid);
     if(test_key)
-        return 0;
+        return -1;
 
     bpf_probe_read(&p.key, sizeof(p.key), key);
 
     temp = profile.lookup(key);
-    if(temp != NULL)
+    if(temp)
+    {
         goto created;
+    }
 
     /* create the profile if it does not exist */
     temp = profile.lookup_or_init(key, &p);
-    bpf_trace_printk("created profile %llu\n", *key);
 
-    /* notify userspace of profile creation */
-    profile_create_event.perf_submit(ctx, &p, sizeof(p));
     profiles.increment(0);
 
+    profile_create_event.perf_submit(ctx, &p, sizeof(p));
+
+    /* TODO: move this to another function */
 created:
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
-    bpf_trace_printk("profile %llu successfully associated with pid %d\n", *key, pid_tgid >> 32);
 
-    /* notify userspace of profile asssociation */
+    /* notify userspace of profile association */
     struct profile_association ass = {*key, pid_tgid >> 32};
+    /* the verifier complains here */
+    /* this probe_read soothes it */
+    bpf_probe_read(&ass, sizeof(ass), &ass);
     profile_assoc_event.perf_submit(ctx, &ass, sizeof(ass));
 
 /*#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0) */
@@ -558,23 +585,29 @@ static u8 pH_process_syscall(pH_profile *p, u64 *pid_tgid, struct pt_regs *ctx)
     /*        (we will be locking the profile here) */
     bpf_probe_read(&pro, sizeof(pro), p);
     s = seq.lookup(pid_tgid);
+
     if(!s)
     {
-        PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        //PH_WARNING("Could not look up sequence (the process has already exited).", ctx);
+        // we hit the trap
+        breakpoint.increment(0);
         return 0;
     }
 
-    pH_process_normal(&pro, s, ctx);
+    // we made it
+    breakpoint.increment(1);
 
-    pH_train(&pro, s, ctx);
+    //pH_process_normal(&pro, s, ctx);
 
-    /* update normal status if we are frozen and have reached normal_time */
-    if(pH_check_normal_time(&pro, ctx))
-    {
-        pH_start_normal(&pro, s);
-    }
+    //pH_train(&pro, s, ctx);
 
-    profile.update(&pro.key, &pro);
+    ///* update normal status if we are frozen and have reached normal_time */
+    //if(pH_check_normal_time(&pro, ctx))
+    //{
+    //    pH_start_normal(&pro, s);
+    //}
+
+    //profile.update(&pro.key, &pro);
     return 0;
 }
 
@@ -615,7 +648,6 @@ static u8 pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
 
     if(!payload)
     {
-        bpf_trace_printk("could not load full profile data -- pH_load_base_profile \n");
         return -1;
     }
 
@@ -655,6 +687,7 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
     struct inode *exec_inode;
     pH_profile *p;
     u64 key = 0;
+    char comm[FILENAME_LEN];
 
     /* yoink the file struct */
     exec_file = (struct file *)PT_REGS_RC(ctx);
@@ -687,18 +720,14 @@ int pH_on_do_open_execat(struct pt_regs *ctx)
 
     u64 pid_tgid = bpf_get_current_pid_tgid();
 
-    /* create a new profile with this key if necessary */
-    pH_create_profile(&key, ctx);
-
     /* update comm with a much better indication of the executable name */
     struct qstr dn = {};
     struct task_struct *curr = (struct task_struct *)bpf_get_current_task();
-    pH_profile *pro = profile.lookup(&key);
-    if(!pro)
-        return 0;
     bpf_probe_read(&dn, sizeof(dn), &exec_entry->d_name);
-    bpf_probe_read(&pro->comm, sizeof(pro->comm), dn.name);
-    profile.update(&key, pro);
+    bpf_probe_read(&comm, sizeof(comm), dn.name);
+
+    /* create a new profile with this key if necessary */
+    pH_create_profile(&key, ctx, comm);
 
     return 0;
 }
@@ -709,6 +738,17 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     pH_profile *p_pt;
     u64 *key;
+
+    /* delete the sequence and disassociate the profile if the process has exited */
+    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
+    {
+        seq.delete(&pid_tgid);
+        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
+
+        exits.increment(0);
+
+        return 0;
+    }
 
     /* create or update the sequence for this pid_tgid */
     pH_create_or_update_sequence(&args->id, &pid_tgid);
@@ -736,15 +776,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         /* disassociate the profile if it is already associated */
         pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
         execves.increment(0);
-    }
-
-    /* delete the sequence and disassociate the profile if the process has exited */
-    if ((syscall == SYS_EXIT) || (syscall == SYS_EXIT_GROUP))
-    {
-        seq.delete(&pid_tgid);
-        pH_disassociate_profile(pid_tgid, (struct pt_regs *)args);
-
-        exits.increment(0);
     }
 
     return 0;
