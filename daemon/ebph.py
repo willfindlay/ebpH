@@ -34,9 +34,6 @@ class ebpHD(Daemon):
 
         self.logger = logging.getLogger('ebpH')
 
-        # temporary to test
-        self.logger.addHandler(logging.StreamHandler())
-
     def main(self):
         self.logger.warning("Starting ebpH daemon...")
 

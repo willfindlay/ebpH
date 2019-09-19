@@ -12,7 +12,6 @@ class Config():
     # Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
     #                  logging.INFO,     logging.DEBUG
     verbosity = logging.INFO
-    #verbosity = logging.DEBUG
 
     # Do not edit anything below this line ------------------------------------
 
