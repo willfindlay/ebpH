@@ -1,63 +1,57 @@
-/* ebpH --  Monitor syscall sequences and detect anomalies
- * Copyright 2019 Anil Somayaji (soma@scs.carleton.ca) and
- * William Findlay (williamfindlay@cmail.carleton.ca)
+/* ebpH --  An eBPF intrusion detection program.
+ * -------  Monitors system call patterns and detect anomalies.
+ * Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
+ * Anil Somayaji (soma@scs.carleton.ca)
  *
- * Based on Sasha Goldshtein's syscount
- *  https://github.com/iovisor/bcc/blob/master/tools/syscount.py
- *  Copyright 2017, Sasha Goldshtein.
- * And on Anil Somayaji's pH
+ * Based on Anil Somayaji's pH
  *  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
  *  Copyright 2003 Anil Somayaji
  *
- * USAGE: ebpH.py <COMMAND>
+ * USAGE: ebphd <COMMAND>
  *
  * Licensed under GPL v2 License */
 
 #ifndef DEFS_H
 #define DEFS_H
 
-// we need some extra definitions if we are including this file from userspace
-#ifdef USERSPACE
-#include <stdint.h>
-typedef uint64_t u64;
-typedef uint32_t u32;
-typedef uint16_t u16;
-typedef uint8_t  u8;
-typedef long time_t;
+/* This is the default size for BPF tables (hashmaps, etc.) */
+#define EBPH_DEFAULT_TABLE_SIZE 10240
+/* 100x the default table size for now, make this a tighter bound later */
+#define EBPH_PID_TGID_SIZE 1024000
+
+/* Profile stuff below this line -------------------------- */
+/* Window size for locality frames */
+#define EBPH_LOCALITY_WIN  128
+
+/* Total number of systemcalls in the current kernel version
+ * Keep this updated with the latest version of Linux */
+#define EBPH_NUM_SYSCALLS  314
+
+/* Amount of time a profile must remain frozen before becoming normal */
+#define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
+
+/* 3 seconds in nanoseconds uncomment this and comment the above for quick testing */
+//#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000
+
+/* Multiply by a profile's train_count and compare with... */
+#define EBPH_NORMAL_FACTOR_DEN 32
+/* ... this, multiplied by a profile's normal_count */
+#define EBPH_NORMAL_FACTOR 128
+
+/* Number of anomalies allowed before a profile is no longer considered normal */
+#define EBPH_ANOMALY_LIMIT 30
+
+/* Maximum length for a filename... This seems fine for now. */
+#define EBPH_FILENAME_LEN 128
+
+/* Systemcall stuff below this line -------------------------- */
+#define EBPH_CLONE      56
+#define EBPH_FORK       57
+#define EBPH_VFORK      58
+#define EBPH_EXECVE     59
+#define EBPH_EXIT       60
+#define EBPH_EXIT_GROUP 231
+#define EBPH_EMPTY      9999
+
 #endif
-
-// arguments
-#define SEQLEN  8
-
-// table size to use for hashmaps
-// set to BPF default for now
-#define TABLE_SIZE 10240
-
-// pH_task definitions
-#define PH_LOCALITY_WIN 128
-
-// pH_profile definitions
-#define PH_NUM_SYSCALLS  314
-#define PH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 // one week in nanoseconds
-//#define PH_NORMAL_WAIT (u64) 3 * 1000000000 // 3 seconds in nanoseconds uncomment this and comment the above for quick testing
-#define PH_NORMAL_FACTOR_DEN 32
-#define PH_NORMAL_FACTOR     128
-#define PH_ANOMALY_LIMIT     30
-
-// important syscall definitions
-#define SYS_CLONE      56
-#define SYS_FORK       57
-#define SYS_VFORK      58
-#define SYS_EXECVE     59
-#define SYS_EXIT       60
-#define SYS_EXIT_GROUP 231
-#define EMPTY          9999
-
-// size of a filename string
-#define FILENAME_LEN 128
-
-/* size of the pid hashed maps */
-/* TODO: fine tune this        */
-#define PID_TGID_SIZE 1024000
-
-#endif // DEFS_H
+/* DEFS_H */
