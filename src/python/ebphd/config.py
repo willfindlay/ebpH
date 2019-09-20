@@ -13,10 +13,13 @@ class Config():
     #                  logging.INFO,     logging.DEBUG
     verbosity = logging.INFO
 
-    # How long ebpH should sleep between ticks in seconds
+    # How long ebpH should sleep between ticks in seconds?
     # Lower values imply higher CPU usage
     # Recommended value is around 1 second
     ticksleep = 1
+
+    # When attempting to stop the daemon, how long do we wait before giving up?
+    killtimeout = 20
 
     # Do not edit anything below this line ------------------------------------
 

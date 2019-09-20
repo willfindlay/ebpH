@@ -119,13 +119,20 @@ class Daemon:
 
         # kill the process
         try:
-            self._del_pidfile()
+            print("Attempting to kill ebpH daemon...")
             os.kill(pid, SIGTERM)
+            timeout = 0
+            while os.path.exists(self.pidfile):
+                timeout = timeout + 1
+                time.sleep(1)
+                if timeout >= Config.killtimeout:
+                    sys.stderr.write(f"Timeout reached. You may want to delete {self.pidfile} and kill the daemon manually.\n")
+                    sys.exit(-1)
             print("Killed ebpH daemon successfully!")
         except OSError as e:
             if e.strerror.find("No such process") >= 0:
                 if os.path.exists(self.pidfile):
-                    os.unlink(self.pidfile)
+                    self._del_pidfile()
             sys.stderr.write(f"Failed to kill ebpH daemon: {e.errno} {e.strerror}\n")
             sys.exit(-1)
 
