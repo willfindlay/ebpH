@@ -638,44 +638,6 @@ static u8 pH_disassociate_profile(u64 pid_tgid, struct pt_regs *ctx)
     return 0;
 }
 
-/* Profile Loading */
-
-static u8 pH_load_base_profile(pH_profile_payload *payload, struct pt_regs *ctx)
-{
-    pH_profile p;
-    pH_profile *temp;
-    u64 key = 0;
-
-    if(!payload)
-    {
-        return -1;
-    }
-
-    bpf_probe_read(&p, sizeof(p), &payload->profile);
-
-    /* calculate the hash and lookup the profile */
-    key = p.key;
-
-    /* check to see if profile exists in memory */
-    temp = profile.lookup(&key);
-
-    /* if it does, update it */
-    if(temp != NULL)
-    {
-        profile.update(&key, &p);
-    }
-    /* otherwise, create it */
-    else
-    {
-        profile.lookup_or_init(&key, &p);
-    }
-
-    /* notify userspace of the profile being loaded */
-    profile_load_event.perf_submit(ctx, &p, sizeof(p));
-
-    return 0;
-}
-
 /* Tracepoints and Hooks */
 
 /* hooks onto execve helper responsible for opening the files */
@@ -796,38 +758,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         pH_copy_sequence_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret);
         pH_copy_profile_on_fork(&pid_tgid, &ppid_tgid, (u64 *) &args->ret, (struct pt_regs *)args);
     }
-
-    return 0;
-}
-
-/* load a profile */
-int pH_load_profile(struct pt_regs *ctx)
-{
-    u64 key;
-    pH_profile *p;
-    pH_profile_payload *payload = (pH_profile_payload *)PT_REGS_RC(ctx);
-
-    if(!payload)
-    {
-        PH_ERROR("Could not load profile data.", ctx);
-        return -1;
-    }
-
-    /* check if profile is already loaded */
-    key = payload->profile.key;
-    p = profile.lookup(&key);
-    if(p)
-    {
-        //PH_WARNING("Reloading a profile that has already been loaded.", ctx);
-        profile_reload_event.perf_submit(ctx, p, sizeof(pH_profile));
-        goto reload; /* we don't want to increment the number of active profiles if we are reloading */
-    }
-
-    profiles.increment(0);
-
-reload:
-
-    pH_load_base_profile(payload, ctx);
 
     return 0;
 }
