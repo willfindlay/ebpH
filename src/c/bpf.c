@@ -314,7 +314,6 @@ static u8 pH_copy_profile_on_fork(u64 *pid_tgid, u64 *ppid_tgid, u64 *fork_ret, 
 static u8 pH_create_profile(u64 *key, struct pt_regs *ctx, char *comm)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    int already_created = 0;
 
     /* init the profile */
     pH_profile p = {.frozen = 0, .normal = 0, .normal_time = 0,
@@ -361,14 +360,15 @@ static u8 pH_create_profile(u64 *key, struct pt_regs *ctx, char *comm)
     }
 
     /* create the profile if it does not exist */
-    temp = profile.lookup_or_init(key, &p);
-
-    profiles.increment(0);
+    temp = profile.update(key, &p);
 
     profile_create_event.perf_submit(ctx, &p, sizeof(p));
 
+    profiles.increment(0);
+
     /* TODO: move this to another function */
 created:
+
     /* associate the profile with the appropriate PID */
     pid_tgid_to_profile_key.update(&pid_tgid, key);
 
