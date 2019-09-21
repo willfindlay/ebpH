@@ -11,36 +11,46 @@
  *
  * Licensed under GPL v2 License */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef EBPH_H
+#define EBPH_H
 
 #include "defs.h"
+#include "utils.h"
+
+/* Struct definitions below this line ------------------- */
+
+//typedef struct
+//{
+//    u8 frozen;
+//    u8 normal;
+//    u64 normal_time;
+//    u64 window_size;
+//    u64 normal_count;
+//    u64 last_mod_count;
+//    u64 train_count;
+//    u64 anomalies;
+//    u64 key;
+//    char comm[EBPH_FILENAME_LEN];
+//    struct bpf_spin_lock lock;
+//}
+//ebpH_profile;
 
 typedef struct
 {
-    u8 frozen;
-    u8 normal;
-    u64 normal_time;
-    u64 window_size;
-    u64 normal_count;
-    u64 last_mod_count;
-    u64 train_count;
-    u64 anomalies;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-    struct bpf_spin_lock lock;
 }
-ebpH_profile;
+ebpH_executable;
 
 typedef struct
 {
     u64 pid_tgid;
-    u64 ppid_tgid;
     u64 syscall;
     u64 key;
-    char comm[EBPH_FILENAME_LEN];
 }
 ebpH_event;
 
+static u8 ebpH_process_executable(u64 *key, struct pt_regs *ctx, char *comm);
+
 #endif
-/* COMMON_H */
+/* EBPH_H */

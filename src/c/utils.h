@@ -19,6 +19,7 @@
 /* Forward declarations below this line ------------------ */
 
 static u64 ebpH_get_ppid_tgid();
+static u64 ebpH_get_ppid_tgid();
 
 /* Definitions below this line ------------------ */
 

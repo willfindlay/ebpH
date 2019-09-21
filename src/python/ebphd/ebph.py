@@ -9,12 +9,17 @@ from daemon import Daemon
 from config import Config
 import utils
 
-TRAINING_C = utils.path('src/c/training.c')
-TESTING_C = utils.path('src/c/testing.c')
+TRAINING_C = utils.path('src/c/train.c')
+TESTING_C = utils.path('src/c/test.c')
 #DEFS_H = utils.path('src/c/defs.h')
 #PROFILES_H = utils.path('src/c/profiles.h')
 
-def create_bpf()
+def create_bpf(path):
+    def closure():
+        with open(path, 'r') as f:
+            text = f.read()
+        return BPF(text)
+    return closure
 
 class ebpHD(Daemon):
     def __init__(self, monitoring=True):
@@ -23,7 +28,7 @@ class ebpHD(Daemon):
         self.monitoring = monitoring
 
         self.training = None
-        self.testing = defaultdict(lambda: BPF())
+        self.testing = defaultdict(create_bpf(TESTING_C))
 
         # bpf stats
         self.num_profiles = 0
@@ -58,6 +63,12 @@ class ebpHD(Daemon):
     # BPF stuff below this line --------------------
 
     def register_perf_buffers(self, bpf):
+        def on_executable_processed(cpu, data, size):
+            event = bpf["on_executable_processed"].event(data)
+            s = f"Executable {event.comm.decode('utf-8')} ({event.key}) processed."
+            self.logger.info(s)
+        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
+
         # error, warning, debug, info
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
@@ -93,8 +104,8 @@ class ebpHD(Daemon):
             text = f.read()
 
         # compile ebpf code
-        self.testing = BPF(text=text)
-        self.register_perf_buffers(self.testing)
+        self.training = BPF(text=text)
+        self.register_perf_buffers(self.training)
 
         #self.logger.info("Loaded profiles successfully.")
         #loaded = sorted([''.join([v.comm.decode('utf-8'), ' (', str(v.key), ')']) for v in self.bpf['profile'].values()], key=lambda x: x.upper())
@@ -104,7 +115,7 @@ class ebpHD(Daemon):
         # FIXME: might fundamentally change how this works, so leaving it commented for now
         #self.bpf.attach_uretprobe(name=defs.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
 
-        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
+        self.training.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
 
         self.logger.info('Started monitoring the system.')
 
@@ -115,8 +126,11 @@ class ebpHD(Daemon):
 
     def stop_monitoring(self):
         self.save_profiles()
-        self.bpf.cleanup()
-        self.bpf = None
+        self.training.cleanup()
+        self.training = None
+        for key, bpf in self.testing:
+            bpf.cleanup()
+        self.testing.clear()
         self.monitoring = False
 
         self.logger.warning('Stopped monitoring the system.')
@@ -148,7 +162,8 @@ class ebpHD(Daemon):
 
         # bpf stuff below this line -------------------------
         if self.monitoring:
-            for key, bpf in self.bpf:
+            self.training.perf_buffer_poll(30)
+            for key, bpf in self.testing:
                 bpf.perf_buffer_poll(30)
             #self.num_profiles = self.bpf["profiles"].values()[0].value
             #self.num_syscalls = self.bpf["syscalls"].values()[0].value
