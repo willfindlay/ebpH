@@ -1,4 +1,4 @@
-import os, sys, socket, signal, time, logging
+import os, sys, socket, signal, time, logging, re
 from threading import Thread
 from collections import defaultdict
 import ctypes as ct
@@ -14,11 +14,17 @@ TESTING_C = utils.path('src/c/test.c')
 #DEFS_H = utils.path('src/c/defs.h')
 #PROFILES_H = utils.path('src/c/profiles.h')
 
+def load_bpf_program(path):
+    with open(path, 'r') as f:
+        text = f.read()
+        for match in re.findall(r"(#include\s*\"(.*)\")", text):
+            real_header_path = os.path.abspath(utils.path(match[1]))
+            text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
+    return BPF(text=text)
+
 def create_bpf(path):
     def closure():
-        with open(path, 'r') as f:
-            text = f.read()
-        return BPF(text)
+        return load_bpf_program(path)
     return closure
 
 class ebpHD(Daemon):
@@ -99,12 +105,8 @@ class ebpHD(Daemon):
     def start_monitoring(self):
         self.monitoring = True
 
-        # read BPF embedded C from bpf.c
-        with open(TRAINING_C, 'r') as f:
-            text = f.read()
-
         # compile ebpf code
-        self.training = BPF(text=text)
+        self.training = load_bpf_program(TRAINING_C)
         self.register_perf_buffers(self.training)
 
         #self.logger.info("Loaded profiles successfully.")
