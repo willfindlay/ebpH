@@ -11,36 +11,28 @@
  *
  * Licensed under GPL v2 License */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include "defs.h"
 
-typedef struct
-{
-    u8 frozen;
-    u8 normal;
-    u64 normal_time;
-    u64 window_size;
-    u64 normal_count;
-    u64 last_mod_count;
-    u64 train_count;
-    u64 anomalies;
-    u64 key;
-    char comm[EBPH_FILENAME_LEN];
-    struct bpf_spin_lock lock;
-}
-ebpH_profile;
+/* Forward declarations below this line ------------------ */
 
-typedef struct
+static u64 ebpH_get_ppid_tgid();
+
+/* Definitions below this line ------------------ */
+
+static u64 ebpH_get_ppid_tgid()
 {
-    u64 pid_tgid;
     u64 ppid_tgid;
-    u64 syscall;
-    u64 key;
-    char comm[EBPH_FILENAME_LEN];
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
+
+    return ppid_tgid;
 }
-ebpH_event;
+
 
 #endif
-/* COMMON_H */
+/* UTILS_H */
