@@ -11,12 +11,8 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys
-
-from config import Config
-
-def path(f):
-    curr_dir = os.path.realpath(os.path.dirname(__file__))
-    project_dir = os.path.realpath(os.path.join(curr_dir,"../../.."))
-    path = os.path.realpath(os.path.join(project_dir, f))
-    return path
+# **************************************** #
+#               WARNING!!!!!               #
+#      Keep this in sync with ebpH.h       #
+#             AT ALL TIMES!!               #
+# **************************************** #

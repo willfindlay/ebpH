@@ -1,3 +1,16 @@
+# ebpH --  An eBPF intrusion detection program.
+# -------  Monitors system call patterns and detect anomalies.
+# Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
+# Anil Somayaji (soma@scs.carleton.ca)
+#
+# Based on Anil Somayaji's pH
+#  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
+#  Copyright 2003 Anil Somayaji
+#
+# USAGE: ebphd <COMMAND>
+#
+# Licensed under GPL v2 License
+
 import os, sys, socket, signal, time, logging, re
 from threading import Thread
 from collections import defaultdict
@@ -11,8 +24,6 @@ import utils
 
 TRAINING_C = utils.path('src/c/train.c')
 TESTING_C = utils.path('src/c/test.c')
-#DEFS_H = utils.path('src/c/defs.h')
-#PROFILES_H = utils.path('src/c/profiles.h')
 
 def load_bpf_program(path):
     with open(path, 'r') as f:
@@ -49,7 +60,7 @@ class ebpHD(Daemon):
         self.logger = logging.getLogger('ebpH')
 
     def main(self):
-        self.logger.warning("Starting ebpH daemon...")
+        self.logger.info("Starting ebpH daemon...")
 
         # register handlers
         signal.signal(signal.SIGTERM, self.on_term)
@@ -63,17 +74,36 @@ class ebpHD(Daemon):
             time.sleep(Config.ticksleep)
 
     def stop(self):
-        self.logger.warning("Stopping ebpH daemon...")
+        self.logger.info("Stopping ebpH daemon...")
         super().stop()
 
     # BPF stuff below this line --------------------
 
     def register_perf_buffers(self, bpf):
-        def on_executable_processed(cpu, data, size):
-            event = bpf["on_executable_processed"].event(data)
-            s = f"Executable {event.comm.decode('utf-8')} ({event.key}) processed."
-            self.logger.info(s)
-        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
+        if bpf is self.training:
+            # executable has been processed in ebpH_on_do_open_execat
+            def on_event(cpu, data, size):
+                event = bpf["events"].event(data)
+                self.logger.info(f"syscall {event.syscall}")
+            def on_event_loss(lost):
+                self.logger.critical(f"Lost {lost} ebpH train events! Increase perf buffer page count!")
+            bpf["events"].open_perf_buffer(on_event, page_cnt=2**8, lost_cb=on_event_loss)
+
+            # executable has been processed in ebpH_on_do_open_execat
+            def on_pid_assoc(cpu, data, size):
+                event = bpf["on_pid_assoc"].event(data)
+                s = f"PID {event.pid} associated with executable {event.e.comm.decode('utf-8')} ({event.e.key}) processed."
+                self.logger.info(s)
+            bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc)
+
+            # executable has been processed in ebpH_on_do_open_execat
+            def on_executable_processed(cpu, data, size):
+                event = bpf["on_executable_processed"].event(data)
+                s = f"Executable {event.comm.decode('utf-8')} ({event.key}) processed."
+                self.logger.info(s)
+            bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
+        else:
+            pass
 
         # error, warning, debug, info
         def on_error(cpu, data, size):
@@ -145,6 +175,12 @@ class ebpHD(Daemon):
     def load_profiles(self):
         pass
 
+    # consume the event map from the bpf program
+    def consume_train_events(self):
+        events = self.training["events"]
+        for i, k, v in enumerate(events.items()):
+            break
+
     def pin_map(self, name, dir=Config.ebphfs):
         fn = os.path.join(dir, name)
         # remove filename before trying to pin
@@ -164,6 +200,7 @@ class ebpHD(Daemon):
 
         # bpf stuff below this line -------------------------
         if self.monitoring:
+            self.consume_train_events()
             self.training.perf_buffer_poll(30)
             for key, bpf in self.testing:
                 bpf.perf_buffer_poll(30)

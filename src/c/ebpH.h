@@ -44,13 +44,21 @@ ebpH_executable;
 
 typedef struct
 {
+    u32 pid;
+    ebpH_executable e;
+}
+ebpH_pid_assoc;
+
+typedef struct
+{
     u64 pid_tgid;
     u64 syscall;
     u64 key;
 }
 ebpH_event;
 
-static u8 ebpH_process_executable(u64 *key, struct pt_regs *ctx, char *comm);
+static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm);
+static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx);
 
 #endif
 /* EBPH_H */

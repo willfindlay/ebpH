@@ -36,7 +36,6 @@ BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(ebpH_debug);
 BPF_PERF_OUTPUT(ebpH_info);
-BPF_PERF_OUTPUT(on_executable_processed);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx)
@@ -64,12 +63,41 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 
 /* BPF tables below this line --------------------- */
 
+/* inode key to executable info */
 BPF_HASH(binaries, u64, ebpH_executable);
-BPF_ARRAY(events, ebpH_event, 1024000);
+
+/* pid_tgid to key for binaries map */
+BPF_HASH(pid_to_binary, u64, u64, 1024000);
+
+/* Main syscall event buffer */
+BPF_PERF_OUTPUT(events);
+
+BPF_PERF_OUTPUT(on_executable_processed);
+BPF_PERF_OUTPUT(on_pid_assoc);
 
 /* Function definitions below this line --------------------- */
 
-static u8 ebpH_process_executable(u64 *key, struct pt_regs *ctx, char *comm)
+static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
+{
+    if (!e)
+    {
+        EBPH_ERROR("Could not get executable data -- ebpH_associate_pid_exe", ctx);
+        return -1;
+    }
+
+    if (!pid_tgid)
+    {
+        EBPH_ERROR("Could not get pid_tgid -- ebpH_associate_pid_exe", ctx);
+        return -1;
+    }
+
+    ebpH_pid_assoc ass = {(u32)((*pid_tgid) >> 32), *e};
+    on_pid_assoc.perf_submit(ctx, &ass, sizeof(ass));
+
+    return 0;
+}
+
+static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm)
 {
     ebpH_executable b;
     ebpH_executable *bp = NULL;
@@ -86,6 +114,12 @@ static u8 ebpH_process_executable(u64 *key, struct pt_regs *ctx, char *comm)
         return -1;
     }
 
+    if (!pid_tgid)
+    {
+        EBPH_ERROR("Could not get pid_tgid -- ebpH_process_executable", ctx);
+        return -1;
+    }
+
     bp = binaries.lookup(key);
     if (bp)
     {
@@ -96,6 +130,7 @@ static u8 ebpH_process_executable(u64 *key, struct pt_regs *ctx, char *comm)
     bpf_probe_read_str(b.comm, sizeof(b.comm), comm);
 
     binaries.update(key, &b);
+    ebpH_associate_pid_exe(&b, pid_tgid, ctx);
 
     on_executable_processed.perf_submit(ctx, &b, sizeof(b));
 
@@ -108,8 +143,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    ebpH_event *e;
     u64 *key;
+
+    //key =
+
+    ebpH_event e = {};
 
     return 0;
 }
@@ -169,7 +207,7 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     bpf_probe_read(&comm, sizeof(comm), dn.name);
 
     /* Store information about this executable */
-    ebpH_process_executable(&key, ctx, comm);
+    ebpH_process_executable(&key, &pid_tgid, ctx, comm);
 
     return 0;
 }
