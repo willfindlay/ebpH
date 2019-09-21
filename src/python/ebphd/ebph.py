@@ -22,7 +22,7 @@ def load_bpf_program(path):
             text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
     return BPF(text=text)
 
-def create_bpf(path):
+def create_bpf_factory(path):
     def closure():
         return load_bpf_program(path)
     return closure
@@ -34,7 +34,7 @@ class ebpHD(Daemon):
         self.monitoring = monitoring
 
         self.training = None
-        self.testing = defaultdict(create_bpf(TESTING_C))
+        self.testing = defaultdict(create_bpf_factory(TESTING_C))
 
         # bpf stats
         self.num_profiles = 0
