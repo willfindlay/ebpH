@@ -21,6 +21,7 @@ from bcc import BPF, lib
 from daemon import Daemon
 from config import Config
 import utils
+import structs
 
 TRAINING_C = utils.path('src/c/train.c')
 TESTING_C = utils.path('src/c/test.c')
@@ -84,22 +85,22 @@ class ebpHD(Daemon):
             # executable has been processed in ebpH_on_do_open_execat
             def on_event(cpu, data, size):
                 event = bpf["events"].event(data)
-                self.logger.info(f"syscall {event.syscall}")
+                #self.logger.debug(f"syscall {event.syscall}")
             def on_event_loss(lost):
                 self.logger.critical(f"Lost {lost} ebpH train events! Increase perf buffer page count!")
             bpf["events"].open_perf_buffer(on_event, page_cnt=2**8, lost_cb=on_event_loss)
 
             # executable has been processed in ebpH_on_do_open_execat
             def on_pid_assoc(cpu, data, size):
-                event = bpf["on_pid_assoc"].event(data)
-                s = f"PID {event.pid} associated with executable {event.e.comm.decode('utf-8')} ({event.e.key}) processed."
-                self.logger.info(s)
+                event = ct.cast(data, ct.POINTER(structs.ebpH_pid_assoc)).contents
+                s = f"PID {event.pid} associated with {event.e.comm.decode('utf-8')} ({event.e.key})."
+                self.logger.debug(s)
             bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc)
 
             # executable has been processed in ebpH_on_do_open_execat
             def on_executable_processed(cpu, data, size):
                 event = bpf["on_executable_processed"].event(data)
-                s = f"Executable {event.comm.decode('utf-8')} ({event.key}) processed."
+                s = f"Registered {event.comm.decode('utf-8')} ({event.key})."
                 self.logger.info(s)
             bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
         else:
@@ -130,7 +131,7 @@ class ebpHD(Daemon):
             self.logger.info(s)
         bpf["ebpH_info"].open_perf_buffer(on_info)
 
-        self.logger.debug('Registered perf buffers successfully for {bpf}.')
+        self.logger.debug(f'Registered perf buffers successfully for {bpf}.')
 
     def start_monitoring(self):
         self.monitoring = True

@@ -67,7 +67,7 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 BPF_HASH(binaries, u64, ebpH_executable);
 
 /* pid_tgid to key for binaries map */
-BPF_HASH(pid_to_binary, u64, u64, 1024000);
+BPF_HASH(pid_to_key, u64, u64, 1024000);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(events);
@@ -91,7 +91,11 @@ static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_re
         return -1;
     }
 
-    ebpH_pid_assoc ass = {(u32)((*pid_tgid) >> 32), *e};
+    /* TODO: may want to check for shared libraries here */
+
+    pid_to_key.update(pid_tgid, &(e->key));
+
+    ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .e=*e};
     on_pid_assoc.perf_submit(ctx, &ass, sizeof(ass));
 
     return 0;
@@ -141,13 +145,20 @@ static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, 
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
-    long syscall = args->id;
+    u64 syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 *key;
 
-    //key =
+    key = pid_to_key.lookup(&pid_tgid);
 
-    ebpH_event e = {};
+    if (!key)
+    {
+        return 0;
+    }
+
+    ebpH_event e = {.pid_tgid=pid_tgid, .syscall=syscall, .key=*key};
+
+    events.perf_submit(args, &e, sizeof(e));
 
     return 0;
 }
