@@ -74,26 +74,6 @@ BPF_PERF_OUTPUT(events);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 
-typedef struct
-{
-    u8 frozen;
-    u8 normal;
-    u64 normal_time;
-    u64 window_size;
-    u64 normal_count;
-    u64 last_mod_count; // moved these over from pH_profile_data
-    u64 train_count;    // moved these over from pH_profile_data
-    u64 anomalies;
-    u64 key;
-    char comm[FILENAME_LEN];
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    //struct bpf_spin_lock lock; // https://lists.openwall.net/netdev/2019/01/31/253
-#endif
-}
-really_large_data;
-
-BPF_PERCPU_ARRAY(large, really_large_data, 1);
-
 /* Function definitions below this line --------------------- */
 
 static u64 ebpH_get_ppid_tgid()
