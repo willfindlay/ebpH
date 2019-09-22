@@ -148,7 +148,9 @@ class ebpHD(Daemon):
         # FIXME: might fundamentally change how this works, so leaving it commented for now
         #self.bpf.attach_uretprobe(name=defs.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
 
-        self.training.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
+        execve_fnname = self.training.get_syscall_fnname("execve")
+        self.training.attach_kprobe(event=execve_fnname, fn_name="syscall__execve")
+        #self.training.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
 
         self.logger.info('Started monitoring the system.')
 
