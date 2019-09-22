@@ -24,7 +24,6 @@
 #include <linux/timekeeping.h>
 
 #include "src/c/defs.h"
-#include "src/c/utils.h"
 #include "src/c/ebpH.h"
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
@@ -77,6 +76,17 @@ BPF_PERF_OUTPUT(on_pid_assoc);
 
 /* Function definitions below this line --------------------- */
 
+static u64 ebpH_get_ppid_tgid()
+{
+    u64 ppid_tgid;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
+
+    return ppid_tgid;
+}
+
 static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
 {
     if (!e)
@@ -91,20 +101,28 @@ static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_re
         return -1;
     }
 
-    /* TODO: may want to check for shared libraries here */
+    /* Prevents shared libraries from overwriting binaries */
+    // FIXME: this seems to be preventing legitimate overwrites as well.... not sure what to do
+    //if (pid_to_key.lookup(pid_tgid))
+    //{
+    //    return -1;
+    //}
 
     pid_to_key.update(pid_tgid, &(e->key));
 
-    ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .e=*e};
+    ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
+    bpf_probe_read_str(ass.comm, sizeof(ass.comm), e->comm);
     on_pid_assoc.perf_submit(ctx, &ass, sizeof(ass));
 
     return 0;
 }
 
+/* Register information about an executable if necessary
+ * and associate PIDs with executables */
 static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm)
 {
-    ebpH_executable b;
-    ebpH_executable *bp = NULL;
+    ebpH_executable e;
+    ebpH_executable *ep = NULL;
 
     if (!key)
     {
@@ -124,19 +142,22 @@ static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, 
         return -1;
     }
 
-    bp = binaries.lookup(key);
-    if (bp)
+    ep = binaries.lookup(key);
+    if (ep)
     {
-        return -1;
+        goto associate;
     }
 
-    b.key = *key;
-    bpf_probe_read_str(b.comm, sizeof(b.comm), comm);
+    ep = &e;
+    e.key = *key;
+    bpf_probe_read_str(e.comm, sizeof(e.comm), comm);
 
-    binaries.update(key, &b);
-    ebpH_associate_pid_exe(&b, pid_tgid, ctx);
+    binaries.update(key, &e);
 
-    on_executable_processed.perf_submit(ctx, &b, sizeof(b));
+    on_executable_processed.perf_submit(ctx, &e, sizeof(e));
+
+associate:
+    ebpH_associate_pid_exe(ep, pid_tgid, ctx);
 
     return 0;
 }
@@ -156,22 +177,60 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
+    /* Hand off event handling to userspace */
     ebpH_event e = {.pid_tgid=pid_tgid, .syscall=syscall, .key=*key};
-
     events.perf_submit(args, &e, sizeof(e));
+
+    /* Some extra logic for special syscalls */
+    if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
+    {
+        /* Disassociate the PID if the process has exited */
+        pid_to_key.delete(&pid_tgid);
+    }
+    //else if ()
 
     return 0;
 }
 
 TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 {
-    long syscall = args->id;
+    u64 syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
+    u64 *key;
+    ebpH_executable *e;
+
+    /* Associate pids on fork */
+    if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
+    {
+        key = pid_to_key.lookup(&ppid_tgid);
+
+        if (!key)
+        {
+            /* FIXME: This message is annoying. It will be more relevant when we are actually
+             * starting the daemon on system startup. For now, we can comment it out. */
+            //EBPH_WARNING("No data to copy to child process.", (struct pt_regs *)args);
+            return 0;
+        }
+
+        e = binaries.lookup(key);
+
+        if (!e)
+        {
+            /* We should never ever get here! */
+            EBPH_ERROR("A key has become detached from its binary!", (struct pt_regs *)args);
+            return -1;
+        }
+
+        ebpH_associate_pid_exe(e, &pid_tgid, (struct pt_regs *)args);
+    }
 
     return 0;
 }
 
+/* This is a special hook for execve-family calls
+ * We need to inspect do_open_execat to snag information about the file
+ * If this breaks in a future version of Linux (definitely possible!), I will be sad :( */
 int ebpH_on_do_open_execat(struct pt_regs *ctx)
 {
     struct file *exec_file;
@@ -204,8 +263,8 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
         return -1;
     }
 
-    /* We want a key to be comprised of device number in the upper 32 bits */
-    /* and inode number in the lower 32 bits */
+    /* We want a key to be comprised of device number in the upper 32 bits
+     * and inode number in the lower 32 bits */
     key  = exec_inode->i_ino;
     key |= ((u64)exec_inode->i_rdev << 32);
 

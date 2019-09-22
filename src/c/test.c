@@ -24,7 +24,6 @@
 #include <linux/timekeeping.h>
 
 #include "src/c/defs.h"
-#include "src/c/utils.h"
 #include "src/c/ebpH.h"
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))

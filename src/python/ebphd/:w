@@ -70,9 +70,13 @@ class ebpHD(Daemon):
         if self.monitoring:
             self.start_monitoring()
         while True:
-            if self.monitoring:
-                self.tick()
-            time.sleep(Config.ticksleep)
+            try:
+                if self.monitoring:
+                    self.tick()
+                time.sleep(Config.ticksleep)
+            except KeyboardInterrupt:
+                print(sorted([]))
+                sys.exit(0)
 
     def stop(self):
         self.logger.info("Stopping ebpH daemon...")

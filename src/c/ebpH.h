@@ -15,7 +15,6 @@
 #define EBPH_H
 
 #include "defs.h"
-#include "utils.h"
 
 /* Struct definitions below this line ------------------- */
 
@@ -45,7 +44,8 @@ ebpH_executable;
 typedef struct
 {
     u32 pid;
-    ebpH_executable e;
+    u64 key;
+    char comm[EBPH_FILENAME_LEN];
 }
 ebpH_pid_assoc;
 
@@ -59,6 +59,7 @@ ebpH_event;
 
 static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm);
 static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx);
+static u64 ebpH_get_ppid_tgid();
 
 #endif
 /* EBPH_H */
