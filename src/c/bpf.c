@@ -69,8 +69,6 @@ BPF_HASH(binaries, u64, ebpH_executable);
 BPF_HASH(pid_to_key, u64, u64, 1024000);
 
 /* Main syscall event buffer */
-BPF_PERF_OUTPUT(events);
-
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 
@@ -103,10 +101,10 @@ static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_re
 
     /* Prevents shared libraries from overwriting binaries */
     // FIXME: this seems to be preventing legitimate overwrites as well.... not sure what to do
-    //if (pid_to_key.lookup(pid_tgid))
-    //{
-    //    return -1;
-    //}
+    if (pid_to_key.lookup(pid_tgid))
+    {
+        return -1;
+    }
 
     pid_to_key.update(pid_tgid, &(e->key));
 
@@ -177,9 +175,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    /* Hand off event handling to userspace */
-    ebpH_event e = {.pid_tgid=pid_tgid, .syscall=syscall, .key=*key};
-    events.perf_submit(args, &e, sizeof(e));
+    /* process stuff here */
 
     /* Some extra logic for special syscalls */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
@@ -187,7 +183,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         /* Disassociate the PID if the process has exited */
         pid_to_key.delete(&pid_tgid);
     }
-    //else if ()
 
     return 0;
 }
@@ -228,7 +223,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     return 0;
 }
 
-/* Let's try this instead */
+/* TODO: this might be better than on_do_open_execat if we can get it consistent */
 int syscall__execve(struct pt_regs *ctx,
     const char __user *filename,
     const char __user *const __user *__argv,
