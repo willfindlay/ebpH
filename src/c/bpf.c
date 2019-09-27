@@ -66,9 +66,10 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 BPF_HASH(binaries, u64, ebpH_executable);
 
 /* ebpH per-executable lookahead pairs */
-BPF_ARRAY(lookahead0, ebpH_lookahead_chunk);
-BPF_ARRAY(lookahead1, ebpH_lookahead_chunk);
-BPF_ARRAY(lookahead2, ebpH_lookahead_chunk);
+BPF_HASH(lookahead0, u64, ebpH_lookahead_chunk);
+BPF_HASH(lookahead1, u64, ebpH_lookahead_chunk);
+BPF_HASH(lookahead2, u64, ebpH_lookahead_chunk);
+BPF_ARRAY(lookahead_init, ebpH_lookahead_chunk, 1);
 
 /* pid_tgid to key for binaries map */
 BPF_HASH(pid_to_key, u64, u64, 1024000);
@@ -78,6 +79,53 @@ BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 
 /* Function definitions below this line --------------------- */
+
+//static void *ebpH_
+
+static char ebpH_lookahead_lookup(u64 *key, u32 first, u32 second, struct pt_regs *ctx)
+{
+    int zero = 0;
+    u8 the_map = -1;
+    ebpH_lookahead_chunk *init = lookahead_init.lookup(&zero);
+    ebpH_lookahead_chunk *lookahead = NULL;
+
+    if (!key)
+    {
+        EBPH_ERROR("Could not get key -- ebpH_lookahead", ctx);
+        return -1;
+    }
+
+    /* Calculate which map we need to be accessing */
+    //the_map = ....;
+    switch (the_map)
+    {
+    case 0:
+        lookahead = lookahead0.lookup_or_init(key, init);
+        break;
+    case 1:
+        lookahead = lookahead1.lookup_or_init(key, init);
+        break;
+    case 2:
+        lookahead = lookahead2.lookup_or_init(key, init);
+        break;
+    default:
+        goto map_num_error;
+        break;
+    }
+
+    if (!lookahead)
+    {
+        EBPH_ERROR("Could not lookup or init lookahead chunk -- ebpH_lookahead", ctx);
+        return -1;
+    }
+
+    return 0;
+
+map_num_error:
+    EBPH_ERROR("Invalid map number -- ebpH_lookahead", ctx);
+    return -1;
+
+}
 
 static u64 ebpH_get_ppid_tgid()
 {
@@ -90,7 +138,7 @@ static u64 ebpH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
+static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
 {
     if (!e)
     {
@@ -122,7 +170,7 @@ static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_re
 
 /* Register information about an executable if necessary
  * and associate PIDs with executables */
-static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm)
+static char ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm)
 {
     ebpH_executable e;
     ebpH_executable *ep = NULL;

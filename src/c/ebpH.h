@@ -63,8 +63,8 @@ typedef struct
 }
 ebpH_event;
 
-static u8 ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm);
-static u8 ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx);
+static char ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm);
+static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx);
 static u64 ebpH_get_ppid_tgid();
 
 #endif
