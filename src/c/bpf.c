@@ -65,6 +65,11 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 /* inode key to executable info */
 BPF_HASH(binaries, u64, ebpH_executable);
 
+/* ebpH per-executable lookahead pairs */
+BPF_ARRAY(lookahead0, ebpH_lookahead_chunk);
+BPF_ARRAY(lookahead1, ebpH_lookahead_chunk);
+BPF_ARRAY(lookahead2, ebpH_lookahead_chunk);
+
 /* pid_tgid to key for binaries map */
 BPF_HASH(pid_to_key, u64, u64, 1024000);
 

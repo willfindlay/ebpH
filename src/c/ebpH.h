@@ -43,6 +43,12 @@ ebpH_executable;
 
 typedef struct
 {
+    u8 flags[EBPH_LOOKAHEAD_CHUNK_SIZE];
+}
+ebpH_lookahead_chunk;
+
+typedef struct
+{
     u32 pid;
     u64 key;
     char comm[EBPH_FILENAME_LEN];

@@ -14,6 +14,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#define CEILING(x,y) (((x) + (y) - 1) / (y))
+
 /* This is the default size for BPF tables (hashmaps, etc.) */
 #define EBPH_DEFAULT_TABLE_SIZE 10240
 /* 100x the default table size for now, make this a tighter bound later */
@@ -26,6 +28,11 @@
 /* Total number of systemcalls in the current kernel version
  * Keep this updated with the latest version of Linux */
 #define EBPH_NUM_SYSCALLS  314
+/* Number of chunks to split lookahead pairs into */
+/* This number should be increased if we can't allocate the BPF_ARRAYS */
+#define EBPH_NUM_LOOKAHEAD_CHUNKS 3
+/* Size of each lookahead pair chunk */
+#define EBPH_LOOKAHEAD_CHUNK_SIZE CEILING(EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS, EBPH_NUM_LOOKAHEAD_CHUNKS)
 
 /* Amount of time a profile must remain frozen before becoming normal */
 #define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
