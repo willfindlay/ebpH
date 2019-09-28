@@ -89,7 +89,7 @@ class ebpHD(Daemon):
         # executable has been processed in ebpH_on_do_open_execat
         def on_executable_processed(cpu, data, size):
             event = bpf["on_executable_processed"].event(data)
-            s = f"Registered {event.comm.decode('utf-8')} ({event.key})."
+            s = f"Registered executable {event.comm.decode('utf-8')} ({event.key})."
             self.logger.info(s)
         bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
 

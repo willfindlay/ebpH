@@ -34,37 +34,37 @@
 //}
 //ebpH_profile;
 
-typedef struct
+struct ebpH_executable
 {
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-}
-ebpH_executable;
+};
 
-typedef struct
+struct ebpH_lookahead_chunk
 {
     u8 flags[EBPH_LOOKAHEAD_CHUNK_SIZE];
-}
-ebpH_lookahead_chunk;
+};
 
-typedef struct
+struct ebpH_pid_assoc
 {
     u32 pid;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-}
-ebpH_pid_assoc;
+};
 
-typedef struct
+/* TODO: maybe delete */
+struct ebpH_event
 {
     u64 pid_tgid;
     u64 syscall;
     u64 key;
-}
-ebpH_event;
+};
 
-static char ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm);
-static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx);
+static u8 *ebpH_get_lookahead(u64 *, u32 *, u32 *, struct pt_regs *);
+static u8 *ebpH_update_lookahead(u64 *, u32 *, u32 *, u8 *, struct pt_regs *);
+static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *, u32 *, u32*, struct pt_regs *);
+static int ebpH_process_executable(u64 *, u64 *, struct pt_regs *, char *);
+static int ebpH_associate_pid_exe(struct ebpH_executable *, u64 *, struct pt_regs *);
 static u64 ebpH_get_ppid_tgid();
 
 #endif

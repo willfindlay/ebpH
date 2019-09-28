@@ -24,7 +24,7 @@
 #include <linux/timekeeping.h>
 
 #include "src/c/defs.h"
-#include "src/c/ebpH.h"
+#include "src/c/ebph.h"
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
 #define EBPH_WARNING(MSG, CTX) char m[] = (MSG); __ebpH_log_warning(m, sizeof(m), (CTX))
@@ -63,13 +63,13 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* inode key to executable info */
-BPF_HASH(binaries, u64, ebpH_executable);
+BPF_HASH(binaries, u64, struct ebpH_executable);
 
 /* ebpH per-executable lookahead pairs */
-BPF_HASH(lookahead0, u64, ebpH_lookahead_chunk);
-BPF_HASH(lookahead1, u64, ebpH_lookahead_chunk);
-BPF_HASH(lookahead2, u64, ebpH_lookahead_chunk);
-BPF_ARRAY(lookahead_init, ebpH_lookahead_chunk, 1);
+BPF_HASH(lookahead0, u64, struct ebpH_lookahead_chunk);
+BPF_HASH(lookahead1, u64, struct ebpH_lookahead_chunk);
+BPF_HASH(lookahead2, u64, struct ebpH_lookahead_chunk);
+BPF_ARRAY(lookahead_init, struct ebpH_lookahead_chunk, 1);
 
 /* pid_tgid to key for binaries map */
 BPF_HASH(pid_to_key, u64, u64, 1024000);
@@ -80,23 +80,125 @@ BPF_PERF_OUTPUT(on_pid_assoc);
 
 /* Function definitions below this line --------------------- */
 
-//static void *ebpH_
+/* TODO: finish this */
+static u8 *ebpH_get_lookahead(u64 *key, u32 *curr, u32 *prev, struct pt_regs *ctx)
+{
+    struct ebpH_lookahead_chunk *chunk = ebpH_get_lookahead_chunk(key, curr, prev, ctx);
+    u8 *lookahead = NULL;
 
-static char ebpH_lookahead_lookup(u64 *key, u32 first, u32 second, struct pt_regs *ctx)
+    if (!curr)
+    {
+        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead", ctx);
+        return NULL;
+    }
+
+    if (!prev)
+    {
+        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead", ctx);
+        return NULL;
+    }
+
+    if (*curr >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (curr) -- ebpH_get_lookahead", ctx);
+        return NULL;
+    }
+
+    if (*prev >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (prev) -- ebpH_get_lookahead", ctx);
+        return NULL;
+    }
+
+    return lookahead;
+}
+
+/* TODO: finish this */
+static u8 *ebpH_update_lookahead(u64 *key, u32 *curr, u32 *prev, u8 *value, struct pt_regs *ctx)
+{
+    struct ebpH_lookahead_chunk *chunk = ebpH_get_lookahead_chunk(key, curr, prev, ctx);
+    u8 *lookahead = NULL;
+
+    if (!value)
+    {
+        EBPH_ERROR("NULL value -- ebpH_update_lookahead", ctx);
+        return NULL;
+    }
+
+    if (!curr)
+    {
+        EBPH_ERROR("NULL curr syscall -- ebpH_update_lookahead", ctx);
+        return NULL;
+    }
+
+    if (!prev)
+    {
+        EBPH_ERROR("NULL prev syscall -- ebpH_update_lookahead", ctx);
+        return NULL;
+    }
+
+    if (*curr >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (curr) -- ebpH_update_lookahead", ctx);
+        return NULL;
+    }
+
+    if (*prev >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (prev) -- ebpH_update_lookahead", ctx);
+        return NULL;
+    }
+
+    return lookahead;
+}
+
+/* Return the correct lookahead chunk data structure according
+ * to which current a previous systemcall we are looking at.
+ * If the lookahead_chunk is not yet initialized, initialize it with a zeroed struct. */
+static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr, u32 *prev, struct pt_regs *ctx)
 {
     int zero = 0;
     u8 the_map = -1;
-    ebpH_lookahead_chunk *init = lookahead_init.lookup(&zero);
-    ebpH_lookahead_chunk *lookahead = NULL;
+    struct ebpH_lookahead_chunk *init = NULL;
+    struct ebpH_lookahead_chunk *lookahead = NULL;
+
+    bpf_probe_read(init, sizeof(struct ebpH_lookahead_chunk), lookahead_init.lookup(&zero));
+
+    /* We can't use the normal error macro inside of a switch statement */
+    char map_num_error[] = "Invalid map number -- ebpH_get_lookahead_chunk";
 
     if (!key)
     {
-        EBPH_ERROR("Could not get key -- ebpH_lookahead", ctx);
-        return -1;
+        EBPH_ERROR("NULL key -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
+    }
+
+    if (!curr)
+    {
+        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
+    }
+
+    if (!prev)
+    {
+        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
+    }
+
+    if (*curr >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (curr) -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
+    }
+
+    if (*prev >= EBPH_NUM_SYSCALLS)
+    {
+        EBPH_ERROR("Access out of bounds (prev) -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
     }
 
     /* Calculate which map we need to be accessing */
-    //the_map = ....;
+    the_map = (u8)((*prev * EBPH_NUM_SYSCALLS + *curr) / EBPH_LOOKAHEAD_CHUNK_SIZE);
     switch (the_map)
     {
     case 0:
@@ -109,22 +211,19 @@ static char ebpH_lookahead_lookup(u64 *key, u32 first, u32 second, struct pt_reg
         lookahead = lookahead2.lookup_or_init(key, init);
         break;
     default:
-        goto map_num_error;
+        /* EBPH_ERROR("Invalid map number -- ebpH_lookahead", ctx); */
+        ebpH_error.perf_submit(ctx, &map_num_error, sizeof(map_num_error));
+        return NULL;
         break;
     }
 
     if (!lookahead)
     {
-        EBPH_ERROR("Could not lookup or init lookahead chunk -- ebpH_lookahead", ctx);
-        return -1;
+        EBPH_ERROR("Could not lookup or init lookahead chunk -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
     }
 
-    return 0;
-
-map_num_error:
-    EBPH_ERROR("Invalid map number -- ebpH_lookahead", ctx);
-    return -1;
-
+    return lookahead;
 }
 
 static u64 ebpH_get_ppid_tgid()
@@ -138,17 +237,17 @@ static u64 ebpH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
+static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
 {
     if (!e)
     {
-        EBPH_ERROR("Could not get executable data -- ebpH_associate_pid_exe", ctx);
+        EBPH_ERROR("NULL executable data -- ebpH_associate_pid_exe", ctx);
         return -1;
     }
 
     if (!pid_tgid)
     {
-        EBPH_ERROR("Could not get pid_tgid -- ebpH_associate_pid_exe", ctx);
+        EBPH_ERROR("NULL pid_tgid -- ebpH_associate_pid_exe", ctx);
         return -1;
     }
 
@@ -161,7 +260,7 @@ static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_
 
     pid_to_key.update(pid_tgid, &(e->key));
 
-    ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
+    struct ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
     bpf_probe_read_str(ass.comm, sizeof(ass.comm), e->comm);
     on_pid_assoc.perf_submit(ctx, &ass, sizeof(ass));
 
@@ -170,26 +269,26 @@ static char ebpH_associate_pid_exe(ebpH_executable *e, u64 *pid_tgid, struct pt_
 
 /* Register information about an executable if necessary
  * and associate PIDs with executables */
-static char ebpH_process_executable(u64 *key, u64* pid_tgid, struct pt_regs *ctx, char *comm)
+static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
-    ebpH_executable e;
-    ebpH_executable *ep = NULL;
+    struct ebpH_executable e;
+    struct ebpH_executable *ep = NULL;
 
     if (!key)
     {
-        EBPH_ERROR("Could not get key -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL key -- ebpH_process_executable", ctx);
         return -1;
     }
 
     if (!comm)
     {
-        EBPH_ERROR("Could not get comm -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL comm -- ebpH_process_executable", ctx);
         return -1;
     }
 
     if (!pid_tgid)
     {
-        EBPH_ERROR("Could not get pid_tgid -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL pid_tgid -- ebpH_process_executable", ctx);
         return -1;
     }
 
@@ -246,7 +345,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
     u64 *key;
-    ebpH_executable *e;
+    struct ebpH_executable *e;
 
     /* Associate pids on fork */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
