@@ -22,6 +22,9 @@
 #define EBPH_PID_TGID_SIZE 1024000
 
 /* Profile stuff below this line -------------------------- */
+/* Length of a syscall sequence */
+#define EBPH_SEQLEN  8
+
 /* Window size for locality frames */
 #define EBPH_LOCALITY_WIN  128
 

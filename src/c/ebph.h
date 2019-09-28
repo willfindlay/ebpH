@@ -36,6 +36,14 @@
 
 struct ebpH_executable
 {
+    //u8 frozen;
+    //u8 normal;
+    //u64 normal_time;
+    //u64 window_size;
+    //u64 normal_count;
+    //u64 last_mod_count;
+    //u64 train_count;
+    //u64 anomalies;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
 };
@@ -43,6 +51,25 @@ struct ebpH_executable
 struct ebpH_lookahead_chunk
 {
     u8 flags[EBPH_LOOKAHEAD_CHUNK_SIZE];
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+    struct bpf_spin_lock lock;
+#endif
+};
+
+struct ebpH_locality
+{
+
+};
+
+struct ebpH_process
+{
+    struct ebpH_locality lf;
+    u64 seq[EBPH_SEQLEN];
+    u64 count;
+    u64 pid_tgid;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+    struct bpf_spin_lock lock;
+#endif
 };
 
 struct ebpH_pid_assoc
@@ -50,14 +77,6 @@ struct ebpH_pid_assoc
     u32 pid;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-};
-
-/* TODO: maybe delete */
-struct ebpH_event
-{
-    u64 pid_tgid;
-    u64 syscall;
-    u64 key;
 };
 
 static u8 *ebpH_get_lookahead(u64 *, u32 *, u32 *, struct pt_regs *);

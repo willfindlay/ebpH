@@ -63,15 +63,18 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* inode key to executable info */
-BPF_HASH(binaries, u64, struct ebpH_executable);
+BPF_HASH(executables, u64, struct ebpH_executable);
 
 /* ebpH per-executable lookahead pairs */
 BPF_HASH(lookahead0, u64, struct ebpH_lookahead_chunk);
 BPF_HASH(lookahead1, u64, struct ebpH_lookahead_chunk);
 BPF_HASH(lookahead2, u64, struct ebpH_lookahead_chunk);
-BPF_ARRAY(lookahead_init, struct ebpH_lookahead_chunk, 1);
 
-/* pid_tgid to key for binaries map */
+/* WARNING: NEVER ACCESS THIS DIRECTLY!! */
+BPF_ARRAY(lookahead_init, struct ebpH_lookahead_chunk, 1);
+//BPF_ARRAY(lookahead_init, struct ebpH_executable, 1);
+
+/* pid_tgid to key for executables map */
 BPF_HASH(pid_to_key, u64, u64, 1024000);
 
 /* Main syscall event buffer */
@@ -139,13 +142,13 @@ static u8 *ebpH_update_lookahead(u64 *key, u32 *curr, u32 *prev, u8 *value, stru
 
     if (*curr >= EBPH_NUM_SYSCALLS)
     {
-        EBPH_ERROR("Access out of bounds (curr) -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
         return NULL;
     }
 
     if (*prev >= EBPH_NUM_SYSCALLS)
     {
-        EBPH_ERROR("Access out of bounds (prev) -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number  -- ebpH_update_lookahead", ctx);
         return NULL;
     }
 
@@ -161,11 +164,20 @@ static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr
     u8 the_map = -1;
     struct ebpH_lookahead_chunk *init = NULL;
     struct ebpH_lookahead_chunk *lookahead = NULL;
-
-    bpf_probe_read(init, sizeof(struct ebpH_lookahead_chunk), lookahead_init.lookup(&zero));
-
     /* We can't use the normal error macro inside of a switch statement */
     char map_num_error[] = "Invalid map number -- ebpH_get_lookahead_chunk";
+
+    /* get the address of the zeroed lookahead_chunk */
+    init = lookahead_init.lookup(&zero);
+
+    if (!init)
+    {
+        EBPH_ERROR("NULL init -- ebpH_get_lookahead_chunk", ctx);
+        return NULL;
+    }
+
+    /* copy memory over */
+    bpf_probe_read(init, sizeof(struct ebpH_lookahead_chunk), init);
 
     if (!key)
     {
@@ -187,13 +199,13 @@ static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr
 
     if (*curr >= EBPH_NUM_SYSCALLS)
     {
-        EBPH_ERROR("Access out of bounds (curr) -- ebpH_get_lookahead_chunk", ctx);
+        EBPH_ERROR("Access out of bounds (curr syscall) -- ebpH_get_lookahead_chunk", ctx);
         return NULL;
     }
 
     if (*prev >= EBPH_NUM_SYSCALLS)
     {
-        EBPH_ERROR("Access out of bounds (prev) -- ebpH_get_lookahead_chunk", ctx);
+        EBPH_ERROR("Access out of bounds (prev syscall) -- ebpH_get_lookahead_chunk", ctx);
         return NULL;
     }
 
@@ -201,6 +213,7 @@ static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr
     the_map = (u8)((*prev * EBPH_NUM_SYSCALLS + *curr) / EBPH_LOOKAHEAD_CHUNK_SIZE);
     switch (the_map)
     {
+        /* FIXME: lookup_or_init is not threadsafe (we will need to start using spinlock when possible) */
     case 0:
         lookahead = lookahead0.lookup_or_init(key, init);
         break;
@@ -211,7 +224,7 @@ static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr
         lookahead = lookahead2.lookup_or_init(key, init);
         break;
     default:
-        /* EBPH_ERROR("Invalid map number -- ebpH_lookahead", ctx); */
+        /* "Invalid map number -- ebpH_lookahead" */
         ebpH_error.perf_submit(ctx, &map_num_error, sizeof(map_num_error));
         return NULL;
         break;
@@ -226,6 +239,8 @@ static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr
     return lookahead;
 }
 
+/* Return the parent process id of the task making the current systemcall.
+ * This is useful for when we need to copy the parent process' profile during a fork. */
 static u64 ebpH_get_ppid_tgid()
 {
     u64 ppid_tgid;
@@ -237,6 +252,7 @@ static u64 ebpH_get_ppid_tgid()
     return ppid_tgid;
 }
 
+/* Associate a process id to information about whatever executable it is currently running. */
 static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
 {
     if (!e)
@@ -251,13 +267,6 @@ static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, stru
         return -1;
     }
 
-    /* Prevents shared libraries from overwriting binaries */
-    // FIXME: this seems to be preventing legitimate overwrites as well.... not sure what to do
-    if (pid_to_key.lookup(pid_tgid))
-    {
-        return -1;
-    }
-
     pid_to_key.update(pid_tgid, &(e->key));
 
     struct ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
@@ -267,8 +276,11 @@ static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, stru
     return 0;
 }
 
+//static int ebpH_create_executable
+
 /* Register information about an executable if necessary
- * and associate PIDs with executables */
+ * and associate PIDs with executables.
+ * This is invoked every time the kernel calls on_do_open_execat. */
 static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     struct ebpH_executable e;
@@ -292,7 +304,7 @@ static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx,
         return -1;
     }
 
-    ep = binaries.lookup(key);
+    ep = executables.lookup(key);
     if (ep)
     {
         goto associate;
@@ -302,7 +314,7 @@ static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx,
     e.key = *key;
     bpf_probe_read_str(e.comm, sizeof(e.comm), comm);
 
-    binaries.update(key, &e);
+    executables.update(key, &e);
 
     on_executable_processed.perf_submit(ctx, &e, sizeof(e));
 
@@ -327,7 +339,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    /* process stuff here */
+    /* The juicy stuff goes right here */
+    // FIXME: delete me
+    u32 test = 0;
+    ebpH_get_lookahead_chunk(key, &test, &test, (struct pt_regs *)args);
+
 
     /* Some extra logic for special syscalls */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
@@ -360,7 +376,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
 
-        e = binaries.lookup(key);
+        e = executables.lookup(key);
 
         if (!e)
         {
@@ -372,20 +388,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         ebpH_associate_pid_exe(e, &pid_tgid, (struct pt_regs *)args);
     }
 
-    return 0;
-}
-
-/* TODO: this might be better than on_do_open_execat if we can get it consistent */
-int syscall__execve(struct pt_regs *ctx,
-    const char __user *filename,
-    const char __user *const __user *__argv,
-    const char __user *const __user *__envp)
-{
-    char comm[EBPH_FILENAME_LEN];
-
-    bpf_probe_read_str(comm, sizeof(comm), filename);
-
-    ebpH_info.perf_submit(ctx, &comm, sizeof(comm));
     return 0;
 }
 
@@ -405,6 +407,12 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     if (!exec_file || IS_ERR(exec_file))
     {
         /* If the file doesn't exist (invalid execve call), just return here */
+        return -1;
+    }
+
+    /* Prevent shared libraries from overwriting real executables */
+    if (!(exec_file->f_mode & 0x111))
+    {
         return -1;
     }
 
