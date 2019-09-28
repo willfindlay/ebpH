@@ -143,6 +143,9 @@ class ebpHD(Daemon):
 
     def on_term(self, sn=None, frame=None):
         if self.monitoring:
+            # TODO: remove, just for testing
+            for v in self.bpf["executables"].values():
+                self.logger.info(v.comm)
             self.stop_monitoring()
         sys.exit(0)
 

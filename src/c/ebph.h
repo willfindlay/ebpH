@@ -18,39 +18,25 @@
 
 /* Struct definitions below this line ------------------- */
 
-//typedef struct
-//{
-//    u8 frozen;
-//    u8 normal;
-//    u64 normal_time;
-//    u64 window_size;
-//    u64 normal_count;
-//    u64 last_mod_count;
-//    u64 train_count;
-//    u64 anomalies;
-//    u64 key;
-//    char comm[EBPH_FILENAME_LEN];
-//    struct bpf_spin_lock lock;
-//}
-//ebpH_profile;
-
+/* One half of an ebpH profile */
 struct ebpH_executable
 {
-    //u8 frozen;
-    //u8 normal;
-    //u64 normal_time;
-    //u64 window_size;
-    //u64 normal_count;
-    //u64 last_mod_count;
-    //u64 train_count;
-    //u64 anomalies;
+    u8 frozen;
+    u8 normal;
+    u64 normal_time;
+    u64 window_size;
+    u64 normal_count;
+    u64 last_mod_count;
+    u64 train_count;
+    u64 anomalies;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
 };
 
+/* The other half of an ebpH profile but separated into several chunks */
 struct ebpH_lookahead_chunk
 {
-    u8 flags[EBPH_LOOKAHEAD_CHUNK_SIZE];
+    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     struct bpf_spin_lock lock;
 #endif
@@ -58,7 +44,9 @@ struct ebpH_lookahead_chunk
 
 struct ebpH_locality
 {
-
+    u8 win[EBPH_LOCALITY_WIN];
+    int lfc;
+    int lfc_max;
 };
 
 struct ebpH_process
