@@ -36,10 +36,9 @@ class Config():
 
     # Do not edit anything below this line ------------------------------------
 
-    # bpf filesystem config
-    bpffs = '/sys/fs/bpf'
-    ebphfs = os.path.join(bpffs, 'ebpH')
-    profiles_path = os.path.join(ebphfs, 'profiles')
+    # ebpH data
+    ebph_data_dir =  '/var/lib/ebpH'
+    profiles_dir = os.path.join(ebph_data_dir, 'profiles')
 
     # configure file locations
     socket = os.path.join(socketdir, 'ebph.sock')
@@ -55,7 +54,8 @@ class Config():
     def init():
         # make sure directories are setup
         Config.setup_dir(Config.logdir)
-        Config.setup_dir(Config.ebphfs)
+        Config.setup_dir(Config.ebph_data_dir)
+        Config.setup_dir(Config.profiles_dir)
 
         # configure logging
         logger = logging.getLogger('ebpH')

@@ -62,17 +62,13 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 
 /* BPF tables below this line --------------------- */
 
-/* inode key to executable info */
-BPF_HASH(executables, u64, struct ebpH_executable);
-
-/* ebpH per-executable lookahead pairs */
-BPF_HASH(lookahead_pairs, u64, struct ebpH_lookahead_chunk);
+/* inode key to ebpH_profile */
+BPF_HASH(profiles, u64, struct ebpH_profile);
 
 /* WARNING: NEVER ACCESS THIS DIRECTLY!! */
-BPF_ARRAY(__lookahead_init, struct ebpH_lookahead_chunk, 1);
-BPF_ARRAY(__executable_init, struct ebpH_executable, 1);
+BPF_ARRAY(__executable_init, struct ebpH_profile, 1);
 
-/* pid_tgid to key for executables map */
+/* pid_tgid to key for profiles map */
 BPF_HASH(pid_to_key, u64, u64, 1024000);
 
 /* Main syscall event buffer */
@@ -81,141 +77,35 @@ BPF_PERF_OUTPUT(on_pid_assoc);
 
 /* Function definitions below this line --------------------- */
 
-/* TODO: finish this */
-static u8 *ebpH_get_lookahead(u64 *key, u32 *curr, u32 *prev, struct pt_regs *ctx)
+static long ebpH_get_lookahead_index(u32 *curr, u32* prev, struct pt_regs *ctx)
 {
-    struct ebpH_lookahead_chunk *chunk = ebpH_get_lookahead_chunk(key, curr, prev, ctx);
-    u8 *lookahead = NULL;
-
-    if (!curr)
-    {
-        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead", ctx);
-        return NULL;
-    }
-
-    if (!prev)
-    {
-        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead", ctx);
-        return NULL;
-    }
-
-    if (*curr >= EBPH_NUM_SYSCALLS)
-    {
-        EBPH_ERROR("Access out of bounds (curr) -- ebpH_get_lookahead", ctx);
-        return NULL;
-    }
-
-    if (*prev >= EBPH_NUM_SYSCALLS)
-    {
-        EBPH_ERROR("Access out of bounds (prev) -- ebpH_get_lookahead", ctx);
-        return NULL;
-    }
-
-    return lookahead;
-}
-
-/* TODO: finish this */
-static u8 *ebpH_update_lookahead(u64 *key, u32 *curr, u32 *prev, u8 *value, struct pt_regs *ctx)
-{
-    struct ebpH_lookahead_chunk *chunk = ebpH_get_lookahead_chunk(key, curr, prev, ctx);
-    u8 *lookahead = NULL;
-
-    if (!value)
-    {
-        EBPH_ERROR("NULL value -- ebpH_update_lookahead", ctx);
-        return NULL;
-    }
-
     if (!curr)
     {
         EBPH_ERROR("NULL curr syscall -- ebpH_update_lookahead", ctx);
-        return NULL;
+        return -1;
     }
 
     if (!prev)
     {
         EBPH_ERROR("NULL prev syscall -- ebpH_update_lookahead", ctx);
-        return NULL;
+        return -1;
     }
 
     if (*curr >= EBPH_NUM_SYSCALLS)
     {
         EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
-        return NULL;
+        return -1;
     }
 
     if (*prev >= EBPH_NUM_SYSCALLS)
     {
         EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number  -- ebpH_update_lookahead", ctx);
-        return NULL;
+        return -1;
     }
 
-    return lookahead;
-}
+    /* TODO: calculate index here */
 
-/* Return the correct lookahead chunk data structure according
- * to which current a previous systemcall we are looking at.
- * If the lookahead_chunk is not yet initialized, initialize it with a zeroed struct. */
-static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *key, u32 *curr, u32 *prev, struct pt_regs *ctx)
-{
-    int zero = 0;
-    struct ebpH_lookahead_chunk *init = NULL;
-    struct ebpH_lookahead_chunk *lookahead = NULL;
-    /* We can't use the normal error macro inside of a switch statement */
-    char map_num_error[] = "Invalid map number -- ebpH_get_lookahead_chunk";
-
-    /* get the address of the zeroed lookahead pair array */
-    init = __lookahead_init.lookup(&zero);
-
-    if (!init)
-    {
-        EBPH_ERROR("NULL init -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    /* copy memory over */
-    bpf_probe_read(init, sizeof(struct ebpH_lookahead_chunk), init);
-
-    if (!key)
-    {
-        EBPH_ERROR("NULL key -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    if (!curr)
-    {
-        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    if (!prev)
-    {
-        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    if (*curr >= EBPH_NUM_SYSCALLS)
-    {
-        EBPH_ERROR("Access out of bounds (curr syscall) -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    if (*prev >= EBPH_NUM_SYSCALLS)
-    {
-        EBPH_ERROR("Access out of bounds (prev syscall) -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    /* Calculate which map we need to be accessing */
-    lookahead = lookahead_pairs.lookup_or_init(key, init);
-
-    if (!lookahead)
-    {
-        EBPH_ERROR("Could not lookup or init lookahead chunk -- ebpH_get_lookahead_chunk", ctx);
-        return NULL;
-    }
-
-    return lookahead;
+    return 0;
 }
 
 /* Return the parent process id of the task making the current systemcall.
@@ -232,7 +122,7 @@ static u64 ebpH_get_ppid_tgid()
 }
 
 /* Associate a process id to information about whatever executable it is currently running. */
-static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, struct pt_regs *ctx)
+static int ebpH_associate_pid_exe(struct ebpH_profile *e, u64 *pid_tgid, struct pt_regs *ctx)
 {
     if (!e)
     {
@@ -248,9 +138,9 @@ static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, stru
 
     pid_to_key.update(pid_tgid, &(e->key));
 
-    struct ebpH_pid_assoc ass = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
-    bpf_probe_read_str(ass.comm, sizeof(ass.comm), e->comm);
-    on_pid_assoc.perf_submit(ctx, &ass, sizeof(ass));
+    struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
+    bpf_probe_read_str(info.comm, sizeof(info.comm), e->comm);
+    on_pid_assoc.perf_submit(ctx, &info, sizeof(info));
 
     return 0;
 }
@@ -258,13 +148,13 @@ static int ebpH_associate_pid_exe(struct ebpH_executable *e, u64 *pid_tgid, stru
 //static int ebpH_create_executable
 
 /* Register information about an executable if necessary
- * and associate PIDs with executables.
+ * and associate PIDs with profiles.
  * This is invoked every time the kernel calls on_do_open_execat. */
-static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
+static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     int zero = 0;
-    struct ebpH_executable *init = NULL;
-    struct ebpH_executable *ep = NULL;
+    struct ebpH_profile *init = NULL;
+    struct ebpH_profile *ep = NULL;
 
     if (!key)
     {
@@ -294,9 +184,9 @@ static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx,
     }
 
     /* copy memory over */
-    bpf_probe_read(init, sizeof(struct ebpH_executable), init);
+    bpf_probe_read(init, sizeof(struct ebpH_profile), init);
 
-    ep = executables.lookup(key);
+    ep = profiles.lookup(key);
     if (ep)
     {
         goto associate;
@@ -306,9 +196,11 @@ static int ebpH_process_executable(u64 *key, u64 *pid_tgid, struct pt_regs *ctx,
     ep->key = *key;
     bpf_probe_read_str(ep->comm, sizeof(ep->comm), comm);
 
-    executables.update(key, ep);
+    profiles.update(key, ep);
 
-    on_executable_processed.perf_submit(ctx, ep, sizeof(struct ebpH_executable));
+    struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=ep->key};
+    bpf_probe_read_str(info.comm, sizeof(info.comm), ep->comm);
+    on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
 associate:
     ebpH_associate_pid_exe(ep, pid_tgid, ctx);
@@ -332,10 +224,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     }
 
     /* The juicy stuff goes right here */
-    // FIXME: delete me
-    u32 test = 0;
-    ebpH_get_lookahead_chunk(key, &test, &test, (struct pt_regs *)args);
-
 
     /* Some extra logic for special syscalls */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
@@ -353,7 +241,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
     u64 *key;
-    struct ebpH_executable *e;
+    struct ebpH_profile *e;
 
     /* Associate pids on fork */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
@@ -368,7 +256,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
 
-        e = executables.lookup(key);
+        e = profiles.lookup(key);
 
         if (!e)
         {
@@ -402,7 +290,7 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
         return -1;
     }
 
-    /* Prevent shared libraries from overwriting real executables */
+    /* Prevent shared libraries from overwriting real profiles */
     if (!(exec_file->f_mode & 0x111))
     {
         return -1;
@@ -438,7 +326,15 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     bpf_probe_read(&comm, sizeof(comm), dn.name);
 
     /* Store information about this executable */
-    ebpH_process_executable(&key, &pid_tgid, ctx, comm);
+    ebpH_on_profile_exec(&key, &pid_tgid, ctx, comm);
+
+    return 0;
+}
+
+/* TODO: invoke this on program launch */
+static int ebpH_load_profile(struct pt_regs *ctx)
+{
+    EBPH_INFO("AHOY MATEY!", ctx);
 
     return 0;
 }

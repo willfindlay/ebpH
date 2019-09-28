@@ -18,8 +18,7 @@
 
 /* Struct definitions below this line ------------------- */
 
-/* One half of an ebpH profile */
-struct ebpH_executable
+struct ebpH_profile
 {
     u8 frozen;
     u8 normal;
@@ -29,14 +28,9 @@ struct ebpH_executable
     u64 last_mod_count;
     u64 train_count;
     u64 anomalies;
+    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-};
-
-/* The other half of an ebpH profile but separated into several chunks */
-struct ebpH_lookahead_chunk
-{
-    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     struct bpf_spin_lock lock;
 #endif
@@ -60,18 +54,15 @@ struct ebpH_process
 #endif
 };
 
-struct ebpH_pid_assoc
+struct ebpH_information
 {
     u32 pid;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
 };
 
-static u8 *ebpH_get_lookahead(u64 *, u32 *, u32 *, struct pt_regs *);
-static u8 *ebpH_update_lookahead(u64 *, u32 *, u32 *, u8 *, struct pt_regs *);
-static struct ebpH_lookahead_chunk *ebpH_get_lookahead_chunk(u64 *, u32 *, u32*, struct pt_regs *);
-static int ebpH_process_executable(u64 *, u64 *, struct pt_regs *, char *);
-static int ebpH_associate_pid_exe(struct ebpH_executable *, u64 *, struct pt_regs *);
+static int ebpH_on_profile_exec(u64 *, u64 *, struct pt_regs *, char *);
+static int ebpH_associate_pid_exe(struct ebpH_profile *, u64 *, struct pt_regs *);
 static u64 ebpH_get_ppid_tgid();
 
 #endif
