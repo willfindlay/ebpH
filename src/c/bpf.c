@@ -62,6 +62,8 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 
 /* BPF tables below this line --------------------- */
 
+BPF_HASH(testificate, u64, u64);
+
 /* inode key to ebpH_profile */
 BPF_HASH(profiles, u64, struct ebpH_profile);
 
@@ -327,14 +329,6 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
 
     /* Store information about this executable */
     ebpH_on_profile_exec(&key, &pid_tgid, ctx, comm);
-
-    return 0;
-}
-
-/* TODO: invoke this on program launch */
-static int ebpH_load_profile(struct pt_regs *ctx)
-{
-    EBPH_INFO("AHOY MATEY!", ctx);
 
     return 0;
 }

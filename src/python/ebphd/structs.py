@@ -21,10 +21,6 @@ import ctypes as ct
 
 EBPH_FILENAME_LEN = 128
 
-class ebpH_executable(ct.Structure):
+class ebpH_(ct.Structure):
     _fields_ = [('key', ct.c_ulonglong),
             ('comm', ct.c_char * EBPH_FILENAME_LEN)]
-
-class ebpH_pid_assoc(ct.Structure):
-    _fields_ = [('pid', ct.c_ulong),
-            ('e', ebpH_executable)]

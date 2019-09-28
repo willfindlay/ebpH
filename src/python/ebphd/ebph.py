@@ -122,18 +122,8 @@ class ebpHD(Daemon):
         self.bpf = load_bpf_program(BPF_C)
         self.register_perf_buffers(self.bpf)
 
-        #self.logger.info("Loaded profiles successfully.")
-        #loaded = sorted([''.join([v.comm.decode('utf-8'), ' (', str(v.key), ')']) for v in self.bpf['profile'].values()], key=lambda x: x.upper())
-        #self.logger.info('\n\t\t\t'.join(['The following profiles have been loaded:'] + loaded))
-
-        # register callback to load profiles
-        # FIXME: might fundamentally change how this works, so leaving it commented for now
-        #self.bpf.attach_uretprobe(name=defs.LOADER_PATH, sym='load_profile', fn_name='pH_load_profile')
-
-        #execve_fnname = self.bpf.get_syscall_fnname("execve")
-        #self.bpf.attach_kprobe(event=execve_fnname, fn_name="syscall__execve")
+        self.load_profiles()
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
-
         self.logger.info('Started monitoring the system')
 
     def on_term(self, sn=None, frame=None):
@@ -162,7 +152,23 @@ class ebpHD(Daemon):
 
     # load all profiles from disk
     def load_profiles(self):
-        pass
+        for filename in os.listdir(Config.profiles_dir):
+            # Read bytes from profile file
+            path = os.path.join(Config.profiles_dir, filename)
+            with open(path, 'rb') as f:
+                profile = f.read()
+
+            # Yoink structure info from the init array
+            # FIXME: This is kind of hacky, but it works
+            profile_struct = self.bpf["__executable_init"][0]
+            # Make sure we're not messing with memory we shouldn't
+            fit = min(len(profile), ct.sizeof(profile_struct))
+            # Write contents of profile into profile_struct
+            ct.memmove(ct.addressof(profile_struct), profile, fit)
+            # Update our profile map
+            self.bpf["profiles"].__setitem__(ct.c_int64(profile_struct.key), profile_struct)
+
+            self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
     def tick(self):
         self.ticks = self.ticks + 1
