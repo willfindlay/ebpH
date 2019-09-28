@@ -30,7 +30,7 @@
 
 /* Total number of systemcalls in the current kernel version
  * Keep this updated with the latest version of Linux */
-#define EBPH_NUM_SYSCALLS  314
+#define EBPH_NUM_SYSCALLS 335
 /* Size of each array of lookahead pairs */
 #define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
 
