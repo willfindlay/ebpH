@@ -2,9 +2,8 @@
 
 ## Description
 
-This is an extremely early version of ebpH that serves as a proof of concept.
-It "monitors" all executables on the system but can only really detect anomalies in **one at a time**
-(this will be fixed in future versions).
+A daemon (can also be started as a foreground process with the `--nodaemon` flag) that monitors every process on the system
+and watches for anomalous system calls.
 
 See the instructions below for information on how to choose which profile is monitored.
 
