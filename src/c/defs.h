@@ -35,9 +35,9 @@
 #define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
 
 /* Amount of time a profile must remain frozen before becoming normal */
-//#define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
+#define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
 /* 3 seconds in nanoseconds uncomment this and comment the above for quick testing */
-#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000
+//#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000
 
 /* Multiply by a profile's train_count and compare with... */
 #define EBPH_NORMAL_FACTOR_DEN 32
