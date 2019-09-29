@@ -1,3 +1,16 @@
+# ebpH --  An eBPF intrusion detection program.
+# -------  Monitors system call patterns and detect anomalies.
+# Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
+# Anil Somayaji (soma@scs.carleton.ca)
+#
+# Based on Anil Somayaji's pH
+#  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
+#  Copyright 2003 Anil Somayaji
+#
+# USAGE: ebphd <COMMAND>
+#
+# Licensed under GPL v2 License
+
 import os, sys, socket, atexit, time
 from signal import SIGTERM
 
@@ -70,14 +83,14 @@ class Daemon:
             os.path.makedirs(stderr_path)
 
         # redirect standard fds
-        sys.stdout.flush()
-        sys.stderr.flush()
-        si = open(self.stdin, 'r')
-        so = open(self.stdout, 'a+')
-        se = open(self.stderr, 'a+')
-        os.dup2(si.fileno(), sys.stdin.fileno())
-        os.dup2(so.fileno(), sys.stdout.fileno())
-        os.dup2(se.fileno(), sys.stderr.fileno())
+        #sys.stdout.flush()
+        #sys.stderr.flush()
+        #si = open(self.stdin, 'r')
+        #so = open(self.stdout, 'a+')
+        #se = open(self.stderr, 'a+')
+        #os.dup2(si.fileno(), sys.stdin.fileno())
+        #os.dup2(so.fileno(), sys.stdout.fileno())
+        #os.dup2(se.fileno(), sys.stderr.fileno())
 
         # write pidfile
         atexit.register(self._del_pidfile)
@@ -119,13 +132,20 @@ class Daemon:
 
         # kill the process
         try:
-            self._del_pidfile()
+            print("Attempting to kill ebpH daemon...")
             os.kill(pid, SIGTERM)
+            timeout = 0
+            while os.path.exists(self.pidfile):
+                timeout = timeout + 1
+                time.sleep(1)
+                if timeout >= Config.killtimeout:
+                    sys.stderr.write(f"Timeout reached. You may want to delete {self.pidfile} and kill the daemon manually.\n")
+                    sys.exit(-1)
             print("Killed ebpH daemon successfully!")
         except OSError as e:
             if e.strerror.find("No such process") >= 0:
                 if os.path.exists(self.pidfile):
-                    os.unlink(self.pidfile)
+                    self._del_pidfile()
             sys.stderr.write(f"Failed to kill ebpH daemon: {e.errno} {e.strerror}\n")
             sys.exit(-1)
 

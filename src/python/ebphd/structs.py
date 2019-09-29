@@ -11,12 +11,16 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys
+# **************************************** #
+#               WARNING!!!!!               #
+#      Keep this in sync with ebpH.h       #
+#             AT ALL TIMES!!               #
+# **************************************** #
 
-from config import Config
+import ctypes as ct
 
-def path(f):
-    curr_dir = os.path.realpath(os.path.dirname(__file__))
-    project_dir = os.path.realpath(os.path.join(curr_dir,"../../.."))
-    path = os.path.realpath(os.path.join(project_dir, f))
-    return path
+EBPH_FILENAME_LEN = 128
+
+class ebpH_(ct.Structure):
+    _fields_ = [('key', ct.c_ulonglong),
+            ('comm', ct.c_char * EBPH_FILENAME_LEN)]
