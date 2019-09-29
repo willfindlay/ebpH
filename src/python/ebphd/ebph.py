@@ -88,6 +88,13 @@ class ebpHD(Daemon):
             self.logger.info(s)
         bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
 
+        # Anomaly detected
+        def on_anomaly(cpu, data, size):
+            event = bpf["on_anomaly"].event(data)
+            s = f"Process {event.pid} made anomalous {event.comm.decode('utf-8')} ({event.key})"
+            self.logger.warning(s)
+        bpf["on_anomaly"].open_perf_buffer(on_anomaly)
+
         # error, warning, debug, info
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')

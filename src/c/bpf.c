@@ -70,6 +70,7 @@ BPF_ARRAY(__process_init, struct ebpH_process, 1);
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
+BPF_PERF_OUTPUT(on_anomaly);
 
 /* Function definitions below this line --------------------- */
 
@@ -106,17 +107,17 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
 {
     int anomalies = 0;
 
-    if(profile->normal)
+    if (profile->normal)
     {
         anomalies = ebpH_test(profile, process, ctx);
-        if(anomalies)
+        if (anomalies)
         {
-            // TODO: notify userspace
-            //struct anomaly event = {.pid = (bpf_get_current_pid_tgid() >> 32), .profile_key = p->key};
-            //bpf_probe_read_str(event.comm, sizeof(event.comm), p->comm);
-            //anomaly_event.perf_submit(ctx, &event, sizeof(event));
+            struct ebpH_anomaly event = {.pid=(process->pid_tgid >> 32), .key=profile->key, .syscall=process->seq[0],
+                .anomalies=anomalies};
+            bpf_probe_read_str(event.comm, sizeof(event.comm), profile->comm);
+            on_anomaly.perf_submit(ctx, &event, sizeof(event));
 
-            if(profile->anomalies > EBPH_ANOMALY_LIMIT)
+            if (profile->anomalies > EBPH_ANOMALY_LIMIT)
             {
                 ebpH_stop_normal(profile, process, ctx);
             }
@@ -133,15 +134,15 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
     int mismatches = 0;
     long entry = -1;
 
-    if(!process || process->count < 1)
+    if (!process || process->count < 1)
         return mismatches;
 
     /* access at index [syscall][prev] */
-    for(int i = 1; i < EBPH_SEQLEN; i++)
+    for (int i = 1; i < EBPH_SEQLEN; i++)
     {
         u64 syscall = process->seq[0];
         u64 prev = process->seq[i];
-        if(prev == EBPH_EMPTY)
+        if (prev == EBPH_EMPTY)
             break;
 
         /* determine which entry we need */
@@ -151,8 +152,10 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
         u8 data = profile->flags[entry];
 
         /* check for mismatch */
-        if((data & (1 << (i-1))) == 0)
+        if ((data & (1 << (i-1))) == 0)
+        {
             mismatches++;
+        }
     }
 
     return mismatches;
@@ -162,9 +165,9 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
 {
     /* update train_count and last_mod_count */
     profile->train_count++;
-    if(ebpH_test(profile, process, ctx))
+    if (ebpH_test(profile, process, ctx))
     {
-        if(profile->frozen)
+        if (profile->frozen)
             profile->frozen = 0;
         ebpH_seq_to_lookahead(profile, process, ctx);
         profile->last_mod_count = 0;
@@ -173,12 +176,12 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     {
         profile->last_mod_count++;
 
-        if(profile->frozen)
+        if (profile->frozen)
             return 0;
 
         profile->normal_count = profile->train_count - profile->last_mod_count;
 
-        if((profile->normal_count > 0) && (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
+        if ((profile->normal_count > 0) && (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
                     profile->normal_count * EBPH_NORMAL_FACTOR))
         {
             profile->frozen = 1;
@@ -191,24 +194,52 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
 
 static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
+    profile->normal = 1;
+    profile->frozen = 0;
+    profile->anomalies = 0;
+    profile->last_mod_count = 0;
+
+    ebpH_reset_ALF(process, ctx);
 
     return 0;
 }
 
 static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
+    profile->normal = 0;
+    ebpH_reset_ALF(process, ctx);
 
     return 0;
 }
 
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
+    u64 time_ns = (u64) bpf_ktime_get_ns();
+    time_ns += EBPH_NORMAL_WAIT;
+
+    profile->normal_time = time_ns;
 
     return 0;
 }
 
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
+    u64 time_ns = (u64) bpf_ktime_get_ns();
+    if (profile->frozen && (time_ns > profile->normal_time))
+        return 1;
+
+    return 0;
+}
+
+static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx)
+{
+    for (int i=0; i < EBPH_LOCALITY_WIN; i++)
+    {
+        process->lf.win[i] = 0;
+    }
+
+    process->lf.lfc = 0;
+    process->lf.lfc_max = 0;
 
     return 0;
 }
@@ -218,15 +249,15 @@ static int ebpH_seq_to_lookahead(struct ebpH_profile *profile, struct ebpH_proce
     int mismatches = 0;
     long entry = -1;
 
-    if(!process || process->count < 1)
+    if (!process || process->count < 1)
         return mismatches;
 
     /* access at index [syscall][prev] */
-    for(int i = 1; i < EBPH_SEQLEN; i++)
+    for (int i = 1; i < EBPH_SEQLEN; i++)
     {
         u64 syscall = process->seq[0];
         u64 prev = process->seq[i];
-        if(prev == EBPH_EMPTY)
+        if (prev == EBPH_EMPTY)
             break;
 
         /* determine which entry we need */
@@ -280,7 +311,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, u64* syscall, stru
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
-    if(ebpH_check_normal_time(profile, ctx))
+    if (ebpH_check_normal_time(profile, ctx))
     {
         ebpH_start_normal(profile, process, ctx);
     }
@@ -371,6 +402,11 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
     {
         EBPH_ERROR("NULL pid_tgid -- ebpH_process_executable", ctx);
         return -1;
+    }
+
+    if (processes.lookup(pid_tgid))
+    {
+        return 0;
     }
 
     /* Get the address of the zeroed executable struct */
@@ -491,12 +527,6 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     if (!exec_file || IS_ERR(exec_file))
     {
         /* If the file doesn't exist (invalid execve call), just return here */
-        return -1;
-    }
-
-    /* Prevent shared libraries from overwriting real profiles */
-    if (!(exec_file->f_mode & 0x111))
-    {
         return -1;
     }
 

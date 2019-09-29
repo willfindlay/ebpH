@@ -55,6 +55,15 @@ struct ebpH_process
 #endif
 };
 
+struct ebpH_anomaly
+{
+    u32 pid;
+    u64 syscall;
+    int anomalies;
+    u64 key;
+    char comm[EBPH_FILENAME_LEN];
+};
+
 struct ebpH_information
 {
     u32 pid;
@@ -62,7 +71,7 @@ struct ebpH_information
     char comm[EBPH_FILENAME_LEN];
 };
 
-
+static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_seq_to_lookahead(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
