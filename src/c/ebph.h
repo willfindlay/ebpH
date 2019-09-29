@@ -49,7 +49,9 @@ struct ebpH_process
     u64 seq[EBPH_SEQLEN];
     u64 count;
     u64 pid_tgid;
+    u8 associated;
     u64 exe_key;
+    u8 in_execve;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     struct bpf_spin_lock lock;
 #endif
@@ -71,6 +73,7 @@ struct ebpH_information
     char comm[EBPH_FILENAME_LEN];
 };
 
+static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_seq_to_lookahead(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
