@@ -14,8 +14,7 @@ FROM ubuntu:bionic
 RUN apt-get -qq update && \
     apt-get -y install bison build-essential cmake flex git libedit-dev \
     libllvm6.0 llvm-6.0-dev libclang-6.0-dev python zlib1g-dev libelf-dev \
-    python3-pip libgl1-mesa-glx qt5-default sudo
-RUN pip3 install pyside2
+    python3-pip sudo
 
 # install bcc
 COPY --from=intermediate /bcc /root/bcc
