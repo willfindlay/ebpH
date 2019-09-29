@@ -11,7 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, logging, logging.handlers
+import os, sys, pwd, grp, stat, logging, logging.handlers
 
 class Config():
     # Location where socket and pidfile should be stored
@@ -36,7 +36,9 @@ class Config():
 
     # Do not edit anything below this line ------------------------------------
 
-    # ebpH data
+    # ebpH data directory
+    # WARNING: Don't pick a directory you're already using
+    #          The permissions will be changed
     ebph_data_dir =  '/var/lib/ebpH'
     profiles_dir = os.path.join(ebph_data_dir, 'profiles')
 
@@ -52,10 +54,21 @@ class Config():
 
     @staticmethod
     def init():
-        # make sure directories are setup
+        uid = pwd.getpwnam("root").pw_uid
+        gid = grp.getgrnam("root").gr_gid
+
+        # Setup logdir
         Config.setup_dir(Config.logdir)
+
+        # Setup data dir and make sure permissions are correct
         Config.setup_dir(Config.ebph_data_dir)
+        os.chown(Config.ebph_data_dir, uid, gid)
+        os.chmod(Config.ebph_data_dir, 0o700 | stat.S_ISVTX)
+
+        # Setup profiles dir and make sure permissions are correct
         Config.setup_dir(Config.profiles_dir)
+        os.chown(Config.profiles_dir, uid, gid)
+        os.chmod(Config.profiles_dir, 0o700)
 
         # configure logging
         logger = logging.getLogger('ebpH')

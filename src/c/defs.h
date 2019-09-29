@@ -18,8 +18,12 @@
 
 /* This is the default size for BPF tables (hashmaps, etc.) */
 #define EBPH_DEFAULT_TABLE_SIZE 10240
-/* 100x the default table size for now, make this a tighter bound later */
-#define EBPH_PID_TGID_SIZE 1024000
+/* This is the maxmimum number of PIDs on the system, but...
+ * FIXME: it uses a HUGE amount of memory
+ * Is there a better way?
+ * TODO: maybe grow this map and restart every time we start clashing?
+ * Or we could use a percpu array instead? */
+#define EBPH_PID_TGID_SIZE 4194304
 
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
