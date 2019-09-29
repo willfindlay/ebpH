@@ -351,10 +351,6 @@ static int ebpH_start_tracing(struct ebpH_profile *e, u64 *pid_tgid, struct pt_r
         return -1;
     }
 
-    /* If the process is already being traced, return now */
-    if (processes.lookup(pid_tgid))
-        return 0;
-
     /* get the address of the zeroed executable struct */
     init = __process_init.lookup(&zero);
 
