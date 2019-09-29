@@ -120,7 +120,7 @@ class ebpHD(Daemon):
             self.logger.info(s)
         bpf["ebpH_info"].open_perf_buffer(on_info)
 
-        self.logger.debug(f'Registered perf buffers successfully for {bpf}')
+        self.logger.debug(f'Registered perf buffers successfully!')
 
     def start_monitoring(self):
         self.monitoring = True

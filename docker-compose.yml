@@ -5,16 +5,12 @@ services:
         command: ebphd --nodaemon --nolog
         volumes:
             - .:/app:ro
-           #- /var/lib/ebpH:/var/lib/ebpH:rw
-           #- $HOME/.Xauthority:/root/.Xauthority:rw
+            - /var/lib/ebpH:/var/lib/ebpH:rw
             - /lib/modules:/lib/modules:ro
             - /usr/src:/usr/src:ro
             - /etc/localtime:/etc/localtime:ro
             - /sys/kernel/debug:/sys/kernel/debug
-            - /sys/fs/bpf:/sys/fs/bpf
             - /tmp:/tmp
             - /run:/run
         privileged: true
         network_mode: host
-        #environment:
-        #    - DISPLAY

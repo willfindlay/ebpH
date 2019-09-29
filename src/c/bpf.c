@@ -290,6 +290,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, u64* syscall, stru
         return -1;
     }
 
+    if (!process->associated)
+        return 0;
+
     profile = profiles.lookup(&(process->exe_key));
 
     if (!profile)
@@ -333,42 +336,67 @@ static u64 ebpH_get_ppid_tgid()
     return ppid_tgid;
 }
 
-/* Create process struct, associate it with the correct PID and the correct profile */
-static int ebpH_start_tracing(struct ebpH_profile *e, u64 *pid_tgid, struct pt_regs *ctx)
+/* Create a process struct for the given pid if it doesn't exist */
+static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 {
     int zero = 0;
     struct ebpH_process *init;
 
-    if (!e)
-    {
-        EBPH_ERROR("NULL profile -- ebpH_associate_pid_exe", ctx);
-        return -1;
-    }
+    /* Process already exists */
+    if (processes.lookup(pid_tgid))
+        return 0;
 
-    if (!pid_tgid)
-    {
-        EBPH_ERROR("NULL pid_tgid -- ebpH_associate_pid_exe", ctx);
-        return -1;
-    }
-
-    /* get the address of the zeroed executable struct */
+    /* Get the address of the zeroed executable struct */
     init = __process_init.lookup(&zero);
 
     if (!init)
     {
-        EBPH_ERROR("NULL init -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL init -- ebpH_create_process", ctx);
         return -1;
     }
 
-    /* copy memory over */
+    /* Copy memory over */
     bpf_probe_read(init, sizeof(struct ebpH_process), init);
-    init->exe_key = e->key;
     init->pid_tgid = *pid_tgid;
 
     for (int i = 0; i < EBPH_SEQLEN; i++)
         init->seq[i] = EBPH_EMPTY;
 
     processes.update(pid_tgid, init);
+
+    return 0;
+}
+
+/* Associate process struct with the correct PID and the correct profile */
+static int ebpH_start_tracing(struct ebpH_profile *e, u64 *pid_tgid, struct pt_regs *ctx)
+{
+    struct ebpH_process *process;
+
+    if (!e)
+    {
+        EBPH_ERROR("NULL profile -- ebpH_start_tracing", ctx);
+        return -1;
+    }
+
+    if (!pid_tgid)
+    {
+        EBPH_ERROR("NULL pid_tgid -- ebpH_start_tracing", ctx);
+        return -1;
+    }
+
+    process = processes.lookup(pid_tgid);
+
+    if (!process)
+    {
+        EBPH_ERROR("NULL process -- ebpH_start_tracing", ctx);
+        return -1;
+    }
+
+    if (process->in_execve)
+        return 0;
+
+    process->exe_key = e->key;
+    process->associated = 1;
 
     struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=e->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), e->comm);
@@ -384,22 +412,23 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
 {
     int zero = 0;
     struct ebpH_profile *ep = NULL;
+    struct ebpH_process *process = NULL;
 
     if (!key)
     {
-        EBPH_ERROR("NULL key -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL key -- ebpH_on_profile_exec", ctx);
         return -1;
     }
 
     if (!comm)
     {
-        EBPH_ERROR("NULL comm -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL comm -- ebpH_on_profile_exec", ctx);
         return -1;
     }
 
     if (!pid_tgid)
     {
-        EBPH_ERROR("NULL pid_tgid -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL pid_tgid -- ebpH_on_profile_exec", ctx);
         return -1;
     }
 
@@ -415,7 +444,7 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
 
     if (!ep)
     {
-        EBPH_ERROR("NULL init -- ebpH_process_executable", ctx);
+        EBPH_ERROR("NULL init -- ebpH_on_profile_exec", ctx);
         return -1;
     }
 
@@ -432,7 +461,17 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
 start_tracing:
+    process = processes.lookup(pid_tgid);
+
+    if (!process)
+    {
+        EBPH_ERROR("NULL process -- ebpH_on_profile_exec", ctx);
+        return -1;
+    }
+
     ebpH_start_tracing(ep, pid_tgid, ctx);
+
+    process->in_execve = 1;
 
     return 0;
 }
@@ -474,13 +513,30 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     u64 key = 0;
     struct ebpH_profile *e;
     struct ebpH_process *process;
+    struct ebpH_process *parent_process;
+
+    if (syscall == EBPH_EXECVE)
+    {
+        process = processes.lookup(&pid_tgid);
+
+        if (!process)
+        {
+           /* We should never ever get here! */
+           EBPH_ERROR("Execve finished with no process?", (struct pt_regs *)args);
+           return -1;
+        }
+
+        process->in_execve = 0;
+    }
 
     /* Associate pids on fork */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
     {
-       process = processes.lookup(&ppid_tgid);
+       ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
 
-       if (!process)
+       /* Check if we are tracing its parent process */
+       process = processes.lookup(&ppid_tgid);
+       if (!process || !process->associated)
        {
            /* FIXME: This message is annoying. It will be more relevant when we are actually
             * starting the daemon on system startup. For now, we can comment it out. */
@@ -489,9 +545,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        }
 
        key = process->exe_key;
-
        e = profiles.lookup(&key);
-
        if (!e)
        {
            /* We should never ever get here! */
@@ -499,6 +553,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
            return -1;
        }
 
+       /* Associate process with its parent profile */
        ebpH_start_tracing(e, &pid_tgid, (struct pt_regs *)args);
     }
 
