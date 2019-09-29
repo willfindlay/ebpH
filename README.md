@@ -1,4 +1,4 @@
-# ebpH v0.2.0
+# ebpH v1.0.0 Beta
 
 ## Description
 
