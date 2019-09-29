@@ -404,10 +404,12 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
         return -1;
     }
 
-    if (processes.lookup(pid_tgid))
-    {
-        return 0;
-    }
+    // FIXME: this should prevent shared libraries from overwriting real binaries but...
+    //        it's also stopping some legit overwrites
+    //if (processes.lookup(pid_tgid))
+    //{
+    //    return 0;
+    //}
 
     /* Get the address of the zeroed executable struct */
     init = __executable_init.lookup(&zero);

@@ -91,7 +91,7 @@ class ebpHD(Daemon):
         # Anomaly detected
         def on_anomaly(cpu, data, size):
             event = bpf["on_anomaly"].event(data)
-            s = f"Process {event.pid} made anomalous {event.comm.decode('utf-8')} ({event.key})"
+            s = f"PID {event.pid} ({event.comm.decode('utf-8')} {event.key}): {event.anomalies} detected for syscall {event.syscall} "
             self.logger.warning(s)
         bpf["on_anomaly"].open_perf_buffer(on_anomaly)
 
