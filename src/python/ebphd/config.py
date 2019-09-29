@@ -60,6 +60,12 @@ class Config():
         # Setup logdir
         Config.setup_dir(Config.logdir)
 
+        # Setup logfile
+        try:
+            os.chown(Config.logfile, uid, gid)
+        except FileNotFoundError:
+            pass
+
         # Setup data dir and make sure permissions are correct
         Config.setup_dir(Config.ebph_data_dir)
         os.chown(Config.ebph_data_dir, uid, gid)
