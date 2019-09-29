@@ -64,7 +64,7 @@ BPF_HASH(processes, u64, struct ebpH_process, EBPH_PID_TGID_SIZE);
 BPF_HASH(profiles, u64, struct ebpH_profile);
 
 /* WARNING: NEVER ACCESS THIS DIRECTLY!! */
-BPF_ARRAY(__executable_init, struct ebpH_profile, 1);
+BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
 
 /* Main syscall event buffer */
@@ -351,6 +351,10 @@ static int ebpH_start_tracing(struct ebpH_profile *e, u64 *pid_tgid, struct pt_r
         return -1;
     }
 
+    /* If the process is already being traced, return now */
+    if (processes.lookup(pid_tgid))
+        return 0;
+
     /* get the address of the zeroed executable struct */
     init = __process_init.lookup(&zero);
 
@@ -383,7 +387,6 @@ static int ebpH_start_tracing(struct ebpH_profile *e, u64 *pid_tgid, struct pt_r
 static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     int zero = 0;
-    struct ebpH_profile *init = NULL;
     struct ebpH_profile *ep = NULL;
 
     if (!key)
@@ -404,32 +407,25 @@ static int ebpH_on_profile_exec(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, ch
         return -1;
     }
 
-    // FIXME: this should prevent shared libraries from overwriting real binaries but...
-    //        it's also stopping some legit overwrites... commented for now
-    //if (processes.lookup(pid_tgid))
-    //{
-    //    return 0;
-    //}
-
-    /* Get the address of the zeroed executable struct */
-    init = __executable_init.lookup(&zero);
-
-    if (!init)
-    {
-        EBPH_ERROR("NULL init -- ebpH_process_executable", ctx);
-        return -1;
-    }
-
-    /* Copy memory over */
-    bpf_probe_read(init, sizeof(struct ebpH_profile), init);
-
+    /* If the profile for this key already exists, move on */
     ep = profiles.lookup(key);
     if (ep)
     {
         goto start_tracing;
     }
 
-    ep = init;
+    /* Get the address of the zeroed executable struct */
+    ep = __profile_init.lookup(&zero);
+
+    if (!ep)
+    {
+        EBPH_ERROR("NULL init -- ebpH_process_executable", ctx);
+        return -1;
+    }
+
+    /* Copy memory over */
+    bpf_probe_read(ep, sizeof(struct ebpH_profile), ep);
+
     ep->key = *key;
     bpf_probe_read_str(ep->comm, sizeof(ep->comm), comm);
 
@@ -461,15 +457,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    /* The juicy stuff goes right here */
-    ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
-
-    /* Some extra logic for special syscalls */
+    /* Disassociate the PID if the process has exited */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
     {
-        /* Disassociate the PID if the process has exited */
         processes.delete(&pid_tgid);
+        return 0;
     }
+
+    /* The juicy stuff goes right here */
+    ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
     return 0;
 }

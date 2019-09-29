@@ -167,7 +167,7 @@ class ebpHD(Daemon):
 
             # Yoink structure info from the init array
             # FIXME: This is kind of hacky, but it works
-            profile_struct = self.bpf["__executable_init"][0]
+            profile_struct = self.bpf["__profile_init"][0]
             # Make sure we're not messing with memory we shouldn't
             fit = min(len(profile), ct.sizeof(profile_struct))
             # Write contents of profile into profile_struct
