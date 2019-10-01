@@ -34,8 +34,11 @@ def load_bpf_program(path):
     return BPF(text=text)
 
 class ebpHD(Daemon):
-    def __init__(self, monitoring=True):
+    def __init__(self, args, monitoring=True):
         super().__init__(Config.pidfile, Config.socket)
+
+        self.should_load = not args.noload
+        self.should_save = not args.nosave
 
         self.monitoring = monitoring
 
@@ -129,7 +132,8 @@ class ebpHD(Daemon):
         self.bpf = load_bpf_program(BPF_C)
         self.register_perf_buffers(self.bpf)
 
-        self.load_profiles()
+        if self.should_load:
+            self.load_profiles()
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
         self.logger.info('Started monitoring the system')
 
@@ -139,7 +143,8 @@ class ebpHD(Daemon):
         sys.exit(0)
 
     def stop_monitoring(self):
-        self.save_profiles()
+        if self.should_save:
+            self.save_profiles()
         self.bpf.cleanup()
         self.bpf = None
         self.monitoring = False
@@ -148,6 +153,7 @@ class ebpHD(Daemon):
 
     # save all profiles to disk
     def save_profiles(self):
+        # self.bpf["profiles"].values() is causing the memory leak
         for profile in self.bpf["profiles"].values():
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # make sure that the files are only readable and writable by root

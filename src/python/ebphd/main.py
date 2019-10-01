@@ -26,6 +26,10 @@ def parse_args(args=[]):
             help=f"Run this as a foreground process instead of a daemon.")
     parser.add_argument('--nolog', dest='nolog', action='store_true',
             help=f"Write to stderr instead of logfile. In daemon mode, this will simply not write any logging information.")
+    parser.add_argument('--nosave', dest='nosave', action='store_true',
+            help=f"Don't save profiles on exit.")
+    parser.add_argument('--noload', dest='noload', action='store_true',
+            help=f"Don't load profiles.")
     parser.add_argument('-v', dest='verbose', action='store_true',
             help=f"Set verbosity level to debug regardless of what is set in configuration options.")
 
@@ -69,7 +73,7 @@ if __name__ == "__main__":
         # disable file handlers
         logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
-    e = ebpHD()
+    e = ebpHD(args)
 
     if args.operation == "start":
         e.start()

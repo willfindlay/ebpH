@@ -24,6 +24,7 @@
  * TODO: maybe grow this map and restart every time we start clashing?
  * Or we could use a percpu array instead? */
 #define EBPH_PID_TGID_SIZE 4194304
+//#define EBPH_PID_TGID_SIZE 10240
 
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
