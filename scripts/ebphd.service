@@ -1,0 +1,16 @@
+[Unit]
+Description=ebpH daemon service
+StartLimitIntervalSec=0
+
+[Service]
+Type=forking
+PIDFile=/run/ebph.pid
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/usr/bin/env bash /opt/ebpH/ebphd start
+ExecStop=/usr/bin/env bash /opt/ebpH/ebphd stop
+ExecReload=/usr/bin/env bash /opt/ebpH/ebphd restart
+
+[Install]
+WantedBy=multi-user.target

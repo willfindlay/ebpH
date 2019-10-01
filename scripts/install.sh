@@ -12,6 +12,8 @@ chown root:root $INSTALLDIR
 # copy everything into /opt/ebpH
 cp -r ./* $INSTALLDIR
 
+cp ./scripts/ebphd.service /etc/systemd/system/ebphd.service
+
 # navigate to /opt/ebpH
 cd $INSTALLDIR
 

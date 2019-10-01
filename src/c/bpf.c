@@ -406,7 +406,7 @@ static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *proce
 static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     int zero = 0;
-    struct ebpH_profile *ep = NULL;
+    struct ebpH_profile *profile = NULL;
 
     if (!key)
     {
@@ -427,31 +427,32 @@ static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, cha
     }
 
     /* If the profile for this key already exists, move on */
-    ep = profiles.lookup(key);
-    if (ep)
+    profile = profiles.lookup(key);
+    if (profile)
     {
         return 0;
     }
 
     /* Get the address of the zeroed executable struct */
-    ep = __profile_init.lookup(&zero);
+    profile = __profile_init.lookup(&zero);
 
-    if (!ep)
+    if (!profile)
     {
         EBPH_ERROR("NULL init -- ebpH_create_profile", ctx);
         return -1;
     }
 
     /* Copy memory over */
-    bpf_probe_read(ep, sizeof(struct ebpH_profile), ep);
+    bpf_probe_read(profile, sizeof(struct ebpH_profile), profile);
 
-    ep->key = *key;
-    bpf_probe_read_str(ep->comm, sizeof(ep->comm), comm);
+    profile->key = *key;
+    bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
+    ebpH_set_normal_time(profile, ctx);
 
-    profiles.update(key, ep);
+    profiles.update(key, profile);
 
-    struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=ep->key};
-    bpf_probe_read_str(info.comm, sizeof(info.comm), ep->comm);
+    struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=profile->key};
+    bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
     return 0;

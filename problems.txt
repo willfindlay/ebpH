@@ -1,0 +1,8 @@
+problems:
+
+- (H) no current hash_of_maps support
+    - I opened an issue for this https://github.com/iovisor/bcc/issues/2347
+    - maybe there is another way to implement lookahead pairs?
+- (H) delaying systemcalls? everything is BPF is readonly, no support for sleeping or blocking (maybe spinlock could help with this?)
+    - https://github.com/iovisor/bcc/issues/2336
+- (M) race conditions in kernel versions < 5.1
