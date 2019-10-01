@@ -154,12 +154,12 @@ class ebpHD(Daemon):
     # save all profiles to disk
     def save_profiles(self):
         # self.bpf["profiles"].values() is causing the memory leak
-        for profile in self.bpf["profiles"].values():
+        for profile in self.bpf["profiles"].itervalues():
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
                 f.write(profile)
-            # just in case the file already existed with the wrong permissions
+            # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
             self.logger.info(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
 
