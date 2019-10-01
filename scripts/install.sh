@@ -4,10 +4,16 @@ DIR=$(dirname $(readlink -f $0))/..
 INSTALLDIR=/opt/ebpH
 
 cd $DIR
-sudo chown root:root ebpH_command && sudo chmod 700 ebpH_command
+mkdir -p $INSTALLDIR
 
-sudo mkdir -p $INSTALLDIR
-sudo cp -r ./* $INSTALLDIR
+# make sure root owns /opt/ebpH
+chown root:root $INSTALLDIR
 
+# copy everything into /opt/ebpH
+cp -r ./* $INSTALLDIR
+
+# navigate to /opt/ebpH
 cd $INSTALLDIR
-sudo ln -sf $(readlink -f ./ebpH) /bin/ebpH
+
+# create the symbolic link for ebphd
+ln -sf $(readlink -f ./ebphd) /bin/ebphd
