@@ -132,9 +132,10 @@ class ebpHD(Daemon):
         self.bpf = load_bpf_program(BPF_C)
         self.register_perf_buffers(self.bpf)
 
+        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
+
         if self.should_load:
             self.load_profiles()
-        self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
         self.logger.info('Started monitoring the system')
 
     def on_term(self, sn=None, frame=None):

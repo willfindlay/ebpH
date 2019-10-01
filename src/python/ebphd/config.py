@@ -18,8 +18,8 @@ class Config():
     socketdir = '/run'
 
     # Location where log files should be saved
-    #logdir = '/var/log/ebph'
-    logdir = '/tmp'
+    logdir = '/var/log/ebpH'
+    #logdir = '/tmp'
 
     # Verbosity level for logging
     # Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
