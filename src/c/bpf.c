@@ -447,6 +447,7 @@ static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, cha
 
     ep->key = *key;
     bpf_probe_read_str(ep->comm, sizeof(ep->comm), comm);
+    ebpH_set_normal_time(profile, ctx);
 
     profiles.update(key, ep);
 
