@@ -2,7 +2,7 @@ version: "2.4"
 services:
     ebphd:
         build: .
-        command: ./ebphd --nolog --nodaemon --nosave --noload
+        command: ./ebphd --nolog --nodaemon
         volumes:
             - .:/app:ro
             - /var/lib/ebpH:/var/lib/ebpH:rw
