@@ -47,10 +47,10 @@ struct ebpH_process
 {
     struct ebpH_locality lf;
     u64 seq[EBPH_SEQLEN];
-    u64 count;
+    u8 count;
     u64 pid_tgid;
-    u8 associated;
     u64 exe_key;
+    u8 associated;
     u8 in_execve;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     struct bpf_spin_lock lock;
