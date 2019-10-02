@@ -466,13 +466,18 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process;
 
+    ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
     process = processes.lookup(&pid_tgid);
 
-    /* Not tracing this process */
+    /* Create process failed and process does not already exist */
     if (!process)
     {
-        return 0;
+        EBPH_ERROR("Unable to create or load process data on syscall", (struct pt_regs *) args);
+        return -1;
     }
+
+    /* The juicy stuff goes right here */
+    ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
     /* Disassociate the PID if the process has exited */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
@@ -480,9 +485,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         processes.delete(&pid_tgid);
         return 0;
     }
-
-    /* The juicy stuff goes right here */
-    ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
     return 0;
 }
@@ -514,8 +516,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     /* Associate pids on fork */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
     {
-       ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
-
        /* Check if we are tracing its parent process */
        process = processes.lookup(&ppid_tgid);
        if (!process || !process->associated)
