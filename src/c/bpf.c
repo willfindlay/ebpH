@@ -400,9 +400,7 @@ static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *proce
     return 0;
 }
 
-/* Register information about an executable if necessary
- * and associate PIDs with profiles.
- * This is invoked every time the kernel calls on_do_open_execat. */
+/* Create a profile if one does not already exist. */
 static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     int zero = 0;
@@ -472,7 +470,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* Create process failed and process does not already exist */
     if (!process)
     {
-        EBPH_ERROR("Unable to create or load process data on syscall", (struct pt_regs *) args);
+        EBPH_ERROR("Unable to create or load process data on syscall -- sys_enter", (struct pt_regs *) args);
         return -1;
     }
 
@@ -506,7 +504,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         if (!process)
         {
            /* We should never ever get here! */
-           EBPH_WARNING("Execve finished with no process attached", (struct pt_regs *)args);
+           EBPH_WARNING("Execve finished with no process attached -- sys_exit", (struct pt_regs *)args);
            return -1;
         }
 
@@ -531,7 +529,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        if (!e)
        {
            /* We should never ever get here! */
-           EBPH_ERROR("A key has become detached from its binary!", (struct pt_regs *)args);
+           EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
            return -1;
        }
 
@@ -600,12 +598,12 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     profile = profiles.lookup(&key);
     if (!process)
     {
-        EBPH_WARNING("NULL process, cannot start tracing", ctx);
+        EBPH_WARNING("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return -1;
     }
     if (!profile)
     {
-        EBPH_WARNING("NULL profile, cannot start tracing", ctx);
+        EBPH_WARNING("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return -1;
     }
     ebpH_start_tracing(profile, process, ctx);

@@ -77,51 +77,57 @@ class ebpHD(Daemon):
     # BPF stuff below this line --------------------
 
     def register_perf_buffers(self, bpf):
+        # Returns a lost callback for a perf buffer with name buff_name
+        def lost_cb(buff_name):
+            def closure(lost):
+                self.logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
+            return closure
+
         # executable has been processed in ebpH_on_do_open_execat
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
             s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
             self.logger.debug(s)
-        bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc)
+        bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
 
         # executable has been processed in ebpH_on_do_open_execat
         def on_executable_processed(cpu, data, size):
             event = bpf["on_executable_processed"].event(data)
-            s = f"Constructed ebpH profile for {event.comm.decode('utf-8')} ({event.key})"
+            s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
             self.logger.info(s)
-        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
+        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed, lost_cb=lost_cb("on_executable_processed"))
 
         # Anomaly detected
         def on_anomaly(cpu, data, size):
             event = bpf["on_anomaly"].event(data)
             s = f"PID {event.pid} ({event.comm.decode('utf-8')} {event.key}): {event.anomalies} anomalies detected for syscall {event.syscall} "
             self.logger.warning(s)
-        bpf["on_anomaly"].open_perf_buffer(on_anomaly)
+        bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         # error, warning, debug, info
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.error(s)
-        bpf["ebpH_error"].open_perf_buffer(on_error)
+        bpf["ebpH_error"].open_perf_buffer(on_error, lost_cb=lost_cb("on_error"))
 
         def on_warning(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.warning(s)
-        bpf["ebpH_warning"].open_perf_buffer(on_warning)
+        bpf["ebpH_warning"].open_perf_buffer(on_warning, lost_cb=lost_cb("on_warning"))
 
         def on_debug(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.debug(s)
-        bpf["ebpH_debug"].open_perf_buffer(on_debug)
+        bpf["ebpH_debug"].open_perf_buffer(on_debug, lost_cb=lost_cb("on_debug"))
 
         def on_info(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.info(s)
-        bpf["ebpH_info"].open_perf_buffer(on_info)
+        bpf["ebpH_info"].open_perf_buffer(on_info, lost_cb=lost_cb("on_info"))
 
         self.logger.debug(f'Registered perf buffers successfully!')
 
@@ -154,10 +160,10 @@ class ebpHD(Daemon):
 
     # save all profiles to disk
     def save_profiles(self):
-        # self.bpf["profiles"].values() is causing the memory leak
+        # Must be itervalues, not values
         for profile in self.bpf["profiles"].itervalues():
             path = os.path.join(Config.profiles_dir, str(profile.key))
-            # make sure that the files are only readable and writable by root
+            # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
                 f.write(profile)
             # Just in case the file already existed with the wrong permissions
