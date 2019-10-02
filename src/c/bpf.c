@@ -254,7 +254,7 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     if (!process || process->count < 1)
         return 0;
 
-    /* access at index [syscall][prev] */
+    /* Access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
         u64 syscall = process->seq[0];
@@ -262,16 +262,16 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         if (prev == EBPH_EMPTY)
             break;
 
-        /* determine which entry we need */
+        /* Determine which entry we need */
         entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
 
         if (entry == -1)
             return 0;
 
-        /* lookup the syscall data */
+        /* Lookup the syscall data */
         u8 data = profile->flags[entry];
 
-        /* set lookahead pair */
+        /* Set lookahead pair */
         data |= (1 << (i - 1));
         profile->flags[entry] = data;
     }
