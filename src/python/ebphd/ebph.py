@@ -83,6 +83,13 @@ class ebpHD(Daemon):
                 self.logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
             return closure
 
+        def on_map_full(cpu, data, size):
+            event = bpf["on_map_full"].event(data)
+            the_map = event.the_map
+            s = f"{the_map} is full"
+            self.logger.warning(s)
+        bpf["on_map_full"].open_perf_buffer(on_map_full, lost_cb=lost_cb("on_map_full"))
+
         # executable has been processed in ebpH_on_do_open_execat
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
@@ -161,7 +168,10 @@ class ebpHD(Daemon):
     # save all profiles to disk
     def save_profiles(self):
         # Must be itervalues, not values
-        for profile in self.bpf["profiles"].itervalues():
+        for key, profile in self.bpf["profiles"].iteritems():
+            if not key.value == profile.key:
+                self.logger.error(f"Mismatch between keys {key.value}, {profile.key}")
+                return
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:

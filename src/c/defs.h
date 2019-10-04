@@ -23,8 +23,9 @@
  * Is there a better way?
  * TODO: maybe grow this map and restart every time we start clashing?
  * Or we could use a percpu array instead? */
-#define EBPH_PID_TGID_SIZE 4194304
-//#define EBPH_PID_TGID_SIZE 10240
+//#define EBPH_PROCESSES_TABLE_SIZE 10240
+#define EBPH_PROCESSES_TABLE_SIZE 4194304
+#define EBPH_PROFILES_TABLE_SIZE  10240
 
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
@@ -63,6 +64,10 @@
 #define EBPH_EXIT       60
 #define EBPH_EXIT_GROUP 231
 #define EBPH_EMPTY      9999
+
+/* Flags for various maps here (used for on_map_full) -------------------------- */
+#define EBPH_MAP_PROCESSES 0
+#define EBPH_MAP_PROFILES  1
 
 #endif
 /* DEFS_H */
