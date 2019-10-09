@@ -39,6 +39,7 @@ $ docker-compose up
 
 ## Prerequisites
 
+1. Linux 5.3 or higher (for now)
 1. The **latest version** of bcc and bcc-python from https://github.com/iovisor/bcc (I used the AUR to install mine; follow the instructions in their README)
     - The latest version is important because previous versions had a horrible bug that effectively broke python3 support
 1. Python 3.7
