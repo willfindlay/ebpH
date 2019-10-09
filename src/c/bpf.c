@@ -58,10 +58,12 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* pid_tgid to ebpH_process */
-BPF_HASH(processes, u64, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
+//BPF_HASH(processes, u64, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
+BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
 /* inode key to ebpH_profile */
-BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
+//BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
+BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
 /* WARNING: NEVER ACCESS THIS DIRECTLY!! */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
