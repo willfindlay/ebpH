@@ -19,7 +19,7 @@ Once you have the key you want, edit `bpf.c` and change the line that says `#def
 
 ## Viewing the Logs
 
-The ebpH logfile is kept in `/tmp/ebph.log` by default. This can be configured in config.py, but doing so may break docker support.
+The ebpH logfile is kept in `/var/log/ebph.log` by default. This can be configured in config.py, but doing so may break docker support.
 
 ## Docker
 
