@@ -5,18 +5,6 @@
 A daemon (can also be started as a foreground process with the `--nodaemon` flag) that monitors every process on the system
 and watches for anomalous system calls.
 
-See the instructions below for information on how to choose which profile is monitored.
-
-## Selecting a Binary to Monitor (Recommended Method)
-
-Rather than deriving the key for yourself, you can run ebpH once,
-run the binary you want, and find its key from the list of profiles.
-
-If you would rather do things manually, the key for a binary is a 64 bit number with its inode in the lower 32
-bits and the device number of its filesystem in the upper 32 bits.
-
-Once you have the key you want, edit `bpf.c` and change the line that says `#define THE_KEY` to be the key you want.
-
 ## Viewing the Logs
 
 The ebpH logfile is kept in `/var/log/ebph.log` by default. This can be configured in config.py, but doing so may break docker support.
