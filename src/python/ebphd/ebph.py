@@ -34,13 +34,11 @@ def load_bpf_program(path):
     return BPF(text=text)
 
 class ebpHD(Daemon):
-    def __init__(self, args, monitoring=True):
+    def __init__(self, args):
         super().__init__(Config.pidfile, Config.socket)
 
         self.should_load = not args.noload
         self.should_save = not args.nosave
-
-        self.monitoring = monitoring
 
         self.bpf = None
 
@@ -52,7 +50,7 @@ class ebpHD(Daemon):
         self.num_exits    = 0
 
         # number of elapsed ticks since creation
-        self.ticks = 0
+        self.tick_count = 0
 
         self.logger = logging.getLogger('ebpH')
 
@@ -63,11 +61,9 @@ class ebpHD(Daemon):
         signal.signal(signal.SIGTERM, self.on_term)
         signal.signal(signal.SIGINT, self.on_term)
 
-        if self.monitoring:
-            self.start_monitoring()
+        self.load_bpf()
         while True:
-            if self.monitoring:
-                self.tick()
+            self.tick()
             time.sleep(Config.ticksleep)
 
     def stop(self):
@@ -77,92 +73,126 @@ class ebpHD(Daemon):
     # BPF stuff below this line --------------------
 
     def register_perf_buffers(self, bpf):
+        # Returns a lost callback for a perf buffer with name buff_name
+        def lost_cb(buff_name):
+            def closure(lost):
+                self.logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
+            return closure
+
+        def on_map_full(cpu, data, size):
+            event = bpf["on_map_full"].event(data)
+            the_map = event.the_map
+            s = f"{the_map} is full"
+            self.logger.warning(s)
+        bpf["on_map_full"].open_perf_buffer(on_map_full, lost_cb=lost_cb("on_map_full"))
+
         # executable has been processed in ebpH_on_do_open_execat
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
             s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
             self.logger.debug(s)
-        bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc)
+        bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
 
         # executable has been processed in ebpH_on_do_open_execat
         def on_executable_processed(cpu, data, size):
             event = bpf["on_executable_processed"].event(data)
-            s = f"Constructed ebpH profile for {event.comm.decode('utf-8')} ({event.key})"
+            s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
             self.logger.info(s)
-        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed)
+        bpf["on_executable_processed"].open_perf_buffer(on_executable_processed, lost_cb=lost_cb("on_executable_processed"))
 
         # Anomaly detected
         def on_anomaly(cpu, data, size):
             event = bpf["on_anomaly"].event(data)
             s = f"PID {event.pid} ({event.comm.decode('utf-8')} {event.key}): {event.anomalies} anomalies detected for syscall {event.syscall} "
             self.logger.warning(s)
-        bpf["on_anomaly"].open_perf_buffer(on_anomaly)
+        bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         # error, warning, debug, info
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.error(s)
-        bpf["ebpH_error"].open_perf_buffer(on_error)
+        bpf["ebpH_error"].open_perf_buffer(on_error, lost_cb=lost_cb("on_error"))
 
         def on_warning(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.warning(s)
-        bpf["ebpH_warning"].open_perf_buffer(on_warning)
+        bpf["ebpH_warning"].open_perf_buffer(on_warning, lost_cb=lost_cb("on_warning"))
 
         def on_debug(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.debug(s)
-        bpf["ebpH_debug"].open_perf_buffer(on_debug)
+        bpf["ebpH_debug"].open_perf_buffer(on_debug, lost_cb=lost_cb("on_debug"))
 
         def on_info(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             self.logger.info(s)
-        bpf["ebpH_info"].open_perf_buffer(on_info)
+        bpf["ebpH_info"].open_perf_buffer(on_info, lost_cb=lost_cb("on_info"))
 
         self.logger.debug(f'Registered perf buffers successfully!')
 
-    def start_monitoring(self):
-        self.monitoring = True
-
+    def load_bpf(self, should_start=True):
         # compile ebpf code
+        self.logger.info('Initializing BPF program...')
         self.bpf = load_bpf_program(BPF_C)
+        if should_start:
+            self.start_monitoring()
         self.register_perf_buffers(self.bpf)
+        self.logger.info('Registered perf buffers')
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
+        self.logger.info('Attached execve hook')
 
         if self.should_load:
             self.load_profiles()
-        self.logger.info('Started monitoring the system')
+            self.logger.info('Loaded profiles')
+        self.logger.info('BPF program initialized')
 
     def on_term(self, sn=None, frame=None):
-        if self.monitoring:
-            self.stop_monitoring()
+        self.stop_monitoring()
+        self.unload_bpf()
         sys.exit(0)
 
+    def start_monitoring(self):
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
+        self.logger.info('Started monitoring the system')
+
     def stop_monitoring(self):
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
+        self.logger.info('Stopped monitoring the system')
+
+    def unload_bpf(self):
         if self.should_save:
             self.save_profiles()
         self.bpf.cleanup()
         self.bpf = None
-        self.monitoring = False
-
-        self.logger.warning('Stopped monitoring the system')
+        self.logger.info('BPF program unloaded')
 
     # save all profiles to disk
     def save_profiles(self):
-        # self.bpf["profiles"].values() is causing the memory leak
-        for profile in self.bpf["profiles"].itervalues():
+        # notify bpf that we are saving
+        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
+        # save monitoring state to be restored later
+        monitoring = self.bpf["__is_monitoring"][0]
+        # wait until bpf stops monitoring
+        while(self.bpf["__is_monitoring"][0]):
+            pass
+        # Must be itervalues, not values
+        for key, profile in self.bpf["profiles"].iteritems():
             path = os.path.join(Config.profiles_dir, str(profile.key))
-            # make sure that the files are only readable and writable by root
+            # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
                 f.write(profile)
             # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
             self.logger.info(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
+
+        # return to original state
+        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
     # load all profiles from disk
     def load_profiles(self):
@@ -185,13 +215,13 @@ class ebpHD(Daemon):
             self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
     def tick(self):
-        self.ticks = self.ticks + 1
+        self.tick_count += 1
 
         # socket stuff below this line ----------------------
         #connection, client_address = self._socket.accept()
 
         # bpf stuff below this line -------------------------
-        if self.monitoring:
+        if self.bpf:
             self.bpf.perf_buffer_poll(30)
             #self.num_profiles = self.bpf["profiles"].values()[0].value
             #self.num_syscalls = self.bpf["syscalls"].values()[0].value

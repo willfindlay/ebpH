@@ -58,23 +58,28 @@ static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* pid_tgid to ebpH_process */
-BPF_HASH(processes, u64, struct ebpH_process, EBPH_PID_TGID_SIZE);
+//BPF_HASH(processes, u64, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
+BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
 /* inode key to ebpH_profile */
-BPF_HASH(profiles, u64, struct ebpH_profile);
+//BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
+BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
 /* WARNING: NEVER ACCESS THIS DIRECTLY!! */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
+BPF_ARRAY(__is_saving, int, 1);
+BPF_ARRAY(__is_monitoring, int, 1);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
+BPF_PERF_OUTPUT(on_map_full);
 
 /* Function definitions below this line --------------------- */
 
-static long ebpH_get_lookahead_index(u64 *curr, u64* prev, struct pt_regs *ctx)
+static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
 {
     if (!curr)
     {
@@ -88,13 +93,13 @@ static long ebpH_get_lookahead_index(u64 *curr, u64* prev, struct pt_regs *ctx)
         return -1;
     }
 
-    if (*curr >= EBPH_NUM_SYSCALLS)
+    if (*curr >= EBPH_NUM_SYSCALLS || *curr < 0)
     {
         EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
         return -1;
     }
 
-    if (*prev >= EBPH_NUM_SYSCALLS)
+    if (*prev >= EBPH_NUM_SYSCALLS || *prev < 0)
     {
         EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
         return -1;
@@ -140,8 +145,8 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
     /* access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        u64 syscall = process->seq[0];
-        u64 prev = process->seq[i];
+        long syscall = process->seq[0];
+        long prev = process->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -254,24 +259,24 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     if (!process || process->count < 1)
         return 0;
 
-    /* access at index [syscall][prev] */
+    /* Access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        u64 syscall = process->seq[0];
-        u64 prev = process->seq[i];
+        long syscall = process->seq[0];
+        long prev = process->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
-        /* determine which entry we need */
+        /* Determine which entry we need */
         entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
 
         if (entry == -1)
             return 0;
 
-        /* lookup the syscall data */
+        /* Lookup the syscall data */
         u8 data = profile->flags[entry];
 
-        /* set lookahead pair */
+        /* Set lookahead pair */
         data |= (1 << (i - 1));
         profile->flags[entry] = data;
     }
@@ -279,9 +284,11 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     return 0;
 }
 
-static int ebpH_process_syscall(struct ebpH_process *process, u64* syscall, struct pt_regs *ctx)
+static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
+    int *monitoring, *saving;
+    int zero = 0;
 
     if (!process)
     {
@@ -297,6 +304,25 @@ static int ebpH_process_syscall(struct ebpH_process *process, u64* syscall, stru
 
     if (!process->associated)
         return 0;
+
+    monitoring = __is_monitoring.lookup(&zero);
+    saving = __is_saving.lookup(&zero);
+
+    if (!saving || !monitoring)
+    {
+        return 0;
+    }
+
+    if (*saving)
+    {
+        *monitoring = 0;
+        __is_monitoring.update(&zero, monitoring);
+    }
+
+    if (!(*monitoring))
+    {
+        return 0;
+    }
 
     profile = profiles.lookup(&(process->exe_key));
 
@@ -325,6 +351,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, u64* syscall, stru
     }
 
     profiles.update(&(profile->key), profile);
+
     return 0;
 }
 
@@ -367,7 +394,12 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
     for (int i = 0; i < EBPH_SEQLEN; i++)
         init->seq[i] = EBPH_EMPTY;
 
-    processes.update(pid_tgid, init);
+    if (!processes.lookup_or_init(pid_tgid, init))
+    {
+        struct {int the_map} the_map = {EBPH_MAP_PROCESSES};
+        on_map_full.perf_submit(ctx, &the_map, sizeof(the_map));
+        return -1;
+    }
 
     return 0;
 }
@@ -400,9 +432,7 @@ static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *proce
     return 0;
 }
 
-/* Register information about an executable if necessary
- * and associate PIDs with profiles.
- * This is invoked every time the kernel calls on_do_open_execat. */
+/* Create a profile if one does not already exist. */
 static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, char *comm)
 {
     int zero = 0;
@@ -449,7 +479,12 @@ static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, cha
     bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
     ebpH_set_normal_time(profile, ctx);
 
-    profiles.update(key, profile);
+    if (!profiles.lookup_or_init(key, profile))
+    {
+        struct {int the_map} the_map = {EBPH_MAP_PROFILES};
+        on_map_full.perf_submit(ctx, &the_map, sizeof(the_map));
+        return -1;
+    }
 
     struct ebpH_information info = {.pid=(u32)((*pid_tgid) >> 32), .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
@@ -462,7 +497,7 @@ static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, cha
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
-    u64 syscall = args->id;
+    long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process;
 
@@ -472,7 +507,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* Create process failed and process does not already exist */
     if (!process)
     {
-        EBPH_ERROR("Unable to create or load process data on syscall", (struct pt_regs *) args);
+        EBPH_ERROR("Unable to create or load process data on syscall -- sys_enter", (struct pt_regs *) args);
         return -1;
     }
 
@@ -491,7 +526,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
 TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 {
-    u64 syscall = args->id;
+    long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
     u64 key = 0;
@@ -501,12 +536,19 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
     if (syscall == EBPH_EXECVE)
     {
+
         process = processes.lookup(&pid_tgid);
+
+        /* The execve failed and we don't have a process */
+        if (args->ret == -1 && !process)
+        {
+            return 0;
+        }
 
         if (!process)
         {
            /* We should never ever get here! */
-           EBPH_WARNING("Execve finished with no process attached", (struct pt_regs *)args);
+           EBPH_WARNING("Execve finished with no process attached -- sys_exit", (struct pt_regs *)args);
            return -1;
         }
 
@@ -531,7 +573,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        if (!e)
        {
            /* We should never ever get here! */
-           EBPH_ERROR("A key has become detached from its binary!", (struct pt_regs *)args);
+           EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
            return -1;
        }
 
@@ -600,12 +642,12 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     profile = profiles.lookup(&key);
     if (!process)
     {
-        EBPH_WARNING("NULL process, cannot start tracing", ctx);
+        EBPH_WARNING("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return -1;
     }
     if (!profile)
     {
-        EBPH_WARNING("NULL profile, cannot start tracing", ctx);
+        EBPH_WARNING("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return -1;
     }
     ebpH_start_tracing(profile, process, ctx);
