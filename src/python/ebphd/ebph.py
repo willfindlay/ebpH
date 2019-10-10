@@ -143,6 +143,7 @@ class ebpHD(Daemon):
 
         # compile ebpf code
         self.bpf = load_bpf_program(BPF_C)
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
         self.register_perf_buffers(self.bpf)
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
@@ -159,6 +160,7 @@ class ebpHD(Daemon):
     def stop_monitoring(self):
         if self.should_save:
             self.save_profiles()
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
         self.bpf.cleanup()
         self.bpf = None
         self.monitoring = False
@@ -167,11 +169,14 @@ class ebpHD(Daemon):
 
     # save all profiles to disk
     def save_profiles(self):
+        # notify bpf that we are saving
+        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
+        monitoring = self.bpf["__is_monitoring"][0]
+        # wait until bpf stops monitoring
+        while(self.bpf["__is_monitoring"][0]):
+            pass
         # Must be itervalues, not values
         for key, profile in self.bpf["profiles"].iteritems():
-            if not key.value == profile.key:
-                self.logger.error(f"Mismatch between keys {key.value}, {profile.key}")
-                return
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
@@ -179,6 +184,10 @@ class ebpHD(Daemon):
             # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
             self.logger.info(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
+
+        # return to sane state
+        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
     # load all profiles from disk
     def load_profiles(self):

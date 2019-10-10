@@ -68,6 +68,8 @@ BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE
 /* WARNING: NEVER ACCESS THIS DIRECTLY!! */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
+BPF_ARRAY(__is_saving, int, 1);
+BPF_ARRAY(__is_monitoring, int, 1);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
@@ -285,6 +287,8 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
+    int *monitoring, *saving;
+    int zero = 0;
 
     if (!process)
     {
@@ -300,6 +304,25 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 
     if (!process->associated)
         return 0;
+
+    monitoring = __is_monitoring.lookup(&zero);
+    saving = __is_saving.lookup(&zero);
+
+    if (!saving || !monitoring)
+    {
+        return 0;
+    }
+
+    if (*saving)
+    {
+        *monitoring = 0;
+        __is_monitoring.update(&zero, monitoring);
+    }
+
+    if (!(*monitoring))
+    {
+        return 0;
+    }
 
     profile = profiles.lookup(&(process->exe_key));
 
