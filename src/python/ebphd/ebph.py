@@ -34,13 +34,11 @@ def load_bpf_program(path):
     return BPF(text=text)
 
 class ebpHD(Daemon):
-    def __init__(self, args, monitoring=True):
+    def __init__(self, args):
         super().__init__(Config.pidfile, Config.socket)
 
         self.should_load = not args.noload
         self.should_save = not args.nosave
-
-        self.monitoring = monitoring
 
         self.bpf = None
 
@@ -52,7 +50,7 @@ class ebpHD(Daemon):
         self.num_exits    = 0
 
         # number of elapsed ticks since creation
-        self.ticks = 0
+        self.tick_count = 0
 
         self.logger = logging.getLogger('ebpH')
 
@@ -63,11 +61,9 @@ class ebpHD(Daemon):
         signal.signal(signal.SIGTERM, self.on_term)
         signal.signal(signal.SIGINT, self.on_term)
 
-        if self.monitoring:
-            self.start_monitoring()
+        self.load_bpf()
         while True:
-            if self.monitoring:
-                self.tick()
+            self.tick()
             time.sleep(Config.ticksleep)
 
     def stop(self):
@@ -138,39 +134,48 @@ class ebpHD(Daemon):
 
         self.logger.debug(f'Registered perf buffers successfully!')
 
-    def start_monitoring(self):
-        self.monitoring = True
-
+    def load_bpf(self, should_start=True):
         # compile ebpf code
+        self.logger.info('Initializing BPF program...')
         self.bpf = load_bpf_program(BPF_C)
-        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
+        if should_start:
+            self.start_monitoring()
         self.register_perf_buffers(self.bpf)
+        self.logger.info('Registered perf buffers')
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
+        self.logger.info('Attached execve hook')
 
         if self.should_load:
             self.load_profiles()
-        self.logger.info('Started monitoring the system')
+            self.logger.info('Loaded profiles')
+        self.logger.info('BPF program initialized')
 
     def on_term(self, sn=None, frame=None):
-        if self.monitoring:
-            self.stop_monitoring()
+        self.stop_monitoring()
+        self.unload_bpf()
         sys.exit(0)
 
+    def start_monitoring(self):
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
+        self.logger.info('Started monitoring the system')
+
     def stop_monitoring(self):
+        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
+        self.logger.info('Stopped monitoring the system')
+
+    def unload_bpf(self):
         if self.should_save:
             self.save_profiles()
-        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
         self.bpf.cleanup()
         self.bpf = None
-        self.monitoring = False
-
-        self.logger.warning('Stopped monitoring the system')
+        self.logger.info('BPF program unloaded')
 
     # save all profiles to disk
     def save_profiles(self):
         # notify bpf that we are saving
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
+        # save monitoring state to be restored later
         monitoring = self.bpf["__is_monitoring"][0]
         # wait until bpf stops monitoring
         while(self.bpf["__is_monitoring"][0]):
@@ -185,7 +190,7 @@ class ebpHD(Daemon):
             os.chmod(path, 0o600)
             self.logger.info(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
 
-        # return to sane state
+        # return to original state
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
@@ -210,13 +215,13 @@ class ebpHD(Daemon):
             self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
     def tick(self):
-        self.ticks = self.ticks + 1
+        self.tick_count += 1
 
         # socket stuff below this line ----------------------
         #connection, client_address = self._socket.accept()
 
         # bpf stuff below this line -------------------------
-        if self.monitoring:
+        if self.bpf:
             self.bpf.perf_buffer_poll(30)
             #self.num_profiles = self.bpf["profiles"].values()[0].value
             #self.num_syscalls = self.bpf["syscalls"].values()[0].value
