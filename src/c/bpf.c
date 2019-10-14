@@ -514,7 +514,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* The juicy stuff goes right here */
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
-    /* Disassociate the PID if the process has exited */
+    /* Disassociate the PID if the process has exited
+     * EXIT_GROUP's other threads are handled by ebpH_on_complete_signal
+     */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
     {
         processes.delete(&pid_tgid);
@@ -579,6 +581,30 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
        /* Associate process with its parent profile */
        ebpH_start_tracing(e, process, (struct pt_regs *)args);
+    }
+
+    return 0;
+}
+
+/* Deal with the behavior of various signals
+ * For example, delete a process on SIGKILL or SIGTERM
+ */
+int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p, enum pid_type type)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    if (sig == SIGKILL)
+    {
+        EBPH_DEBUG("SIGKILL detected", ctx);
+        processes.delete(&pid_tgid);
+        return 0;
+    }
+
+    if (sig == SIGTERM)
+    {
+        EBPH_DEBUG("SIGTERM detected", ctx);
+        processes.delete(&pid_tgid);
+        return 0;
     }
 
     return 0;
