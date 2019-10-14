@@ -584,6 +584,30 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     return 0;
 }
 
+/* Deal with the behavior of various signals
+ * For example, delete a process on SIGKILL or SIGTERM
+ */
+int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p, enum pid_type type)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    if (sig == SIGKILL)
+    {
+        EBPH_DEBUG("SIGKILL detected", ctx);
+        processes.delete(&pid_tgid);
+        return 0;
+    }
+
+    if (sig == SIGTERM)
+    {
+        EBPH_DEBUG("SIGTERM detected", ctx);
+        processes.delete(&pid_tgid);
+        return 0;
+    }
+
+    return 0;
+}
+
 /* This is a special hook for execve-family calls
  * We need to inspect do_open_execat to snag information about the file
  * If this breaks in a future version of Linux (definitely possible!), I will be sad :( */
