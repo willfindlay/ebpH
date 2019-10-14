@@ -514,7 +514,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* The juicy stuff goes right here */
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
-    /* Disassociate the PID if the process has exited */
+    /* Disassociate the PID if the process has exited
+     * EXIT_GROUP's other threads are handled by ebpH_on_complete_signal
+     */
     if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
     {
         processes.delete(&pid_tgid);
