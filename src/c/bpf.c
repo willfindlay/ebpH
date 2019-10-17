@@ -75,7 +75,6 @@ BPF_ARRAY(__is_monitoring, int, 1);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
-BPF_PERF_OUTPUT(on_map_full);
 
 /* Function definitions below this line --------------------- */
 
@@ -303,7 +302,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
 
     if (!process->associated)
+    {
         return 0;
+    }
 
     monitoring = __is_monitoring.lookup(&zero);
     saving = __is_saving.lookup(&zero);
@@ -396,8 +397,7 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 
     if (!processes.lookup_or_init(pid_tgid, init))
     {
-        struct {int the_map} the_map = {EBPH_MAP_PROCESSES};
-        on_map_full.perf_submit(ctx, &the_map, sizeof(the_map));
+        EBPH_ERROR("Processes map is full -- ebpH_create_process", ctx);
         return -1;
     }
 
@@ -481,8 +481,7 @@ static int ebpH_create_profile(u64 *key, u64 *pid_tgid, struct pt_regs *ctx, cha
 
     if (!profiles.lookup_or_init(key, profile))
     {
-        struct {int the_map} the_map = {EBPH_MAP_PROFILES};
-        on_map_full.perf_submit(ctx, &the_map, sizeof(the_map));
+        EBPH_ERROR("Profiles map is full -- ebpH_create_profile", ctx);
         return -1;
     }
 
@@ -536,24 +535,22 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_process *process;
     struct ebpH_process *parent_process;
 
+    process = processes.lookup(&pid_tgid);
+
+    if (!process)
+    {
+        /* We should never ever get here! */
+        return 0;
+    }
+
+    /* FIXME: why do we need this??? Why are so many extra processes being added to the map */
+    if (!process->associated)
+    {
+        processes.delete(&pid_tgid);
+    }
+
     if (syscall == EBPH_EXECVE)
     {
-
-        process = processes.lookup(&pid_tgid);
-
-        /* The execve failed and we don't have a process */
-        if (args->ret == -1 && !process)
-        {
-            return 0;
-        }
-
-        if (!process)
-        {
-           /* We should never ever get here! */
-           EBPH_WARNING("Execve finished with no process attached -- sys_exit", (struct pt_regs *)args);
-           return -1;
-        }
-
         process->in_execve = 0;
     }
 
@@ -561,16 +558,16 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
     {
        /* Check if we are tracing its parent process */
-       process = processes.lookup(&ppid_tgid);
-       if (!process || !process->associated)
+       parent_process = processes.lookup(&ppid_tgid);
+       if (!parent_process || !parent_process->associated)
        {
            /* FIXME: This message is annoying. It will be more relevant when we are actually
             * starting the daemon on system startup. For now, we can comment it out. */
-           //EBPH_WARNING("No data to copy to child process.", (struct pt_regs *)args);
+           //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
            return 0;
        }
 
-       key = process->exe_key;
+       key = parent_process->exe_key;
        e = profiles.lookup(&key);
        if (!e)
        {

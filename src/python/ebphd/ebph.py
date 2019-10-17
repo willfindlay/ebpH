@@ -79,13 +79,6 @@ class ebpHD(Daemon):
                 self.logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
             return closure
 
-        def on_map_full(cpu, data, size):
-            event = bpf["on_map_full"].event(data)
-            the_map = event.the_map
-            s = f"{the_map} is full"
-            self.logger.warning(s)
-        bpf["on_map_full"].open_perf_buffer(on_map_full, lost_cb=lost_cb("on_map_full"))
-
         # executable has been processed in ebpH_on_do_open_execat
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
@@ -225,6 +218,9 @@ class ebpHD(Daemon):
         # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)
+            print(len(self.bpf["processes"].values()))
+            #for key, item in self.bpf["processes"].iteritems():
+            #    print(key, item.exe_key, item.associated)
             #self.num_profiles = self.bpf["profiles"].values()[0].value
             #self.num_syscalls = self.bpf["syscalls"].values()[0].value
             #self.num_forks    = self.bpf["forks"].values()[0].value
