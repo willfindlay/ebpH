@@ -500,14 +500,12 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process;
 
-    ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
     process = processes.lookup(&pid_tgid);
 
     /* Create process failed and process does not already exist */
     if (!process)
     {
-        EBPH_ERROR("Unable to create or load process data on syscall -- sys_enter", (struct pt_regs *) args);
-        return -1;
+        return 0;
     }
 
     /* The juicy stuff goes right here */
@@ -535,28 +533,39 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_process *process;
     struct ebpH_process *parent_process;
 
-    process = processes.lookup(&pid_tgid);
-
-    if (!process)
-    {
-        /* We should never ever get here! */
-        return 0;
-    }
-
     /* FIXME: why do we need this??? Why are so many extra processes being added to the map */
-    if (!process->associated)
-    {
-        processes.delete(&pid_tgid);
-    }
+    //if (!process->associated)
+    //{
+    //    processes.delete(&pid_tgid);
+    //}
 
     if (syscall == EBPH_EXECVE)
     {
+        process = processes.lookup(&pid_tgid);
+        if (!process)
+        {
+            return 0;
+        }
         process->in_execve = 0;
     }
 
     /* Associate pids on fork */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
     {
+        /* We want to be in the child process */
+        if (args->ret != 0)
+            return 0;
+
+        ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
+        process = processes.lookup(&pid_tgid);
+
+        if (!process)
+        {
+            /* We should never ever get here! */
+            EBPH_ERROR("Unable to map process -- sys_exit", (struct pt_regs *) args);
+            return 0;
+        }
+
        /* Check if we are tracing its parent process */
        parent_process = processes.lookup(&ppid_tgid);
        if (!parent_process || !parent_process->associated)
