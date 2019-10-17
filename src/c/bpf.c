@@ -29,6 +29,7 @@
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(ebpH_debug);
+BPF_PERF_OUTPUT(ebpH_debug_int);
 BPF_PERF_OUTPUT(ebpH_info);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
@@ -405,7 +406,7 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 }
 
 /* Associate process struct with the correct PID and the correct profile */
-static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *process, struct pt_regs *ctx)
+static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     if (!process)
     {
@@ -413,7 +414,7 @@ static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *proce
         return -1;
     }
 
-    if (!e)
+    if (!profile)
     {
         EBPH_ERROR("NULL profile -- ebpH_start_tracing", ctx);
         return -1;
@@ -422,11 +423,11 @@ static int ebpH_start_tracing(struct ebpH_profile *e, struct ebpH_process *proce
     if (process->in_execve)
         return 0;
 
-    process->exe_key = e->key;
+    process->exe_key = profile->key;
     process->associated = 1;
 
-    struct ebpH_information info = {.pid=(u32)(process->pid_tgid >> 32), .key=e->key};
-    bpf_probe_read_str(info.comm, sizeof(info.comm), e->comm);
+    struct ebpH_information info = {.pid=(u32)(process->pid_tgid >> 32), .key=profile->key};
+    bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_pid_assoc.perf_submit(ctx, &info, sizeof(info));
 
     return 0;
@@ -502,7 +503,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     process = processes.lookup(&pid_tgid);
 
-    /* Create process failed and process does not already exist */
+    /* Process does not already exist */
     if (!process)
     {
         return 0;
@@ -529,15 +530,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
     u64 key = 0;
-    struct ebpH_profile *e;
+    struct ebpH_profile *profile;
     struct ebpH_process *process;
     struct ebpH_process *parent_process;
-
-    /* FIXME: why do we need this??? Why are so many extra processes being added to the map */
-    //if (!process->associated)
-    //{
-    //    processes.delete(&pid_tgid);
-    //}
 
     if (syscall == EBPH_EXECVE)
     {
@@ -554,7 +549,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         /* We want to be in the child process */
         if (args->ret != 0)
+        {
             return 0;
+        }
 
         ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
         process = processes.lookup(&pid_tgid);
@@ -577,8 +574,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        }
 
        key = parent_process->exe_key;
-       e = profiles.lookup(&key);
-       if (!e)
+       profile = profiles.lookup(&key);
+       if (!profile)
        {
            /* We should never ever get here! */
            EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
@@ -586,7 +583,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        }
 
        /* Associate process with its parent profile */
-       ebpH_start_tracing(e, process, (struct pt_regs *)args);
+       ebpH_start_tracing(profile, process, (struct pt_regs *)args);
     }
 
     return 0;

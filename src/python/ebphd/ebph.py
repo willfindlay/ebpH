@@ -119,6 +119,12 @@ class ebpHD(Daemon):
             self.logger.debug(s)
         bpf["ebpH_debug"].open_perf_buffer(on_debug, lost_cb=lost_cb("on_debug"))
 
+        def on_debug_int(cpu, data, size):
+            event = ct.cast(data, ct.POINTER(ct.c_ulong)).contents.value
+            s = f"{event}"
+            self.logger.debug(s)
+        bpf["ebpH_debug_int"].open_perf_buffer(on_debug_int, lost_cb=lost_cb("on_debug_int"))
+
         def on_info(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
@@ -220,7 +226,11 @@ class ebpHD(Daemon):
             self.bpf.perf_buffer_poll(30)
             print(len(self.bpf["processes"].values()))
             #for key, item in self.bpf["processes"].iteritems():
-            #    print(key, item.exe_key, item.associated)
+            #    print(key.value >> 32, item.exe_key, item.associated)
+            #    try:
+            #        print(self.bpf["profiles"][ct.c_ulong(item.exe_key)])
+            #    except KeyError:
+            #        print("no profile")
             #self.num_profiles = self.bpf["profiles"].values()[0].value
             #self.num_syscalls = self.bpf["syscalls"].values()[0].value
             #self.num_forks    = self.bpf["forks"].values()[0].value
