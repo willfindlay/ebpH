@@ -242,6 +242,8 @@ class ebpHD(Daemon):
         # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)
+            #print('profiles:', self.profile_count())
+            #print('processes:', self.process_count())
             #print(len(self.bpf["processes"].values()))
             #for key, item in self.bpf["processes"].iteritems():
             #    print(key.value >> 32, item.exe_key, item.associated)

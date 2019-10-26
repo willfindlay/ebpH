@@ -516,11 +516,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
      * EXIT_GROUP's other threads are handled by ebpH_on_complete_signal
      */
     // FIXME: trying something
-    //if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
-    //{
-    //    processes.delete(&pid);
-    //    return 0;
-    //}
+    if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
+    {
+        processes.delete(&pid);
+        return 0;
+    }
 
     return 0;
 }
@@ -543,17 +543,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
         process->in_execve = 0;
-    }
-
-    if (syscall == EBPH_WAIT)
-    {
-        if (args->ret <= 0)
-        {
-            return 0;
-        }
-
-        pid = (u32)args->ret;
-        processes.delete(&pid);
     }
 
     /* Associate pids on fork */
@@ -606,20 +595,19 @@ int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p,
 {
     u32 pid = bpf_get_current_pid_tgid() >> 32;
 
-    // FIXME: trying something
-    //if (sig == SIGKILL)
-    //{
-    //    EBPH_DEBUG("SIGKILL detected", ctx);
-    //    processes.delete(&pid);
-    //    return 0;
-    //}
+    if (sig == SIGKILL)
+    {
+        EBPH_DEBUG("SIGKILL detected", ctx);
+        processes.delete(&pid);
+        return 0;
+    }
 
-    //if (sig == SIGTERM)
-    //{
-    //    EBPH_DEBUG("SIGTERM detected", ctx);
-    //    processes.delete(&pid);
-    //    return 0;
-    //}
+    if (sig == SIGTERM)
+    {
+        EBPH_DEBUG("SIGTERM detected", ctx);
+        processes.delete(&pid);
+        return 0;
+    }
 
     return 0;
 }
