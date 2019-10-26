@@ -50,7 +50,6 @@ struct ebpH_process
     u8 count;
     u32 pid;
     u64 exe_key;
-    u8 associated;
     u8 in_execve;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
     struct bpf_spin_lock lock;

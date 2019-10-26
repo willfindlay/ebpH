@@ -215,6 +215,24 @@ class ebpHD(Daemon):
 
             self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
+    def profile_count(self):
+        try:
+            return len(self.bpf["profiles"].values())
+        except TypeError:
+            return 0
+
+    def process_count(self):
+        try:
+            return len(self.bpf["processes"].values())
+        except TypeError:
+            return 0
+
+    def is_monitoring(self):
+        try:
+            return bool(self.bpf["__is_monitoring"][0].value)
+        except TypeError:
+            return False
+
     def tick(self):
         self.tick_count += 1
 
@@ -224,6 +242,8 @@ class ebpHD(Daemon):
         # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)
+            #print('profiles:', self.profile_count())
+            #print('processes:', self.process_count())
             #print(len(self.bpf["processes"].values()))
             #for key, item in self.bpf["processes"].iteritems():
             #    print(key.value >> 32, item.exe_key, item.associated)
