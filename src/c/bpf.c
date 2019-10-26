@@ -399,7 +399,7 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
 
     if (!processes.lookup_or_init(pid, init))
     {
-        EBPH_ERROR("Processes map is full -- ebpH_create_process", ctx);
+        EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return -1;
     }
 
@@ -482,7 +482,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     if (!profiles.lookup_or_init(key, profile))
     {
-        EBPH_ERROR("Profiles map is full -- ebpH_create_profile", ctx);
+        EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
 
@@ -515,11 +515,12 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* Disassociate the PID if the process has exited
      * EXIT_GROUP's other threads are handled by ebpH_on_complete_signal
      */
-    if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
-    {
-        processes.delete(&pid);
-        return 0;
-    }
+    // FIXME: trying something
+    //if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
+    //{
+    //    processes.delete(&pid);
+    //    return 0;
+    //}
 
     return 0;
 }
@@ -542,6 +543,17 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
         process->in_execve = 0;
+    }
+
+    if (syscall == EBPH_WAIT)
+    {
+        if (args->ret <= 0)
+        {
+            return 0;
+        }
+
+        pid = (u32)args->ret;
+        processes.delete(&pid);
     }
 
     /* Associate pids on fork */
@@ -594,19 +606,20 @@ int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p,
 {
     u32 pid = bpf_get_current_pid_tgid() >> 32;
 
-    if (sig == SIGKILL)
-    {
-        EBPH_DEBUG("SIGKILL detected", ctx);
-        processes.delete(&pid);
-        return 0;
-    }
+    // FIXME: trying something
+    //if (sig == SIGKILL)
+    //{
+    //    EBPH_DEBUG("SIGKILL detected", ctx);
+    //    processes.delete(&pid);
+    //    return 0;
+    //}
 
-    if (sig == SIGTERM)
-    {
-        EBPH_DEBUG("SIGTERM detected", ctx);
-        processes.delete(&pid);
-        return 0;
-    }
+    //if (sig == SIGTERM)
+    //{
+    //    EBPH_DEBUG("SIGTERM detected", ctx);
+    //    processes.delete(&pid);
+    //    return 0;
+    //}
 
     return 0;
 }

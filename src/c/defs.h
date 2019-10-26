@@ -36,7 +36,7 @@
 
 /* Total number of systemcalls in the current kernel version
  * Keep this updated with the latest version of Linux */
-#define EBPH_NUM_SYSCALLS 400
+#define EBPH_NUM_SYSCALLS 600
 /* Size of each array of lookahead pairs */
 #define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
 
@@ -62,6 +62,7 @@
 #define EBPH_VFORK      58
 #define EBPH_EXECVE     59
 #define EBPH_EXIT       60
+#define EBPH_WAIT       61
 #define EBPH_EXIT_GROUP 231
 #define EBPH_EMPTY      9999
 
