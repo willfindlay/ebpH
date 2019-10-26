@@ -686,12 +686,12 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     profile = profiles.lookup(&key);
     if (!process)
     {
-        EBPH_WARNING("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
+        EBPH_ERROR("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return 0;
     }
     if (!profile)
     {
-        EBPH_WARNING("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
+        EBPH_ERROR("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return 0;
     }
     ebpH_start_tracing(profile, process, ctx);
