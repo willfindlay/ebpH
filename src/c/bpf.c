@@ -302,7 +302,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return -1;
     }
 
-    if (!process->associated)
+    if (!process->exe_key)
     {
         return 0;
     }
@@ -330,6 +330,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 
     if (!profile)
     {
+        ebpH_debug_int.perf_submit(ctx, syscall, sizeof(*syscall));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
         return -1;
     }
@@ -424,7 +425,6 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
         return 0;
 
     process->exe_key = profile->key;
-    process->associated = 1;
 
     struct ebpH_information info = {.pid=process->pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
@@ -563,7 +563,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
        /* Check if we are tracing its parent process */
        parent_process = processes.lookup(&ppid);
-       if (!parent_process || !parent_process->associated)
+       if (!parent_process || !parent_process->exe_key)
        {
            /* FIXME: This message is annoying. It will be more relevant when we are actually
             * starting the daemon on system startup. For now, we can comment it out. */
@@ -664,18 +664,22 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     /* Create a profile if necessary */
     ebpH_create_profile(&key, &pid, ctx, comm);
 
+    /* In case we didn't catch the fork in time
+     * This will do nothing if the process already exists*/
+    ebpH_create_process(&pid, ctx);
+
     /* Start tracing the process */
     process = processes.lookup(&pid);
     profile = profiles.lookup(&key);
     if (!process)
     {
         EBPH_WARNING("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
-        return -1;
+        return 0;
     }
     if (!profile)
     {
         EBPH_WARNING("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
-        return -1;
+        return 0;
     }
     ebpH_start_tracing(profile, process, ctx);
     process->in_execve = 1;
