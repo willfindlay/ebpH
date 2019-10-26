@@ -330,7 +330,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 
     if (!profile)
     {
-        ebpH_debug_int.perf_submit(ctx, syscall, sizeof(*syscall));
+        ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
         return -1;
     }
