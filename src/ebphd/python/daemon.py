@@ -11,7 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, socket, atexit, time
+import os, sys, socket, atexit, time, threading
 from signal import SIGTERM
 
 from config import Config
@@ -39,7 +39,6 @@ class Daemon:
         old_umask = os.umask(0o177)
         # bind socket
         self._socket.bind(self.socket_adr)
-
         self._socket.listen()
 
         # restore old umask

@@ -18,8 +18,8 @@
 #include <linux/path.h>
 #include <linux/timekeeping.h>
 
-#include "src/c/defs.h"
-#include "src/c/ebph.h"
+#include "src/ebphd/bpf/defs.h"
+#include "src/ebphd/bpf/ebph.h"
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
 #define EBPH_WARNING(MSG, CTX) char m[] = (MSG); __ebpH_log_warning(m, sizeof(m), (CTX))
@@ -330,7 +330,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 
     if (!profile)
     {
-        ebpH_debug_int.perf_submit(ctx, syscall, sizeof(*syscall));
+        ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
         return -1;
     }
@@ -482,6 +482,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     if (!profiles.lookup_or_init(key, profile))
     {
+        ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
@@ -597,14 +598,14 @@ int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p,
 
     if (sig == SIGKILL)
     {
-        EBPH_DEBUG("SIGKILL detected", ctx);
+        //EBPH_DEBUG("SIGKILL detected", ctx);
         processes.delete(&pid);
         return 0;
     }
 
     if (sig == SIGTERM)
     {
-        EBPH_DEBUG("SIGTERM detected", ctx);
+        //EBPH_DEBUG("SIGTERM detected", ctx);
         processes.delete(&pid);
         return 0;
     }

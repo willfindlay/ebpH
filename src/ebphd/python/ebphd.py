@@ -11,8 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, socket, signal, time, logging, re
-from threading import Thread
+import os, sys, socket, signal, time, logging, re, threading
 from collections import defaultdict
 import ctypes as ct
 
@@ -23,7 +22,7 @@ from config import Config
 import utils
 import structs
 
-BPF_C = utils.path('src/c/bpf.c')
+BPF_C = utils.path('src/ebphd/bpf/bpf.c')
 
 def load_bpf_program(path):
     with open(path, 'r') as f:
@@ -33,12 +32,14 @@ def load_bpf_program(path):
             text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
     return BPF(text=text)
 
-class ebpHD(Daemon):
+class Ebphd(Daemon):
     def __init__(self, args):
         super().__init__(Config.pidfile, Config.socket)
 
         self.should_load = not args.noload
         self.should_save = not args.nosave
+
+        self.lock = threading.Lock()
 
         self.bpf = None
 
@@ -57,6 +58,10 @@ class ebpHD(Daemon):
     def main(self):
         self.logger.info("Starting ebpH daemon...")
 
+        self.socket_thread = threading.Thread(target=self.socket_loop)
+        self.socket_thread.daemon = True
+        self.socket_thread.start()
+
         # register handlers
         signal.signal(signal.SIGTERM, self.on_term)
         signal.signal(signal.SIGINT, self.on_term)
@@ -69,6 +74,26 @@ class ebpHD(Daemon):
     def stop(self):
         self.logger.info("Stopping ebpH daemon...")
         super().stop()
+
+    def socket_loop(self):
+        while True:
+            connection, client_addr = self._socket.accept()
+            client_thread = threading.Thread(target=self.on_new_client, args=(connection, client_addr))
+            client_thread.daemon = True
+            client_thread.start()
+
+    def on_new_client(self, connection, client_addr):
+            try:
+                self.logger.debug(f"Connection from {client_addr}")
+                while True:
+                    data = connection.recv(1024)
+                    if data:
+                        pass
+                    else:
+                        break
+            finally:
+                connection.close()
+                self.logger.debug(f"Connection to {client_addr} closed")
 
     # BPF stuff below this line --------------------
 
@@ -83,7 +108,8 @@ class ebpHD(Daemon):
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
             s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
-            self.logger.debug(s)
+            # FIXME: commented out because this is annoying
+            #self.logger.debug(s)
         bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
 
         # executable has been processed in ebpH_on_do_open_execat
@@ -131,7 +157,7 @@ class ebpHD(Daemon):
             self.logger.info(s)
         bpf["ebpH_info"].open_perf_buffer(on_info, lost_cb=lost_cb("on_info"))
 
-        self.logger.debug(f'Registered perf buffers successfully!')
+        self.logger.info(f'Registered perf buffers')
 
     def load_bpf(self, should_start=True):
         # compile ebpf code
@@ -140,7 +166,6 @@ class ebpHD(Daemon):
         if should_start:
             self.start_monitoring()
         self.register_perf_buffers(self.bpf)
-        self.logger.info('Registered perf buffers')
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
         self.logger.info('Attached execve hook')
@@ -236,24 +261,6 @@ class ebpHD(Daemon):
     def tick(self):
         self.tick_count += 1
 
-        # socket stuff below this line ----------------------
-        #connection, client_address = self._socket.accept()
-
         # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)
-            #print('profiles:', self.profile_count())
-            #print('processes:', self.process_count())
-            #print(len(self.bpf["processes"].values()))
-            #for key, item in self.bpf["processes"].iteritems():
-            #    print(key.value >> 32, item.exe_key, item.associated)
-            #    try:
-            #        print(self.bpf["profiles"][ct.c_ulong(item.exe_key)])
-            #    except KeyError:
-            #        print("no profile")
-            #self.num_profiles = self.bpf["profiles"].values()[0].value
-            #self.num_syscalls = self.bpf["syscalls"].values()[0].value
-            #self.num_forks    = self.bpf["forks"].values()[0].value
-            #self.num_execves  = self.bpf["execves"].values()[0].value
-            #self.num_exits    = self.bpf["exits"].values()[0].value
-

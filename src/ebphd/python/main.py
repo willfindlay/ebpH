@@ -9,7 +9,7 @@ from signal import SIGTERM
 from config import Config
 import utils
 
-from ebph import ebpHD
+from ebphd import Ebphd
 
 OPERATIONS = ["start", "stop", "restart"]
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         # disable file handlers
         logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
-    e = ebpHD(args)
+    e = Ebphd(args)
 
     if args.operation == "start":
         e.start()
