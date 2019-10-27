@@ -11,11 +11,8 @@ endif
 all:
 	$(error "Please run sudo make install")
 
-pipenv:
-	pipenv run pip freeze | grep pytest || pipenv install pytest
-
-test: pipenv
-	PYTHONPATH=$(PYTHONPATH) pipenv run pytest
+test:
+	PYTHONPATH=$(PYTHONPATH) python3 -m unittest discover
 
 install:
 	cd $(SCRIPTSDIR) && ./install.sh
