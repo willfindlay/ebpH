@@ -22,7 +22,7 @@ from config import Config
 import utils
 import structs
 
-BPF_C = utils.path('src/c/bpf.c')
+BPF_C = utils.path('src/ebphd/bpf/bpf.c')
 
 def load_bpf_program(path):
     with open(path, 'r') as f:

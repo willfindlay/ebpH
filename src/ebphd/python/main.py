@@ -9,7 +9,7 @@ from signal import SIGTERM
 from config import Config
 import utils
 
-from ebph import Ebphd
+from ebphd import Ebphd
 
 OPERATIONS = ["start", "stop", "restart"]
 

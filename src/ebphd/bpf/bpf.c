@@ -18,8 +18,8 @@
 #include <linux/path.h>
 #include <linux/timekeeping.h>
 
-#include "src/c/defs.h"
-#include "src/c/ebph.h"
+#include "src/ebphd/bpf/defs.h"
+#include "src/ebphd/bpf/ebph.h"
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
 #define EBPH_WARNING(MSG, CTX) char m[] = (MSG); __ebpH_log_warning(m, sizeof(m), (CTX))
