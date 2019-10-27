@@ -482,6 +482,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     if (!profiles.lookup_or_init(key, profile))
     {
+        ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
@@ -597,14 +598,14 @@ int ebpH_on_complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p,
 
     if (sig == SIGKILL)
     {
-        EBPH_DEBUG("SIGKILL detected", ctx);
+        //EBPH_DEBUG("SIGKILL detected", ctx);
         processes.delete(&pid);
         return 0;
     }
 
     if (sig == SIGTERM)
     {
-        EBPH_DEBUG("SIGTERM detected", ctx);
+        //EBPH_DEBUG("SIGTERM detected", ctx);
         processes.delete(&pid);
         return 0;
     }
