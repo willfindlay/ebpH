@@ -353,7 +353,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         ebpH_start_normal(profile, process, ctx);
     }
 
-    profiles.update(&(profile->key), profile);
+    /* FIXME: This was causing extreme amounts of overhead!!
+     * Is it even necessary?? Seems not.... */
+    //profiles.update(&(profile->key), profile);
 
     return 0;
 }
