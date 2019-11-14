@@ -353,10 +353,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         ebpH_start_normal(profile, process, ctx);
     }
 
-    /* FIXME: This was causing extreme amounts of overhead!!
-     * Is it even necessary?? Seems not.... */
-    //profiles.update(&(profile->key), profile);
-
     return 0;
 }
 
@@ -491,7 +487,10 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    on_executable_processed.perf_submit(ctx, &info, sizeof(info));
+    /* This seems to help slightly with -EOPNOTSUPP */
+    bpf_probe_read(&info, sizeof(info), &info);
+    int ret = on_executable_processed.perf_submit(ctx, &info, sizeof(info));
+    bpf_trace_printk("%s %d\n", info.comm, ret);
 
     return 0;
 }
