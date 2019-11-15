@@ -31,6 +31,9 @@ class Config():
     # Recommended value is around 1 second
     ticksleep = 0.1
 
+    # How many ticks between automatic saves
+    saveinterval = 6000 # about 10 minutes
+
     # When attempting to stop the daemon, how long do we wait before giving up?
     killtimeout = 20
 

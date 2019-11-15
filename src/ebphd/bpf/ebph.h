@@ -36,9 +36,9 @@ struct ebpH_profile
     u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    struct bpf_spin_lock lock;
-#endif
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    struct bpf_spin_lock lock;
+//#endif
 };
 
 struct ebpH_locality
@@ -56,9 +56,9 @@ struct ebpH_process
     u32 pid;
     u64 exe_key;
     u8 in_execve;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-    struct bpf_spin_lock lock;
-#endif
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    struct bpf_spin_lock lock;
+//#endif
 };
 
 struct ebpH_anomaly

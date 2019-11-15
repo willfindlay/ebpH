@@ -261,6 +261,9 @@ class Ebphd(Daemon):
     def tick(self):
         self.tick_count += 1
 
+        if self.tick_count % Config.saveinterval == 0:
+            self.save_profiles()
+
         # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)
