@@ -1,5 +1,5 @@
-/* ebpH --  An eBPF intrusion detection program.
- * -------  Monitors system call patterns and detect anomalies.
+/* ebpH     An eBPF intrusion detection program.
+ *          Monitors system call patterns and detect anomalies.
  * Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
  * Anil Somayaji (soma@scs.carleton.ca)
  *
@@ -389,17 +389,15 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
     }
 
     /* Copy memory over */
-    bpf_probe_read(init, sizeof(struct ebpH_process), init);
-    init->pid = *pid;
-
-    for (int i = 0; i < EBPH_SEQLEN; i++)
-        init->seq[i] = EBPH_EMPTY;
-
     if (!processes.lookup_or_init(pid, init))
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return -1;
     }
+
+    init->pid = *pid;
+    for (int i = 0; i < EBPH_SEQLEN; i++)
+        init->seq[i] = EBPH_EMPTY;
 
     return 0;
 }
@@ -472,18 +470,16 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     }
 
     /* Copy memory over */
-    bpf_probe_read(profile, sizeof(struct ebpH_profile), profile);
-
-    profile->key = *key;
-    bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
-    ebpH_set_normal_time(profile, ctx);
-
     if (!profiles.lookup_or_init(key, profile))
     {
         ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
+
+    profile->key = *key;
+    bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
+    ebpH_set_normal_time(profile, ctx);
 
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);

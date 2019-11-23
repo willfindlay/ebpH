@@ -39,8 +39,6 @@ class Ebphd(Daemon):
         self.should_load = not args.noload
         self.should_save = not args.nosave
 
-        self.lock = threading.Lock()
-
         self.bpf = None
 
         # bpf stats
@@ -207,7 +205,8 @@ class Ebphd(Daemon):
         while(self.bpf["__is_monitoring"][0]):
             pass
         # Must be itervalues, not values
-        for key, profile in self.bpf["profiles"].iteritems():
+        for profile in self.bpf["profiles"].itervalues():
+            print(profile)
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
