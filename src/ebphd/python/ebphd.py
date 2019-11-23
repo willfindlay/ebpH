@@ -11,7 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, socket, signal, time, logging, re, threading
+import os, sys, socket, signal, time, logging, re, atexit
 from collections import defaultdict
 import ctypes as ct
 
@@ -21,6 +21,11 @@ from daemon import Daemon
 from config import Config
 import utils
 import structs
+
+
+# register handlers
+signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
+signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 BPF_C = utils.path('src/ebphd/bpf/bpf.c')
 
@@ -55,14 +60,6 @@ class Ebphd(Daemon):
 
     def main(self):
         self.logger.info("Starting ebpH daemon...")
-
-        self.socket_thread = threading.Thread(target=self.socket_loop)
-        self.socket_thread.daemon = True
-        self.socket_thread.start()
-
-        # register handlers
-        signal.signal(signal.SIGTERM, self.on_term)
-        signal.signal(signal.SIGINT, self.on_term)
 
         self.load_bpf()
         while True:
@@ -161,6 +158,7 @@ class Ebphd(Daemon):
         # compile ebpf code
         self.logger.info('Initializing BPF program...')
         self.bpf = load_bpf_program(BPF_C)
+        atexit.register(self.cleanup)
         if should_start:
             self.start_monitoring()
         self.register_perf_buffers(self.bpf)
@@ -175,10 +173,12 @@ class Ebphd(Daemon):
             self.logger.info('Loaded profiles')
         self.logger.info('BPF program initialized')
 
-    def on_term(self, sn=None, frame=None):
-        self.stop_monitoring()
-        self.unload_bpf()
-        sys.exit(0)
+    def cleanup(self):
+        try:
+            self.stop_monitoring()
+        except TypeError:
+            pass
+        self.logger.info('BPF program unloaded')
 
     def start_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
@@ -186,14 +186,9 @@ class Ebphd(Daemon):
 
     def stop_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
-        self.logger.info('Stopped monitoring the system')
-
-    def unload_bpf(self):
         if self.should_save:
             self.save_profiles()
-        self.bpf.cleanup()
-        self.bpf = None
-        self.logger.info('BPF program unloaded')
+        self.logger.info('Stopped monitoring the system')
 
     # save all profiles to disk
     def save_profiles(self):
