@@ -1,5 +1,5 @@
-/* ebpH --  An eBPF intrusion detection program.
- * -------  Monitors system call patterns and detect anomalies.
+/* ebpH     An eBPF intrusion detection program.
+ *          Monitors system call patterns and detect anomalies.
  * Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
  * Anil Somayaji (soma@scs.carleton.ca)
  *
@@ -255,6 +255,8 @@ static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx)
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     long entry = -1;
+    long syscall = 0;
+    long prev = 0;
 
     if (!process || process->count < 1)
         return 0;
@@ -262,8 +264,8 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     /* Access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long syscall = process->seq[0];
-        long prev = process->seq[i];
+        syscall = process->seq[0];
+        prev = process->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -271,10 +273,15 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
 
         if (entry == -1)
-            return 0;
+            continue;
 
         /* Lookup the syscall data */
         u8 data = profile->flags[entry];
+
+        if (profile->key == 20983743)
+        {
+            bpf_trace_printk("%ld, %ld at offset %d!\n", syscall, prev, i);
+        }
 
         /* Set lookahead pair */
         data |= (1 << (i - 1));
@@ -336,8 +343,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
 
     /* Add syscall to process sequence */
-    for (int i = 1; i < EBPH_SEQLEN; i++)
+    for (int i = EBPH_SEQLEN - 1; i > 0; i--)
     {
+        bpf_trace_printk("%d\n", i);
         process->seq[i] = process->seq[i-1];
     }
     process->seq[0] = *syscall;
@@ -389,17 +397,15 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
     }
 
     /* Copy memory over */
-    bpf_probe_read(init, sizeof(struct ebpH_process), init);
-    init->pid = *pid;
-
-    for (int i = 0; i < EBPH_SEQLEN; i++)
-        init->seq[i] = EBPH_EMPTY;
-
-    if (!processes.lookup_or_init(pid, init))
+    if (!processes.lookup_or_try_init(pid, init))
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return -1;
     }
+
+    init->pid = *pid;
+    for (int i = 0; i < EBPH_SEQLEN; i++)
+        init->seq[i] = EBPH_EMPTY;
 
     return 0;
 }
@@ -472,23 +478,19 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     }
 
     /* Copy memory over */
-    bpf_probe_read(profile, sizeof(struct ebpH_profile), profile);
-
-    profile->key = *key;
-    bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
-    ebpH_set_normal_time(profile, ctx);
-
-    if (!profiles.lookup_or_init(key, profile))
+    if (!profiles.lookup_or_try_init(key, profile))
     {
         ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
 
+    profile->key = *key;
+    bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
+    ebpH_set_normal_time(profile, ctx);
+
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    /* This seems to help slightly with -EOPNOTSUPP */
-    bpf_probe_read(&info, sizeof(info), &info);
     int ret = on_executable_processed.perf_submit(ctx, &info, sizeof(info));
     bpf_trace_printk("%s %d\n", info.comm, ret);
 

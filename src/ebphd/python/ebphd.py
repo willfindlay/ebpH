@@ -11,7 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, socket, signal, time, logging, re, threading
+import os, sys, socket, signal, time, logging, re, atexit
 from collections import defaultdict
 import ctypes as ct
 
@@ -22,15 +22,20 @@ from config import Config
 import utils
 import structs
 
+
+# register handlers
+signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
+signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
+
 BPF_C = utils.path('src/ebphd/bpf/bpf.c')
 
-def load_bpf_program(path):
+def load_bpf_program(path, cflags=[]):
     with open(path, 'r') as f:
         text = f.read()
         for match in re.findall(r"(#include\s*\"(.*)\")", text):
             real_header_path = os.path.abspath(utils.path(match[1]))
             text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
-    return BPF(text=text)
+    return BPF(text=text, cflags=cflags)
 
 class Ebphd(Daemon):
     def __init__(self, args):
@@ -38,8 +43,6 @@ class Ebphd(Daemon):
 
         self.should_load = not args.noload
         self.should_save = not args.nosave
-
-        self.lock = threading.Lock()
 
         self.bpf = None
 
@@ -57,14 +60,6 @@ class Ebphd(Daemon):
 
     def main(self):
         self.logger.info("Starting ebpH daemon...")
-
-        self.socket_thread = threading.Thread(target=self.socket_loop)
-        self.socket_thread.daemon = True
-        self.socket_thread.start()
-
-        # register handlers
-        signal.signal(signal.SIGTERM, self.on_term)
-        signal.signal(signal.SIGINT, self.on_term)
 
         self.load_bpf()
         while True:
@@ -162,7 +157,8 @@ class Ebphd(Daemon):
     def load_bpf(self, should_start=True):
         # compile ebpf code
         self.logger.info('Initializing BPF program...')
-        self.bpf = load_bpf_program(BPF_C)
+        self.bpf = load_bpf_program(BPF_C, cflags=[])
+        atexit.register(self.cleanup)
         if should_start:
             self.start_monitoring()
         self.register_perf_buffers(self.bpf)
@@ -177,10 +173,12 @@ class Ebphd(Daemon):
             self.logger.info('Loaded profiles')
         self.logger.info('BPF program initialized')
 
-    def on_term(self, sn=None, frame=None):
-        self.stop_monitoring()
-        self.unload_bpf()
-        sys.exit(0)
+    def cleanup(self):
+        try:
+            self.stop_monitoring()
+        except TypeError:
+            pass
+        self.logger.info('BPF program unloaded')
 
     def start_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
@@ -188,14 +186,9 @@ class Ebphd(Daemon):
 
     def stop_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
-        self.logger.info('Stopped monitoring the system')
-
-    def unload_bpf(self):
         if self.should_save:
             self.save_profiles()
-        self.bpf.cleanup()
-        self.bpf = None
-        self.logger.info('BPF program unloaded')
+        self.logger.info('Stopped monitoring the system')
 
     # save all profiles to disk
     def save_profiles(self):
@@ -207,7 +200,7 @@ class Ebphd(Daemon):
         while(self.bpf["__is_monitoring"][0]):
             pass
         # Must be itervalues, not values
-        for key, profile in self.bpf["profiles"].iteritems():
+        for profile in self.bpf["profiles"].itervalues():
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
@@ -260,6 +253,21 @@ class Ebphd(Daemon):
 
     def tick(self):
         self.tick_count += 1
+
+        #if self.tick_count == 30:
+        #    print("PRINTING PROCESSES MAP")
+        #    for process in self.bpf['processes'].itervalues():
+        #        print(process.pid)
+
+        #    print("PRINTING PROFILES MAP")
+        #    for profile in self.bpf['profiles'].itervalues():
+        #        print('-----------------------------------------')
+        #        for field in profile._fields_:
+        #            print(field[0], getattr(profile, field[0]))
+        #        print('-----------------------------------------')
+        #        for i in range(2000):
+        #            if profile.flags[i] != 0:
+        #                print(i, bin(profile.flags[i]))
 
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()
