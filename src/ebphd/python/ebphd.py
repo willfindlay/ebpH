@@ -104,7 +104,7 @@ class Ebphd(Daemon):
             event = bpf["on_pid_assoc"].event(data)
             s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
             # FIXME: commented out because this is annoying
-            #self.logger.debug(s)
+            self.logger.debug(s)
         bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
 
         # executable has been processed in ebpH_on_do_open_execat
@@ -200,6 +200,7 @@ class Ebphd(Daemon):
         while(self.bpf["__is_monitoring"][0]):
             pass
         # Must be itervalues, not values
+        # FIXME: why is one profile always 0? seems to be most recent profile? maybe?
         for profile in self.bpf["profiles"].itervalues():
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
@@ -265,9 +266,8 @@ class Ebphd(Daemon):
         #        for field in profile._fields_:
         #            print(field[0], getattr(profile, field[0]))
         #        print('-----------------------------------------')
-        #        for i in range(2000):
-        #            if profile.flags[i] != 0:
-        #                print(i, bin(profile.flags[i]))
+        #        #for i in range(450):
+        #        #    print(i, bin(profile.flags[i]))
 
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()
