@@ -29,13 +29,13 @@ signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 BPF_C = utils.path('src/ebphd/bpf/bpf.c')
 
-def load_bpf_program(path):
+def load_bpf_program(path, cflags=[]):
     with open(path, 'r') as f:
         text = f.read()
         for match in re.findall(r"(#include\s*\"(.*)\")", text):
             real_header_path = os.path.abspath(utils.path(match[1]))
             text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
-    return BPF(text=text)
+    return BPF(text=text, cflags=cflags)
 
 class Ebphd(Daemon):
     def __init__(self, args):
@@ -157,7 +157,7 @@ class Ebphd(Daemon):
     def load_bpf(self, should_start=True):
         # compile ebpf code
         self.logger.info('Initializing BPF program...')
-        self.bpf = load_bpf_program(BPF_C)
+        self.bpf = load_bpf_program(BPF_C, cflags=[])
         atexit.register(self.cleanup)
         if should_start:
             self.start_monitoring()
@@ -201,7 +201,6 @@ class Ebphd(Daemon):
             pass
         # Must be itervalues, not values
         for profile in self.bpf["profiles"].itervalues():
-            print(profile)
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
@@ -254,6 +253,21 @@ class Ebphd(Daemon):
 
     def tick(self):
         self.tick_count += 1
+
+        if self.tick_count == 300:
+            print("PRINTING PROCESSES MAP")
+            for process in self.bpf['processes'].itervalues():
+                print(process.pid)
+
+            print("PRINTING PROFILES MAP")
+            for profile in self.bpf['profiles'].itervalues():
+                print('-----------------------------------------')
+                for field in profile._fields_:
+                    print(field[0], getattr(profile, field[0]))
+                print('-----------------------------------------')
+                for i in range(2000):
+                    if profile.flags[i] != 0:
+                        print(i, bin(profile.flags[i]))
 
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()

@@ -28,7 +28,6 @@ struct ebpH_profile
     u8 frozen;
     u8 normal;
     u64 normal_time;
-    u64 window_size;
     u64 normal_count;
     u64 last_mod_count;
     u64 train_count;

@@ -270,8 +270,10 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         /* Determine which entry we need */
         entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
 
+        bpf_trace_printk("%ld\n", entry);
+
         if (entry == -1)
-            return 0;
+            continue;
 
         /* Lookup the syscall data */
         u8 data = profile->flags[entry];
@@ -389,7 +391,7 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
     }
 
     /* Copy memory over */
-    if (!processes.lookup_or_init(pid, init))
+    if (!processes.lookup_or_try_init(pid, init))
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return -1;
@@ -470,7 +472,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     }
 
     /* Copy memory over */
-    if (!profiles.lookup_or_init(key, profile))
+    if (!profiles.lookup_or_try_init(key, profile))
     {
         ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
@@ -483,8 +485,6 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    /* This seems to help slightly with -EOPNOTSUPP */
-    bpf_probe_read(&info, sizeof(info), &info);
     int ret = on_executable_processed.perf_submit(ctx, &info, sizeof(info));
     bpf_trace_printk("%s %d\n", info.comm, ret);
 
