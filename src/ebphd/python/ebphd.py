@@ -200,7 +200,6 @@ class Ebphd(Daemon):
         while(self.bpf["__is_monitoring"][0]):
             pass
         # Must be itervalues, not values
-        # FIXME: why is one profile always 0? seems to be most recent profile? maybe?
         for profile in self.bpf["profiles"].itervalues():
             path = os.path.join(Config.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
@@ -262,12 +261,13 @@ class Ebphd(Daemon):
 
         #    print("PRINTING PROFILES MAP")
         #    for profile in self.bpf['profiles'].itervalues():
+        #        if profile.key != 32381778:
+        #            continue
         #        print('-----------------------------------------')
         #        for field in profile._fields_:
         #            print(field[0], getattr(profile, field[0]))
         #        print('-----------------------------------------')
-        #        #for i in range(450):
-        #        #    print(i, bin(profile.flags[i]))
+        #        print(bin(profile.flags[451]))
 
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()
