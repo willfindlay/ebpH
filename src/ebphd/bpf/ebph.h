@@ -88,7 +88,7 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *, long *, struct pt_regs *);
-static int ebpH_create_profile(u64 *, u32 *, struct pt_regs *, char *);
+static int ebpH_create_profile(u64 *, u32 *, struct pt_regs *, char *, u8);
 static int ebpH_start_tracing(struct ebpH_profile *, struct ebpH_process *, struct pt_regs *);
 static u64 ebpH_get_ppid_tgid();
 

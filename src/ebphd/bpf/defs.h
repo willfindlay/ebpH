@@ -14,6 +14,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <uapi/asm/unistd_64.h>
+
 /* This is the default size for BPF tables (hashmaps, etc.) */
 #define EBPH_DEFAULT_TABLE_SIZE 10240
 /* This is the maxmimum number of PIDs on the system */
@@ -22,7 +24,7 @@
 
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
-#define EBPH_SEQLEN  8
+#define EBPH_SEQLEN  9
 
 /* Window size for locality frames */
 #define EBPH_LOCALITY_WIN  128
@@ -54,6 +56,7 @@
 #define EBPH_FORK       57
 #define EBPH_VFORK      58
 #define EBPH_EXECVE     59
+#define EBPH_EXECVEAT   __NR_execveat
 #define EBPH_EXIT       60
 #define EBPH_WAIT       61
 #define EBPH_EXIT_GROUP 231

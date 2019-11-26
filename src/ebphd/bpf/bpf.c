@@ -391,7 +391,8 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
     }
 
     /* Copy memory over */
-    if (!processes.lookup_or_try_init(pid, init))
+    init = processes.lookup_or_try_init(pid, init);
+    if (!init)
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return -1;
@@ -419,9 +420,6 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
         return -1;
     }
 
-    if (process->in_execve)
-        return 0;
-
     process->exe_key = profile->key;
 
     struct ebpH_information info = {.pid=process->pid, .key=profile->key};
@@ -432,10 +430,13 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
 }
 
 /* Create a profile if one does not already exist. */
-static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *comm)
+static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *comm, u8 in_execve)
 {
     int zero = 0;
     struct ebpH_profile *profile = NULL;
+
+    if (in_execve)
+        return 0;
 
     if (!key)
     {
@@ -472,9 +473,9 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     }
 
     /* Copy memory over */
-    if (!profiles.lookup_or_try_init(key, profile))
+    profile = profiles.lookup_or_try_init(key, profile);
+    if (!profile)
     {
-        ebpH_debug_int.perf_submit(ctx, &profile->key, sizeof(profile->key));
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
         return -1;
     }
@@ -485,8 +486,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    int ret = on_executable_processed.perf_submit(ctx, &info, sizeof(info));
-    bpf_trace_printk("%s %d\n", info.comm, ret);
+    on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
     return 0;
 }
@@ -533,7 +533,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_process *process;
     struct ebpH_process *parent_process;
 
-    if (syscall == EBPH_EXECVE)
+    if (syscall == EBPH_EXECVE || syscall == EBPH_EXECVEAT)
     {
         process = processes.lookup(&pid);
         if (!process)
@@ -660,28 +660,31 @@ int ebpH_on_do_open_execat(struct pt_regs *ctx)
     bpf_probe_read(&dn, sizeof(dn), &exec_entry->d_name);
     bpf_probe_read(&comm, sizeof(comm), dn.name);
 
-    /* Create a profile if necessary */
-    ebpH_create_profile(&key, &pid, ctx, comm);
-
-    /* In case we didn't catch the fork in time
-     * This will do nothing if the process already exists*/
+    /* Create the process if it doesn't already exist */
     ebpH_create_process(&pid, ctx);
-
-    /* Start tracing the process */
     process = processes.lookup(&pid);
-    profile = profiles.lookup(&key);
     if (!process)
     {
         EBPH_ERROR("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return 0;
     }
+
+    /* If we are already in an execve, we don't want to go any further */
+    if (process->in_execve)
+        return 0;
+
+    /* Create a profile if necessary */
+    ebpH_create_profile(&key, &pid, ctx, comm, process->in_execve);
+    process->in_execve = 1;
+
+    /* Start tracing the process */
+    profile = profiles.lookup(&key);
     if (!profile)
     {
         EBPH_ERROR("NULL profile, cannot start tracing --  ebpH_on_do_open_execat", ctx);
         return 0;
     }
     ebpH_start_tracing(profile, process, ctx);
-    process->in_execve = 1;
 
     return 0;
 }
