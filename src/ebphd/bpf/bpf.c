@@ -278,11 +278,6 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         /* Lookup the syscall data */
         u8 data = profile->flags[entry];
 
-        if (profile->key == 20983743)
-        {
-            bpf_trace_printk("%ld, %ld at offset %d!\n", syscall, prev, i);
-        }
-
         /* Set lookahead pair */
         data |= (1 << (i - 1));
         profile->flags[entry] = data;
@@ -345,7 +340,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     /* Add syscall to process sequence */
     for (int i = EBPH_SEQLEN - 1; i > 0; i--)
     {
-        bpf_trace_printk("%d\n", i);
         process->seq[i] = process->seq[i-1];
     }
     process->seq[0] = *syscall;
