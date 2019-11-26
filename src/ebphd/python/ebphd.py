@@ -254,7 +254,7 @@ class Ebphd(Daemon):
     def tick(self):
         self.tick_count += 1
 
-        if self.tick_count == 300:
+        if self.tick_count == 30:
             print("PRINTING PROCESSES MAP")
             for process in self.bpf['processes'].itervalues():
                 print(process.pid)
