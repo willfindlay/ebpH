@@ -580,6 +580,12 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
            return -1;
        }
 
+       /* Copy parent process' sequence to child */
+       for (int i = 0; i < EBPH_SEQLEN; i++)
+       {
+            process->seq[i] = parent_process->seq[i];
+       }
+
        /* Associate process with its parent profile */
        ebpH_start_tracing(e, process, (struct pt_regs *)args);
     }
