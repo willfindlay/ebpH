@@ -11,7 +11,6 @@
  *
  * Licensed under GPL v2 License */
 
-#include <linux/delay.h>
 #include <linux/sched.h>
 #include <linux/fdtable.h>
 #include <uapi/linux/ptrace.h>
