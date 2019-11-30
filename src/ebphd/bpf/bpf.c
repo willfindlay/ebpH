@@ -541,6 +541,13 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
         process->in_execve = 0;
+
+       /* Wipe process' current sequence */
+       for (int i = 0; i < EBPH_SEQLEN; i++)
+       {
+            process->seq[i] = EBPH_EMPTY;
+       }
+       process->count = 0;
     }
 
     /* Associate pids on fork */
@@ -584,6 +591,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
        {
             process->seq[i] = parent_process->seq[i];
        }
+       process->count = parent_process->count;
 
        /* Associate process with its parent profile */
        ebpH_start_tracing(e, process, (struct pt_regs *)args);
