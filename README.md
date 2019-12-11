@@ -16,7 +16,8 @@ The ebpH logfile is kept in `/var/log/ebph.log` by default. This can be configur
 Run the following commands:
 
 ```
-$ docker-compose up --build
+$ docker-compose build --no-cache
+$ docker-compose up
 ```
 
 Subsequently, the app can be run with:
@@ -27,16 +28,16 @@ $ docker-compose up
 
 ## Prerequisites
 
-1. Linux 5.3 or higher
+1. Linux 5.3+
 1. The **latest version** of bcc and bcc-python from https://github.com/iovisor/bcc (I used the AUR to install mine; follow the instructions in their README)
     - The latest version is important because previous versions had a horrible bug that effectively broke python3 support
-1. Python 3.7
+1. Python 3.7+
 
 ## Installation
 
 1. Install the prerequisites (see above).
 1. Clone the development branch from the repo: `git clone --branch development https://github.com/HousedHorse/ebpH`
-1. Run `$ make && make install`. The scripts will ask for sudo as needed.
+1. Run `$ sudo make install`.
 
 ## Running
 

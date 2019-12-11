@@ -29,4 +29,4 @@ RUN mkdir -p /app
 WORKDIR /app
 COPY . /app
 
-RUN make && make install
+RUN make install

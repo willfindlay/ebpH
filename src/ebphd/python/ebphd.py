@@ -254,21 +254,6 @@ class Ebphd(Daemon):
     def tick(self):
         self.tick_count += 1
 
-        #if self.tick_count == 30:
-        #    print("PRINTING PROCESSES MAP")
-        #    for process in self.bpf['processes'].itervalues():
-        #        print(process.pid)
-
-        #    print("PRINTING PROFILES MAP")
-        #    for profile in self.bpf['profiles'].itervalues():
-        #        if profile.key != 32381778:
-        #            continue
-        #        print('-----------------------------------------')
-        #        for field in profile._fields_:
-        #            print(field[0], getattr(profile, field[0]))
-        #        print('-----------------------------------------')
-        #        print(bin(profile.flags[451]))
-
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()
 

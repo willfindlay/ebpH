@@ -19,7 +19,6 @@ class Config():
 
     # Location where log files should be saved
     logdir = '/var/log/ebpH'
-    #logdir = '/tmp'
 
     # Verbosity level for logging
     # Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
@@ -49,6 +48,8 @@ class Config():
     socket = os.path.join(socketdir, 'ebph.sock')
     pidfile = os.path.join(socketdir, 'ebph.pid')
     logfile = os.path.join(logdir, 'ebph.log')
+
+    # Do not edit anything below this line ------------------------------------
 
     @staticmethod
     def setup_dir(d):
