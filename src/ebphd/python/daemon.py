@@ -114,7 +114,7 @@ class Daemon:
 
         print("Starting ebpH daemon...")
         self._daemonize()
-        #self._bind_socket()
+        self._bind_socket()
         self.main()
 
     def stop(self):

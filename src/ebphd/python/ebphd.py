@@ -71,6 +71,11 @@ class Ebphd(Daemon):
 
     # BPF stuff below this line --------------------
 
+    def register_exit_hooks(self):
+        atexit.unregister(self.cleanup)
+        atexit.register(self.cleanup)
+        self.logger.info("Registered exit hooks")
+
     def register_perf_buffers(self, bpf):
         # Returns a lost callback for a perf buffer with name buff_name
         def lost_cb(buff_name):
@@ -133,18 +138,20 @@ class Ebphd(Daemon):
         self.logger.info(f'Registered perf buffers')
 
     def load_bpf(self, should_start=True):
-        # compile ebpf code
+        # Compile ebpf code
         self.logger.info('Initializing BPF program...')
         self.bpf = load_bpf_program(BPF_C, cflags=[])
-        atexit.register(self.cleanup)
-        if should_start:
-            self.start_monitoring()
+
+        self.register_exit_hooks()
         self.register_perf_buffers(self.bpf)
 
         self.bpf.attach_kretprobe(event='do_open_execat', fn_name='ebpH_on_do_open_execat')
         self.logger.info('Attached execve hook')
         self.bpf.attach_kretprobe(event='complete_signal', fn_name='ebpH_on_complete_signal')
         self.logger.info('Attached signal hook')
+
+        if should_start:
+            self.start_monitoring()
 
         if self.should_load:
             self.load_profiles()
