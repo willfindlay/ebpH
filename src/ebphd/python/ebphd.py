@@ -44,22 +44,23 @@ class Ebphd(Daemon):
 
         self.bpf = None
 
-        # bpf stats
+        # BPF program stats
         self.num_profiles = 0
         self.num_syscalls = 0
         self.num_forks    = 0
         self.num_execves  = 0
         self.num_exits    = 0
 
-        # number of elapsed ticks since creation
+        # Number of elapsed ticks since creation
         self.tick_count = 0
 
         self.logger = logging.getLogger('ebpH')
 
     def main(self):
         self.logger.info("Starting ebpH daemon...")
-
         self.load_bpf()
+
+        # Event loop
         while True:
             self.tick()
             time.sleep(Config.ticksleep)
@@ -67,26 +68,6 @@ class Ebphd(Daemon):
     def stop(self):
         self.logger.info("Stopping ebpH daemon...")
         super().stop()
-
-    def socket_loop(self):
-        while True:
-            connection, client_addr = self._socket.accept()
-            client_thread = threading.Thread(target=self.on_new_client, args=(connection, client_addr))
-            client_thread.daemon = True
-            client_thread.start()
-
-    def on_new_client(self, connection, client_addr):
-            try:
-                self.logger.debug(f"Connection from {client_addr}")
-                while True:
-                    data = connection.recv(1024)
-                    if data:
-                        pass
-                    else:
-                        break
-            finally:
-                connection.close()
-                self.logger.debug(f"Connection to {client_addr} closed")
 
     # BPF stuff below this line --------------------
 
@@ -101,7 +82,6 @@ class Ebphd(Daemon):
         def on_pid_assoc(cpu, data, size):
             event = bpf["on_pid_assoc"].event(data)
             s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
-            # FIXME: commented out because this is annoying
             self.logger.debug(s)
         bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
 
@@ -255,6 +235,5 @@ class Ebphd(Daemon):
         if self.tick_count % Config.saveinterval == 0:
             self.save_profiles()
 
-        # bpf stuff below this line -------------------------
         if self.bpf:
             self.bpf.perf_buffer_poll(30)

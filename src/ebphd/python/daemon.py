@@ -75,11 +75,11 @@ class Daemon:
         stdout_path = os.path.dirname(self.stdout)
         stderr_path = os.path.dirname(self.stderr)
         if not stdin_path:
-            os.path.makedirs(stdin_path)
+            os.makedirs(stdin_path)
         if not stdout_path:
-            os.path.makedirs(stdout_path)
+            os.makedirs(stdout_path)
         if not stderr_path:
-            os.path.makedirs(stderr_path)
+            os.makedirs(stderr_path)
 
         # redirect standard fds
         sys.stdout.flush()
@@ -114,7 +114,7 @@ class Daemon:
 
         print("Starting ebpH daemon...")
         self._daemonize()
-        self._bind_socket()
+        #self._bind_socket()
         self.main()
 
     def stop(self):
