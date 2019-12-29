@@ -36,18 +36,10 @@ class Config():
     # When attempting to stop the daemon, how long do we wait before giving up?
     killtimeout = 20
 
-    # Do not edit anything below this line ------------------------------------
-
     # ebpH data directory
     # WARNING: Don't pick a directory you're already using
     #          The permissions will be changed
     ebph_data_dir =  '/var/lib/ebpH'
-    profiles_dir = os.path.join(ebph_data_dir, 'profiles')
-
-    # configure file locations
-    socket = os.path.join(socketdir, 'ebph.sock')
-    pidfile = os.path.join(socketdir, 'ebph.pid')
-    logfile = os.path.join(logdir, 'ebph.log')
 
     # Do not edit anything below this line ------------------------------------
 
@@ -58,6 +50,14 @@ class Config():
 
     @staticmethod
     def init():
+        # Read defaults
+        Config.profiles_dir = os.path.join(Config.ebph_data_dir, 'profiles')
+
+        # configure file locations
+        Config.socket = os.path.join(Config.socketdir, 'ebph.sock')
+        Config.pidfile = os.path.join(Config.socketdir, 'ebph.pid')
+        Config.logfile = os.path.join(Config.logdir, 'ebph.log')
+
         uid = pwd.getpwnam("root").pw_uid
         gid = grp.getgrnam("root").gr_gid
 

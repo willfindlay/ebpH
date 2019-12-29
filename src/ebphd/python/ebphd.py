@@ -20,8 +20,6 @@ from bcc import BPF, lib
 from daemon import Daemon
 from config import Config
 import utils
-import structs
-
 
 # register handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))

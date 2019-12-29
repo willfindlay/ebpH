@@ -13,7 +13,7 @@ chown root:root $INSTALLDIR
 cp -r ./* $INSTALLDIR
 
 # copy systemd unit file
-cp ./systemd/ebphd.service /etc/systemd/system/ebphd.service
+# cp ./systemd/ebphd.service /etc/systemd/system/ebphd.service
 
 # navigate to /opt/ebpH
 cd $INSTALLDIR
