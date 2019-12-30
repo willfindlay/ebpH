@@ -11,7 +11,7 @@
 #
 # Licensed under GPL v2 License
 
-import os, sys, socket, signal, time, logging, re, atexit
+import os, sys, socket, signal, time, logging, re, atexit, threading
 from collections import defaultdict
 import ctypes as ct
 
@@ -39,12 +39,15 @@ class Ebphd(Daemon):
     def __init__(self, args):
         super().__init__(Config.pidfile, Config.socket)
 
+        # Should we save/load profiles?
         self.should_load = not args.noload
         self.should_save = not args.nosave
 
+        # BPF program
         self.bpf = None
 
         # BPF program stats
+        # TODO: maybe delete these?
         self.num_profiles = 0
         self.num_syscalls = 0
         self.num_forks    = 0
@@ -54,11 +57,39 @@ class Ebphd(Daemon):
         # Number of elapsed ticks since creation
         self.tick_count = 0
 
+        # Logging stuff
         self.logger = logging.getLogger('ebpH')
+
+        # Threading stuff
+        self.connection_lock = threading.Lock()
+
+    def listen_for_connections(self):
+        while True:
+            c, addr = self._socket.accept()
+
+            self.connection_lock.acquire()
+            print(f'accepted connection! {c} {addr}')
+
+            while True:
+                try:
+                    msg = c.recv(4096)
+                except socket.error:
+                    break
+                print(msg)
+                if msg == b'':
+                    break
+
+            print(f'relinquished connection! {c} {addr}')
+            self.connection_lock.release()
 
     def main(self):
         self.logger.info("Starting ebpH daemon...")
         self.load_bpf()
+
+        # Spawn connection listener here
+        self.connection_listener = threading.Thread(target=self.listen_for_connections)
+        self.connection_listener.daemon = True
+        self.connection_listener.start()
 
         # Event loop
         while True:

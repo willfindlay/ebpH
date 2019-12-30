@@ -40,7 +40,6 @@ class Daemon:
         # bind socket
         self._socket.bind(self.socket_adr)
         self._socket.listen()
-
         # restore old umask
         os.umask(old_umask)
 
