@@ -35,6 +35,23 @@ def load_bpf_program(path, cflags=[]):
             text = text.replace(match[0], ''.join(['#include "', real_header_path, '"']))
     return BPF(text=text, cflags=cflags)
 
+# Manages a connection
+class Connection():
+    def __init__(self, sock, addr, handler):
+        self.sock = sock
+        self.addr = addr
+        self.handler = handler
+
+    # Start new thread to handle connection
+    def start(self):
+        self.thread = threading.Thread(target=self.handler, args=(self,))
+        self.thread.start()
+
+    # Close connection and join thread
+    def stop(self):
+        self.sock.shutdown(socket.SHUT_RDWR)
+        self.thread.join()
+
 class Ebphd(Daemon):
     def __init__(self, args):
         super().__init__(Config.pidfile, Config.socket)
@@ -61,26 +78,40 @@ class Ebphd(Daemon):
         self.logger = logging.getLogger('ebpH')
 
         # Threading stuff
-        self.connection_lock = threading.Lock()
+        self.command_lock = threading.Lock()
+        self.connections = []
+        self.close_connections = False
 
+    # Handle socket connections
+    def handle_connection(self, connection):
+        self.logger.info(f"Opened connection with {connection.addr}")
+        print(type(connection.addr))
+        while True:
+            try:
+                data = connection.sock.recv(4096)
+            except socket.error as e:
+                self.logger.error(f"Error occurred in socket: {e}... Closing connection...")
+                break
+
+            # Do something with data
+            print(data)
+
+            # Exit conditions
+            if not data:
+                break
+
+        connection.sock.close()
+        self.logger.info(f"Closed connection with {connection.addr}")
+
+    # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
         while True:
             c, addr = self._socket.accept()
 
-            self.connection_lock.acquire()
-            print(f'accepted connection! {c} {addr}')
-
-            while True:
-                try:
-                    msg = c.recv(4096)
-                except socket.error:
-                    break
-                print(msg)
-                if msg == b'':
-                    break
-
-            print(f'relinquished connection! {c} {addr}')
-            self.connection_lock.release()
+            # Start new connection_handler thread
+            connection = Connection(c, addr, self.handle_connection)
+            self.connections.append(connection)
+            connection.start()
 
     def main(self):
         self.logger.info("Starting ebpH daemon...")
@@ -99,6 +130,18 @@ class Ebphd(Daemon):
     def stop(self):
         self.logger.info("Stopping ebpH daemon...")
         super().stop()
+
+    def cleanup(self):
+        self.logger.info('Closing active connections...')
+        self.close_connections = True
+        for connection in self.connections:
+            connection.stop()
+        self.logger.info('Unloading BPF program...')
+        try:
+            self.stop_monitoring()
+        except TypeError:
+            pass
+        self.logger.info('BPF program unloaded')
 
     # BPF stuff below this line --------------------
 
@@ -188,13 +231,6 @@ class Ebphd(Daemon):
             self.load_profiles()
             self.logger.info('Loaded profiles')
         self.logger.info('BPF program initialized')
-
-    def cleanup(self):
-        try:
-            self.stop_monitoring()
-        except TypeError:
-            pass
-        self.logger.info('BPF program unloaded')
 
     def start_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
