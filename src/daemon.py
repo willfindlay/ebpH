@@ -14,7 +14,7 @@
 import os, sys, socket, atexit, time, threading
 from signal import SIGTERM
 
-from config import Config
+import config
 
 class Daemon:
     def __init__(self, pidfile, socket, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
@@ -108,7 +108,7 @@ class Daemon:
             pid = None
 
         if pid:
-            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {Config.pidfile}.\n")
+            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {config.pidfile}.\n")
             sys.exit(-1)
 
         print("Starting ebpH daemon...")
@@ -136,7 +136,7 @@ class Daemon:
             while os.path.exists(self.pidfile):
                 timeout = timeout + 1
                 time.sleep(1)
-                if timeout >= Config.killtimeout:
+                if timeout >= config.killtimeout:
                     sys.stderr.write(f"Timeout reached. You may want to delete {self.pidfile} and kill the daemon manually.\n")
                     sys.exit(-1)
             print("Killed ebpH daemon successfully!")
