@@ -49,7 +49,10 @@ class Connection():
 
     # Close connection and join thread
     def stop(self):
-        self.sock.shutdown(socket.SHUT_RDWR)
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         self.thread.join()
 
 class Ebphd(Daemon):
@@ -84,8 +87,7 @@ class Ebphd(Daemon):
 
     # Handle socket connections
     def handle_connection(self, connection):
-        self.logger.info(f"Opened connection with {connection.addr}")
-        print(type(connection.addr))
+        self.logger.debug(f"Opened connection with {connection.addr}")
         while True:
             try:
                 data = connection.sock.recv(4096)
@@ -101,7 +103,7 @@ class Ebphd(Daemon):
                 break
 
         connection.sock.close()
-        self.logger.info(f"Closed connection with {connection.addr}")
+        self.logger.debug(f"Closed connection with {connection.addr}")
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
