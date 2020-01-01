@@ -26,6 +26,11 @@ socketdir = '/run'
 # Location where log files should be saved
 logdir = '/var/log/ebpH'
 
+# ebpH data directory
+# WARNING: Don't pick a directory you're already using
+#          The permissions will be changed
+ebph_data_dir =  '/var/lib/ebpH'
+
 # Verbosity level for logging
 # Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
 #                  logging.INFO,     logging.DEBUG
@@ -42,10 +47,8 @@ saveinterval = 6000 # about 10 minutes
 # When attempting to stop the daemon, how long do we wait before giving up?
 killtimeout = 20
 
-# ebpH data directory
-# WARNING: Don't pick a directory you're already using
-#          The permissions will be changed
-ebph_data_dir =  '/var/lib/ebpH'
+# Size of socket messages
+socket_buff_size = 4096
 
 def setup_dir(d):
     if not os.path.exists(d):

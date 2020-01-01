@@ -31,6 +31,24 @@ import utils
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
+# Decorator for ebpH commands
+def command(func):
+    def inner(*args, connection=None, **kwargs):
+        # We need to send a reply if we are acting on behalf of a connection
+        if connection:
+            try:
+                res = func(*args, **kwargs)
+            except Exception as e:
+                res = b'error'
+                logger = logging.getLogger('ebpH')
+                logger.error(f"Unable to complete request: {e}")
+            if res is None:
+                res = b'OK'
+            connection.send(res)
+        else:
+            func(*args, **kwargs)
+    return inner
+
 # Manages a connection
 class Connection():
     def __init__(self, sock, addr, handler):
@@ -51,6 +69,13 @@ class Connection():
             pass
         self.thread.join()
 
+    def send(self, string):
+        return self.sock.send(string)
+
+    def recv(self):
+        return self.sock.recv(config.socket_buff_size)
+
+# The ebpH Daemon
 class EBPHDaemon(Daemon):
     def __init__(self, args):
         # Init Daemon superclass
@@ -75,6 +100,10 @@ class EBPHDaemon(Daemon):
         self.connections = []
         self.close_connections = False
 
+        self.commands = {
+                b'stop_monitoring': self.stop_monitoring
+                }
+
         self.register_exit_hooks()
 
     # Handle socket connections
@@ -82,17 +111,17 @@ class EBPHDaemon(Daemon):
         self.logger.debug(f"Opened connection with {connection.addr}")
         while True:
             try:
-                data = connection.sock.recv(4096)
+                data = connection.recv()
             except socket.error as e:
                 self.logger.error(f"Error occurred in socket: {e}... Closing connection...")
                 break
 
-            # Do something with data
-            print(data)
-
             # Exit conditions
             if not data:
                 break
+
+            # Do something with data
+            self.commands[data](connection=connection)
 
         connection.sock.close()
         self.logger.debug(f"Closed connection with {connection.addr}")
@@ -147,12 +176,15 @@ class EBPHDaemon(Daemon):
 
     # Commands below this line -----------------------------------
 
+    @command
     def start_monitoring(self):
         self.bpf_program.start_monitoring()
 
+    @command
     def stop_monitoring(self):
         self.bpf_program.stop_monitoring()
 
+    @command
     def save_profiles(self):
         self.bpf_program.save_profiles()
 
@@ -160,7 +192,7 @@ if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
 
     def parse_args(args=[]):
-        parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebpH", epilog="To change any of the defaults above, edit config.py",
+        parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebphd", epilog="Configuration file is located in config.py",
                 formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS, nargs='?',
