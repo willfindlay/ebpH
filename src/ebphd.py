@@ -26,7 +26,7 @@ from daemon import Daemon
 from bpf_program import BPFProgram
 from server import EBPHUnixStreamServer, EBPHRequestDispatcher
 import config
-from utils import locks, to_json_bytes, from_json_bytes
+from utils import locks
 
 # Register signal handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
@@ -61,8 +61,6 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.stop_monitoring)
         self.request_dispatcher.register(self.save_profiles)
 
-        self.register_exit_hooks()
-
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
         self.logger.info("Starting ebpH server...")
@@ -95,19 +93,6 @@ class EBPHDaemon(Daemon):
     def stop(self):
         self.logger.info("Stopping ebpH daemon...")
         super().stop()
-
-    def cleanup(self):
-        #self.logger.info('Closing active connections...')
-        #self.close_connections = True
-        #for connection in self.connections:
-        #    connection.stop()
-        #self.logger.info('All active connections closed')
-        pass
-
-    def register_exit_hooks(self):
-        atexit.unregister(self.cleanup)
-        atexit.register(self.cleanup)
-        self.logger.info("Registered daemon exit hooks")
 
     # Commands below this line -----------------------------------
 
