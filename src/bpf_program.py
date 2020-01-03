@@ -176,7 +176,8 @@ class BPFProgram:
                 f.write(profile)
             # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
-            self.logger.info(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
+            self.logger.debug(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
+        self.logger.info(f"Successfully saved all profiles")
 
         # return to original state
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))

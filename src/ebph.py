@@ -20,7 +20,7 @@ import struct
 from http import HTTPStatus as Status
 
 import config
-from utils import to_json_bytes, from_json_bytes
+from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 if __name__ == "__main__":
     OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles']
@@ -55,10 +55,10 @@ if __name__ == "__main__":
     request = {'func': args.operation, 'args': None, 'kwargs': None}
 
     # Send request
-    sock.send(to_json_bytes(request))
+    send_message(sock, to_json_bytes(request))
 
     # Handle response
-    res = sock.recv(config.socket_buff_size)
+    res = receive_message(sock)
     res = from_json_bytes(res)
     print(res)
     sock.close()

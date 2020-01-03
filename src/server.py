@@ -7,7 +7,7 @@ import json
 from http import HTTPStatus as Status
 
 import config
-from utils import to_json_bytes, from_json_bytes
+from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 logger = logging.getLogger('ebpH')
 
@@ -91,21 +91,22 @@ class EBPHStreamRequestHandler(socketserver.StreamRequestHandler):
             try:
                 # Send json-encoded response
                 self.response = to_json_bytes(self.response)
-                self.request.send(self.response)
+                send_message(self.request, self.response)
             except AttributeError:
                 pass # Do nothing before first iteration
 
             self.response = {'code': Status.OK, 'message': None}
 
             # Receive data
-            self.data = self.request.recv(config.socket_buff_size)
+            self.data = receive_message(self.request)
+            # If connection is closed
             if not self.data:
                 break
-            self.data = self.data.strip()
+
             try:
                 self.data = from_json_bytes(self.data)
             except json.JSONDecodeError as e:
-                logger.error(f"Could not decode JSON object: {e}")
+                logger.error(f"Could not decode request: {e}")
                 self.response['code'] = Status.INTERNAL_SERVER_ERROR
                 continue
 

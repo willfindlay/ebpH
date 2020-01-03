@@ -48,7 +48,11 @@ saveinterval = 6000 # about 10 minutes
 killtimeout = 20
 
 # Size of socket messages
-socket_buff_size = 4096
+socket_buff_size = 3
+
+# Sentinel value for ending socket messages
+# Defaults to the null character
+socket_sentinel = b"\x00"
 
 def setup_dir(d):
     if not os.path.exists(d):
