@@ -15,16 +15,20 @@ import logging
 import atexit
 import ctypes as ct
 import signal
+import threading
 
 from bcc import BPF, lib
 
 import config
+from utils import locks
 
 # register handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 class BPFProgram:
+    lock = threading.Lock()
+
     def __init__(self, should_save, should_load):
         # Should we save/load profiles?
         self.should_load = should_load
@@ -32,14 +36,6 @@ class BPFProgram:
 
         # BPF program
         self.bpf = None
-
-        # BPF program stats
-        # TODO: maybe delete these?
-        self.num_profiles = 0
-        self.num_syscalls = 0
-        self.num_forks    = 0
-        self.num_execves  = 0
-        self.num_exits    = 0
 
         # Logging stuff
         self.logger = logging.getLogger('ebpH')
@@ -144,10 +140,18 @@ class BPFProgram:
 
         self.logger.info('BPF program initialized')
 
+    # Poll perf_buffers on every daemon tick
+    def on_tick(self):
+        self.bpf.perf_buffer_poll(30)
+
+# Commands below this line ----------------------------------------------
+
+    @locks(lock)
     def start_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
         self.logger.info('Started monitoring the system')
 
+    @locks(lock)
     def stop_monitoring(self):
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
         if self.should_save:
@@ -155,6 +159,7 @@ class BPFProgram:
         self.logger.info('Stopped monitoring the system')
 
     # save all profiles to disk
+    @locks(lock)
     def save_profiles(self):
         # notify bpf that we are saving
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
@@ -178,6 +183,7 @@ class BPFProgram:
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
     # load all profiles from disk
+    @locks(lock)
     def load_profiles(self):
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
@@ -217,8 +223,4 @@ class BPFProgram:
             return bool(self.bpf["__is_monitoring"][0].value)
         except TypeError:
             return False
-
-    # Call this on every tick
-    def on_tick(self):
-        self.bpf.perf_buffer_poll(30)
 

@@ -499,6 +499,19 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     u32 pid = bpf_get_current_pid_tgid() >> 32;
     struct ebpH_process *process;
 
+    int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
+
+    if (!monitoring)
+    {
+        return 0;
+    }
+
+    if (!(*monitoring))
+    {
+        return 0;
+    }
+
     process = processes.lookup(&pid);
 
     /* Process does not already exist */
@@ -531,6 +544,19 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_profile *e;
     struct ebpH_process *process;
     struct ebpH_process *parent_process;
+
+    int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
+
+    if (!monitoring)
+    {
+        return 0;
+    }
+
+    if (!(*monitoring))
+    {
+        return 0;
+    }
 
     if (syscall == EBPH_EXECVE || syscall == EBPH_EXECVEAT)
     {
@@ -633,6 +659,20 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     u64 key = 0;
     struct ebpH_process *process = NULL;
     struct ebpH_profile *profile = NULL;
+
+    int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
+
+    if (!monitoring)
+    {
+        return 0;
+    }
+
+    if (!(*monitoring))
+    {
+        return 0;
+    }
+
 
     /* Yoink the file struct */
     exec_file = (struct file *)PT_REGS_RC(ctx);

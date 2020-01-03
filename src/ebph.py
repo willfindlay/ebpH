@@ -16,11 +16,14 @@
 import os, sys
 import socket
 import argparse
+import struct
+from http import HTTPStatus as Status
 
 import config
+from utils import to_json_bytes, from_json_bytes
 
 if __name__ == "__main__":
-    OPERATIONS=['stop_monitoring']
+    OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles']
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Command script for ebpH.", prog="ebph", epilog="Configuration file is located in config.py",
@@ -48,9 +51,14 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.connect(config.socket)
 
-    # Send correct command
-    sock.send(b'stop_monitoring')
+    # Form request
+    request = {'func': args.operation, 'args': None, 'kwargs': None}
+
+    # Send request
+    sock.send(to_json_bytes(request))
 
     # Handle response
-    print(sock.recv(config.socket_buff_size))
+    res = sock.recv(config.socket_buff_size)
+    res = from_json_bytes(res)
+    print(res)
     sock.close()

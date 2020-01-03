@@ -25,24 +25,6 @@ class Daemon:
         self.stdout = stdout
         self.stderr = stderr
 
-    def _bind_socket(self):
-        # make sure socket doesn't already exist
-        try:
-            os.unlink(self.socket_adr)
-        except OSError:
-            if os.path.exists(self.socket_adr):
-                raise
-
-        # init socket
-        self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # set appropriate permissions for socket
-        old_umask = os.umask(0o177)
-        # bind socket
-        self._socket.bind(self.socket_adr)
-        self._socket.listen()
-        # restore old umask
-        os.umask(old_umask)
-
     def _daemonize(self):
         # first fork
         try:
@@ -113,7 +95,6 @@ class Daemon:
 
         print("Starting ebpH daemon...")
         self._daemonize()
-        self._bind_socket()
         self.main()
 
     def stop(self):
