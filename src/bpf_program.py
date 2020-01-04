@@ -148,15 +148,31 @@ class BPFProgram:
 
     @locks(lock)
     def start_monitoring(self):
+        """
+        Start monitoring the system.
+        Return 0 on success, 1 if system is already being monitored.
+        """
+        if self.monitoring:
+            self.logger.info('System is already being monitored')
+            return 1
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
         self.logger.info('Started monitoring the system')
+        return 0
 
     @locks(lock)
     def stop_monitoring(self):
+        """
+        Stop monitoring the system.
+        Return 0 on success, 1 if system is already not being monitored.
+        """
+        if not self.monitoring:
+            self.logger.info('System is not being monitored')
+            return 1
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
         if self.should_save:
             self.save_profiles()
         self.logger.info('Stopped monitoring the system')
+        return 0
 
     # save all profiles to disk
     @locks(lock)
@@ -204,24 +220,22 @@ class BPFProgram:
 
             self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
-    # TODO: turn these into __getattr__
-    def profile_count(self):
-        try:
-            return len(self.bpf["profiles"].values())
-        except TypeError:
-            return 0
+# Attribute stuff below this line --------------------------------------------------------
 
-    # TODO: turn these into __getattr__
-    def process_count(self):
-        try:
-            return len(self.bpf["processes"].values())
-        except TypeError:
-            return 0
-
-    # TODO: turn these into __getattr__
-    def is_monitoring(self):
-        try:
-            return bool(self.bpf["__is_monitoring"][0].value)
-        except TypeError:
-            return False
-
+    def __getattribute__(self, attr):
+        if attr == 'profile_count':
+            try:
+                return len(self.bpf["profiles"].values())
+            except TypeError:
+                return 0
+        elif attr == 'process_count':
+            try:
+                return len(self.bpf["processes"].values())
+            except TypeError:
+                return 0
+        elif attr == 'monitoring':
+            try:
+                return bool(self.bpf["__is_monitoring"][0].value)
+            except TypeError:
+                return False
+        return super().__getattribute__(attr)
