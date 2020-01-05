@@ -129,24 +129,26 @@ class EBPHDaemon(Daemon):
 
     def fetch_process(self, key):
         process = self.bpf_program.fetch_process(key)
-        attrs = {'comm': profile.comm.decode('utf-8'),
-                'key': profile.key,
-                'frozen': profile.frozen,
-                'normal': profile.normal,
-                'normal_time': profile.normal_time,
-                'normal_count': profile.normal_count,
-                'last_mod_count': profile.last_mod_count,
-                'train_count': profile.train_count,
-                'anomalies': profile.anomalies,
+        attrs = {'pid': process.pid,
+                'profile': self.fetch_profile(process.exe_key),
                 }
         return attrs
 
     def fetch_all_profiles(self):
         profiles = {}
+        for k, v in self.bpf_program.bpf["profiles"].iteritems():
+            k = k.value
+            profiles[k] = self.fetch_profile(k)
         return profiles
 
     def fetch_all_processes(self):
         processes = {}
+        for k, v in self.bpf_program.bpf["processes"].iteritems():
+            k = k.value
+            try:
+                processes[k] = self.fetch_process(k)
+            except KeyError:
+                pass
         return processes
 
 if __name__ == "__main__":

@@ -20,15 +20,12 @@ import threading
 from bcc import BPF, lib
 
 import config
-from utils import locks
 
 # register handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 class BPFProgram:
-    lock = threading.Lock()
-
     def __init__(self, should_save, should_load):
         # Should we save/load profiles?
         self.should_load = should_load
@@ -146,7 +143,6 @@ class BPFProgram:
 
 # Commands below this line ----------------------------------------------
 
-    @locks(lock)
     def start_monitoring(self):
         """
         Start monitoring the system.
@@ -159,7 +155,6 @@ class BPFProgram:
         self.logger.info('Started monitoring the system')
         return 0
 
-    @locks(lock)
     def stop_monitoring(self):
         """
         Stop monitoring the system.
@@ -175,7 +170,6 @@ class BPFProgram:
         return 0
 
     # save all profiles to disk
-    @locks(lock)
     def save_profiles(self):
         # notify bpf that we are saving
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
@@ -200,7 +194,6 @@ class BPFProgram:
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
     # load all profiles from disk
-    @locks(lock)
     def load_profiles(self):
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
