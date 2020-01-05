@@ -26,7 +26,7 @@ from daemon import Daemon
 from bpf_program import BPFProgram
 from server import EBPHUnixStreamServer, EBPHRequestDispatcher
 import config
-from utils import locks
+from utils import locks, to_json_bytes, from_json_bytes
 
 # Register signal handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
@@ -60,6 +60,10 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.start_monitoring)
         self.request_dispatcher.register(self.stop_monitoring)
         self.request_dispatcher.register(self.save_profiles)
+        self.request_dispatcher.register(self.fetch_profile)
+        self.request_dispatcher.register(self.fetch_all_profiles)
+        self.request_dispatcher.register(self.fetch_process)
+        self.request_dispatcher.register(self.fetch_all_processes)
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
@@ -95,6 +99,7 @@ class EBPHDaemon(Daemon):
         super().stop()
 
     # Commands below this line -----------------------------------
+    # Return values must be json parsable
 
     @locks(lock)
     def start_monitoring(self):
@@ -107,6 +112,42 @@ class EBPHDaemon(Daemon):
     @locks(lock)
     def save_profiles(self):
         return self.bpf_program.save_profiles()
+
+    def fetch_profile(self, key):
+        profile = self.bpf_program.fetch_profile(key)
+        attrs = {'comm': profile.comm.decode('utf-8'),
+                'key': profile.key,
+                'frozen': profile.frozen,
+                'normal': profile.normal,
+                'normal_time': profile.normal_time,
+                'normal_count': profile.normal_count,
+                'last_mod_count': profile.last_mod_count,
+                'train_count': profile.train_count,
+                'anomalies': profile.anomalies,
+                }
+        return attrs
+
+    def fetch_process(self, key):
+        process = self.bpf_program.fetch_process(key)
+        attrs = {'comm': profile.comm.decode('utf-8'),
+                'key': profile.key,
+                'frozen': profile.frozen,
+                'normal': profile.normal,
+                'normal_time': profile.normal_time,
+                'normal_count': profile.normal_count,
+                'last_mod_count': profile.last_mod_count,
+                'train_count': profile.train_count,
+                'anomalies': profile.anomalies,
+                }
+        return attrs
+
+    def fetch_all_profiles(self):
+        profiles = {}
+        return profiles
+
+    def fetch_all_processes(self):
+        processes = {}
+        return processes
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]

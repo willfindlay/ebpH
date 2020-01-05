@@ -220,6 +220,14 @@ class BPFProgram:
 
             self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
 
+    def fetch_profile(self, key):
+        # TODO: check if bpf is None
+        return self.bpf['profiles'][ct.c_uint64(key)]
+
+    def fetch_process(self, key):
+        # TODO: check if bpf is None
+        return self.bpf['processes'][ct.c_uint64(key)]
+
 # Attribute stuff below this line --------------------------------------------------------
 
     def __getattribute__(self, attr):

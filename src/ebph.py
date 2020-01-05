@@ -14,6 +14,7 @@
 # Licensed under GPL v2 License
 
 import os, sys
+import ast
 import socket
 import argparse
 import struct
@@ -23,7 +24,7 @@ import config
 from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 if __name__ == "__main__":
-    OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles']
+    OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles', 'fetch_profile', 'fetch_process']
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Command script for ebpH.", prog="ebph", epilog="Configuration file is located in config.py",
@@ -33,6 +34,8 @@ if __name__ == "__main__":
                 help=f"Operation you want to perform. Choices are: {', '.join(OPERATIONS)}.")
         parser.add_argument('-v', dest='verbose', action='store_true',
                 help=f"Print verbose output.")
+        parser.add_argument('args', metavar="Command Arguments", type=lambda s: ast.literal_eval(s), nargs='+',
+                help=f"Arguments to the specified command")
 
         args = parser.parse_args(args)
 
@@ -52,7 +55,7 @@ if __name__ == "__main__":
     sock.connect(config.socket)
 
     # Form request
-    request = {'func': args.operation, 'args': None, 'kwargs': None}
+    request = {'func': args.operation, 'args': args.args, 'kwargs': None}
 
     # Send request
     send_message(sock, to_json_bytes(request))

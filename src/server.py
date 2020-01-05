@@ -32,28 +32,30 @@ class EBPHRequestDispatcher:
         """
         Attempt to call the requested function.
         """
+        func = request['func']
+
         try:
-            func = request['func']
+            args = request['args']
+        except KeyError:
+            args = None
 
-            try:
-                args = request['args']
-            except KeyError:
-                args = None
+        try:
+            kwargs = request['kwargs']
+        except KeyError:
+            kwargs = None
 
-            try:
-                kwargs = request['kwargs']
-            except KeyError:
-                kwargs = None
+        # Set defaults
+        if args == None:
+            args = []
+        if kwargs == None:
+            kwargs = {}
 
-            # Set defaults
-            if args == None:
-                args = []
-            if kwargs == None:
-                kwargs = {}
-
-            return self.funcs[func](*args, **kwargs)
+        try:
+            self.funcs[func]
         except KeyError:
             raise EBPHDispatchError(f'"{func}" is not registered with request dispatcher')
+
+        return self.funcs[func](*args, **kwargs)
 
 class EBPHUnixStreamServer(socketserver.ThreadingUnixStreamServer):
     def __init__(self, request_dispatcher):
