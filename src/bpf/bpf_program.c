@@ -576,6 +576,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     }
 
     /* Associate pids on fork */
+    /* TODO: fix clone */
     if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
     {
         /* We want to be in the child process */
@@ -628,24 +629,24 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 /* Deal with the behavior of various signals
  * For example, delete a process on SIGKILL or SIGTERM
  */
-int kretprobe__complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p, enum pid_type type)
-{
-    u32 pid = bpf_get_current_pid_tgid() >> 32;
-
-    if (sig == SIGKILL)
-    {
-        processes.delete(&pid);
-        return 0;
-    }
-
-    if (sig == SIGTERM)
-    {
-        processes.delete(&pid);
-        return 0;
-    }
-
-    return 0;
-}
+//int kretprobe__complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p, enum pid_type type)
+//{
+//    u32 pid = bpf_get_current_pid_tgid() >> 32;
+//
+//    if (sig == SIGKILL)
+//    {
+//        processes.delete(&pid);
+//        return 0;
+//    }
+//
+//    if (sig == SIGTERM)
+//    {
+//        processes.delete(&pid);
+//        return 0;
+//    }
+//
+//    return 0;
+//}
 
 /* This is a special hook for execve-family calls
  * We need to inspect do_open_execat to snag information about the file

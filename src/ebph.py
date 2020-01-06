@@ -47,7 +47,7 @@ def print_process_information(v, header=0):
 
 
 if __name__ == "__main__":
-    OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles', 'fetch_profile', 'fetch_process', 'fetch_all_profiles', 'fetch_all_processes']
+    OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles', 'fetch_all_profiles', 'fetch_all_processes']
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Command script for ebpH.", prog="ebph", epilog="Configuration file is located in config.py",
