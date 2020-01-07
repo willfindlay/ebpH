@@ -119,11 +119,12 @@ class BPFProgram:
         self.logger.info('BPF program initialized')
 
     def trace_print(self):
-        fields = self.bpf.trace_fields(nonblocking=True)
-        msg = fields[-1]
-        if msg == None:
-            return
-        self.logger.debug(msg.decode('utf-8'))
+        while True:
+            fields = self.bpf.trace_fields(nonblocking=True)
+            msg = fields[-1]
+            if msg == None:
+                return
+            self.logger.debug(msg.decode('utf-8'))
 
     # Poll perf_buffers on every daemon tick
     def on_tick(self):

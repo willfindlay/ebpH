@@ -50,14 +50,25 @@ if __name__ == "__main__":
                 help=f"Run in debug mode. Side effect: sets verbosity level to debug regardless of what is set in configuration options.")
         parser.add_argument('--ludikris', action='store_true',
                 help=f"Run in LudiKRIS mode. This purposely sets insane options to help with testing.")
+        parser.add_argument('--testing', action='store_true',
+                help=f"Run in testing mode. This option sets --nodaemon --nolog --nosave --noload --debug --ludikris flags.")
 
         args = parser.parse_args(args)
 
-        # check for root
+        # Quick and Dirty Mode
+        if args.testing:
+            args.nodaemon = True
+            args.nolog = True
+            args.nosave = True
+            args.noload = True
+            args.debug = True
+            args.ludikris = True
+
+        # Check for root
         if not (os.geteuid() == 0):
             parser.error("This script must be run with root privileges! Exiting.")
 
-        # error checking
+        # Error checking
         if args.nodaemon and args.operation:
             parser.error("You cannot specify an operation with the --nodaemon flag.")
         if not (args.nodaemon or args.operation):

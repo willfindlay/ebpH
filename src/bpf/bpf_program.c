@@ -27,9 +27,7 @@
 /* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
-BPF_PERF_OUTPUT(ebpH_debug);
 BPF_PERF_OUTPUT(ebpH_debug_int);
-BPF_PERF_OUTPUT(ebpH_info);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
@@ -477,8 +475,6 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     struct ebpH_information info = {.pid=*pid, .key=profile->key};
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
-
-    bpf_trace_printk("Created profile!\n");
 
     return 0;
 }
