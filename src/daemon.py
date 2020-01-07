@@ -14,7 +14,7 @@
 import os, sys, socket, atexit, time, threading
 from signal import SIGTERM
 
-from config import Config
+import config
 
 class Daemon:
     def __init__(self, pidfile, socket, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
@@ -24,24 +24,6 @@ class Daemon:
         self.stdin  = stdin
         self.stdout = stdout
         self.stderr = stderr
-
-    def _bind_socket(self):
-        # make sure socket doesn't already exist
-        try:
-            os.unlink(self.socket_adr)
-        except OSError:
-            if os.path.exists(self.socket_adr):
-                raise
-
-        # init socket
-        self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # set appropriate permissions for socket
-        old_umask = os.umask(0o177)
-        # bind socket
-        self._socket.bind(self.socket_adr)
-        self._socket.listen()
-        # restore old umask
-        os.umask(old_umask)
 
     def _daemonize(self):
         # first fork
@@ -108,12 +90,11 @@ class Daemon:
             pid = None
 
         if pid:
-            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {Config.pidfile}.\n")
+            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {config.pidfile}.\n")
             sys.exit(-1)
 
         print("Starting ebpH daemon...")
         self._daemonize()
-        self._bind_socket()
         self.main()
 
     def stop(self):
@@ -136,7 +117,7 @@ class Daemon:
             while os.path.exists(self.pidfile):
                 timeout = timeout + 1
                 time.sleep(1)
-                if timeout >= Config.killtimeout:
+                if timeout >= config.killtimeout:
                     sys.stderr.write(f"Timeout reached. You may want to delete {self.pidfile} and kill the daemon manually.\n")
                     sys.exit(-1)
             print("Killed ebpH daemon successfully!")

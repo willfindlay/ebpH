@@ -18,11 +18,6 @@
 
 /* Struct definitions below this line ------------------- */
 
-struct ebpH_path_t
-{
-    char path[PATH_MAX];
-};
-
 struct ebpH_profile
 {
     u8 frozen;
