@@ -12,11 +12,7 @@
 # Licensed under GPL v2 License
 
 import os, sys
-import pwd
-import grp
-import stat
 import logging
-import logging.handlers
 
 import utils
 
@@ -54,10 +50,6 @@ socket_buff_size = 3
 # Defaults to the null character
 socket_sentinel = b"\x00"
 
-def setup_dir(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
-
 def init():
     # Project path
     global project_path
@@ -78,38 +70,3 @@ def init():
     pidfile = os.path.join(socketdir, 'ebph.pid')
     global logfile
     logfile = os.path.join(logdir, 'ebph.log')
-
-    uid = pwd.getpwnam("root").pw_uid
-    gid = grp.getgrnam("root").gr_gid
-
-    # Setup logdir
-    setup_dir(logdir)
-
-    # Setup logfile
-    try:
-        os.chown(logfile, uid, gid)
-    except FileNotFoundError:
-        pass
-
-    # Setup data dir and make sure permissions are correct
-    setup_dir(ebph_data_dir)
-    os.chown(ebph_data_dir, uid, gid)
-    os.chmod(ebph_data_dir, 0o700 | stat.S_ISVTX)
-
-    # Setup profiles dir and make sure permissions are correct
-    setup_dir(profiles_dir)
-    os.chown(profiles_dir, uid, gid)
-    os.chmod(profiles_dir, 0o700)
-
-    # configure logging
-    logger = logging.getLogger('ebpH')
-    logger.setLevel(verbosity)
-
-    handler = logging.handlers.WatchedFileHandler(logfile)
-    handler.setLevel(verbosity)
-
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
-    handler.setFormatter(formatter)
-
-    logger.addHandler(handler)

@@ -23,8 +23,6 @@
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
 #define EBPH_WARNING(MSG, CTX) char m[] = (MSG); __ebpH_log_warning(m, sizeof(m), (CTX))
-#define EBPH_DEBUG(MSG, CTX) char m[] = (MSG); __ebpH_log_debug(m, sizeof(m), (CTX))
-#define EBPH_INFO(MSG, CTX) char m[] = (MSG); __ebpH_log_info(m, sizeof(m), (CTX))
 
 /* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
@@ -48,18 +46,6 @@ static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx)
 static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx)
 {
     ebpH_warning.perf_submit(ctx, m, size);
-}
-
-/* log a debug message -- this function should not be called, use macro EBPH_DEBUG instead */
-static inline void __ebpH_log_debug(char *m, int size, struct pt_regs *ctx)
-{
-    ebpH_debug.perf_submit(ctx, m, size);
-}
-
-/* log a info message -- this function should not be called, use macro EBPH_INFO instead */
-static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
-{
-    ebpH_info.perf_submit(ctx, m, size);
 }
 
 /* BPF tables below this line --------------------- */
@@ -337,6 +323,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
+        bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
         return 0;
     }
 
@@ -491,6 +478,8 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
+    bpf_trace_printk("Created profile!\n");
+
     return 0;
 }
 
@@ -552,7 +541,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         return 0;
     }
 
-    if (syscall == EBPH_EXECVE || syscall == EBPH_EXECVEAT)
+    if (syscall == __NR_execve || syscall == __NR_execveat)
     {
         process = processes.lookup(&pid);
         if (!process)
@@ -571,7 +560,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
     /* Associate pids on fork */
     /* TODO: fix clone */
-    if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
+    if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
     {
         /* We want to be in the child process */
         if (args->ret != 0)

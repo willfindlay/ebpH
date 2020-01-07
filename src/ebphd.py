@@ -14,142 +14,20 @@
 
 import os, sys
 import argparse
-import socket
 import signal
-import time
 import logging
-import atexit
-import threading
-from collections import defaultdict
+import logging.handlers
+import pwd
+import grp
+import stat
 
-from daemon import Daemon
-from bpf_program import BPFProgram
-from server import EBPHUnixStreamServer, EBPHRequestDispatcher
+from daemon import EBPHDaemon
 import config
-from utils import locks, to_json_bytes, from_json_bytes
+from utils import setup_dir
 
 # Register signal handlers
 signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
-
-# The ebpH Daemon
-class EBPHDaemon(Daemon):
-    lock = threading.Lock()
-
-    def __init__(self, args):
-        # Init Daemon superclass
-        super().__init__(config.pidfile, config.socket)
-
-        # BPF Program
-        should_save = not args.nosave
-        should_load = not args.noload
-        self.bpf_program = BPFProgram(should_save, should_load)
-
-        # Set args
-        self.args = args
-
-        # Number of elapsed ticks
-        self.tick_count = 0
-
-        # Logging stuff
-        self.logger = logging.getLogger('ebpH')
-
-        # Request dispatcher for server
-        self.request_dispatcher = EBPHRequestDispatcher(self)
-        # TODO: register commands with dispatcher here
-        self.request_dispatcher.register(self.start_monitoring)
-        self.request_dispatcher.register(self.stop_monitoring)
-        self.request_dispatcher.register(self.save_profiles)
-        self.request_dispatcher.register(self.fetch_profile)
-        self.request_dispatcher.register(self.fetch_all_profiles)
-        self.request_dispatcher.register(self.fetch_process)
-        self.request_dispatcher.register(self.fetch_all_processes)
-
-    # Listen for incoming socket connections and dispatch to connection handler thread
-    def listen_for_connections(self):
-        self.logger.info("Starting ebpH server...")
-        self.server = EBPHUnixStreamServer(self.request_dispatcher)
-        self.logger.info(f"Server listening for connections on {self.server.server_address}")
-        self.server.serve_forever()
-
-    def tick(self):
-        self.tick_count += 1
-
-        if self.tick_count % config.saveinterval == 0:
-            self.save_profiles()
-
-        self.bpf_program.on_tick()
-
-    def main(self):
-        self.logger.info("Starting ebpH daemon...")
-        self.bpf_program.load_bpf()
-
-        # Spawn connection listener here
-        self.connection_listener = threading.Thread(target=self.listen_for_connections)
-        self.connection_listener.daemon = True
-        self.connection_listener.start()
-
-        # Event loop
-        while True:
-            self.tick()
-            time.sleep(config.ticksleep)
-
-    def stop(self):
-        self.logger.info("Stopping ebpH daemon...")
-        super().stop()
-
-    # Commands below this line -----------------------------------
-    # Return values must be json parsable
-
-    @locks(lock)
-    def start_monitoring(self):
-        return self.bpf_program.start_monitoring()
-
-    @locks(lock)
-    def stop_monitoring(self):
-        return self.bpf_program.stop_monitoring()
-
-    @locks(lock)
-    def save_profiles(self):
-        return self.bpf_program.save_profiles()
-
-    def fetch_profile(self, key):
-        profile = self.bpf_program.fetch_profile(key)
-        attrs = {'comm': profile.comm.decode('utf-8'),
-                'key': profile.key,
-                'frozen': profile.frozen,
-                'normal': profile.normal,
-                'normal_time': profile.normal_time,
-                'normal_count': profile.normal_count,
-                'last_mod_count': profile.last_mod_count,
-                'train_count': profile.train_count,
-                'anomalies': profile.anomalies,
-                }
-        return attrs
-
-    def fetch_process(self, key):
-        process = self.bpf_program.fetch_process(key)
-        attrs = {'pid': process.pid,
-                'profile': self.fetch_profile(process.exe_key),
-                }
-        return attrs
-
-    def fetch_all_profiles(self):
-        profiles = {}
-        for k, v in self.bpf_program.bpf["profiles"].iteritems():
-            k = k.value
-            profiles[k] = self.fetch_profile(k)
-        return profiles
-
-    def fetch_all_processes(self):
-        processes = {}
-        for k, v in self.bpf_program.bpf["processes"].iteritems():
-            k = k.value
-            try:
-                processes[k] = self.fetch_process(k)
-            except KeyError:
-                pass
-        return processes
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
@@ -168,8 +46,10 @@ if __name__ == "__main__":
                 help=f"Don't save profiles on exit.")
         parser.add_argument('--noload', dest='noload', action='store_true',
                 help=f"Don't load profiles.")
-        parser.add_argument('-v', dest='verbose', action='store_true',
-                help=f"Set verbosity level to debug regardless of what is set in configuration options.")
+        parser.add_argument('--debug', action='store_true',
+                help=f"Run in debug mode. Side effect: sets verbosity level to debug regardless of what is set in configuration options.")
+        parser.add_argument('--ludikris', action='store_true',
+                help=f"Run in LudiKRIS mode. This purposely sets insane options to help with testing.")
 
         args = parser.parse_args(args)
 
@@ -187,6 +67,43 @@ if __name__ == "__main__":
 
     args = parse_args(sys.argv[1:])
     config.init()
+
+    uid = pwd.getpwnam("root").pw_uid
+    gid = grp.getgrnam("root").gr_gid
+
+    # Setup logdir
+    setup_dir(config.logdir)
+
+    # Setup logfile
+    try:
+        os.chown(config.logfile, uid, gid)
+    except FileNotFoundError:
+        pass
+
+    # Setup data dir and make sure permissions are correct
+    setup_dir(config.ebph_data_dir)
+    os.chown(config.ebph_data_dir, uid, gid)
+    os.chmod(config.ebph_data_dir, 0o700 | stat.S_ISVTX)
+
+    # Setup profiles dir and make sure permissions are correct
+    setup_dir(config.profiles_dir)
+    os.chown(config.profiles_dir, uid, gid)
+    os.chmod(config.profiles_dir, 0o700)
+
+    # Configure logging
+    if args.debug:
+        config.verbosity = logging.DEBUG
+    logger = logging.getLogger('ebpH')
+    logger.setLevel(config.verbosity)
+
+    handler = logging.handlers.WatchedFileHandler(config.logfile)
+    handler.setLevel(config.verbosity)
+
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
 
     # Handle nolog argument
     if args.nolog:

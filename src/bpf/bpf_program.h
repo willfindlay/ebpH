@@ -47,7 +47,8 @@ struct ebpH_process
     struct ebpH_locality lf;
     long seq[EBPH_SEQLEN];
     u8 count;
-    u32 pid;
+    u32 pid; /* Kernel tgid */
+    u32 tid; /* Kernel pid */
     u64 exe_key;
     u8 in_execve;
 //#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
