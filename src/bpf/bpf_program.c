@@ -410,10 +410,6 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
 
     process->exe_key = profile->key;
 
-    struct ebpH_information info = {.pid=process->pid, .key=profile->key};
-    bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    on_pid_assoc.perf_submit(ctx, &info, sizeof(info));
-
     return 0;
 }
 
@@ -472,7 +468,14 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
     ebpH_set_normal_time(profile, ctx);
 
-    struct ebpH_information info = {.pid=*pid, .key=profile->key};
+    /* Send info to userspace for logging */
+    struct info
+    {
+        char comm[EBPH_FILENAME_LEN];
+        u64 key;
+    };
+    struct info info = {};
+    info.key = profile->key;
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 

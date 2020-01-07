@@ -65,13 +65,6 @@ struct ebpH_anomaly
     char comm[EBPH_FILENAME_LEN];
 };
 
-struct ebpH_information
-{
-    u32 pid;
-    u64 key;
-    char comm[EBPH_FILENAME_LEN];
-};
-
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx);
 static int ebpH_create_process(u32 *pid, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);

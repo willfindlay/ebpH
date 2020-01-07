@@ -129,7 +129,8 @@ class BPFProgram:
     # Poll perf_buffers on every daemon tick
     def on_tick(self):
         self.bpf.perf_buffer_poll(30)
-        self.trace_print()
+        if self.args.debug:
+            self.trace_print()
 
 # Commands below this line ----------------------------------------------
 
