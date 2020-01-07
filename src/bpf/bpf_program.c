@@ -26,11 +26,17 @@
 #define EBPH_DEBUG(MSG, CTX) char m[] = (MSG); __ebpH_log_debug(m, sizeof(m), (CTX))
 #define EBPH_INFO(MSG, CTX) char m[] = (MSG); __ebpH_log_info(m, sizeof(m), (CTX))
 
+/* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(ebpH_debug);
 BPF_PERF_OUTPUT(ebpH_debug_int);
 BPF_PERF_OUTPUT(ebpH_info);
+
+/* Main syscall event buffer */
+BPF_PERF_OUTPUT(on_executable_processed);
+BPF_PERF_OUTPUT(on_pid_assoc);
+BPF_PERF_OUTPUT(on_anomaly);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx)
@@ -66,16 +72,13 @@ BPF_F_TABLE("hash", u32, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SI
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
-/* WARNING: NEVER ACCESS THIS DIRECTLY!! */
+/* WARNING: These maps are READ-ONLY */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
+
+/* Store program state */
 BPF_ARRAY(__is_saving, int, 1);
 BPF_ARRAY(__is_monitoring, int, 1);
-
-/* Main syscall event buffer */
-BPF_PERF_OUTPUT(on_executable_processed);
-BPF_PERF_OUTPUT(on_pid_assoc);
-BPF_PERF_OUTPUT(on_anomaly);
 
 /* Function definitions below this line --------------------- */
 
@@ -523,15 +526,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* The juicy stuff goes right here */
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
-    /* Disassociate the PID if the process has exited
-     * EXIT_GROUP's other threads are handled by ebpH_on_complete_signal
-     */
-    if (syscall == EBPH_EXIT || syscall == EBPH_EXIT_GROUP)
-    {
-        processes.delete(&pid);
-        return 0;
-    }
-
     return 0;
 }
 
@@ -626,27 +620,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     return 0;
 }
 
-/* Deal with the behavior of various signals
- * For example, delete a process on SIGKILL or SIGTERM
- */
-//int kretprobe__complete_signal(struct pt_regs *ctx, int sig, struct task_struct *p, enum pid_type type)
-//{
-//    u32 pid = bpf_get_current_pid_tgid() >> 32;
-//
-//    if (sig == SIGKILL)
-//    {
-//        processes.delete(&pid);
-//        return 0;
-//    }
-//
-//    if (sig == SIGTERM)
-//    {
-//        processes.delete(&pid);
-//        return 0;
-//    }
-//
-//    return 0;
-//}
+/* When a process or thread exits */
+TRACEPOINT_PROBE(sched, sched_process_exit)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u32 pid = pid_tgid >> 32;
+    processes.delete(&pid);
+
+    return 0;
+}
 
 /* This is a special hook for execve-family calls
  * We need to inspect do_open_execat to snag information about the file
