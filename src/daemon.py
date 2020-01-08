@@ -173,9 +173,9 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.stop_monitoring)
         self.request_dispatcher.register(self.save_profiles)
         self.request_dispatcher.register(self.fetch_profile)
-        self.request_dispatcher.register(self.fetch_all_profiles)
+        self.request_dispatcher.register(self.fetch_profiles)
         self.request_dispatcher.register(self.fetch_process)
-        self.request_dispatcher.register(self.fetch_all_processes)
+        self.request_dispatcher.register(self.fetch_processes)
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
@@ -246,14 +246,14 @@ class EBPHDaemon(Daemon):
                 }
         return attrs
 
-    def fetch_all_profiles(self):
+    def fetch_profiles(self):
         profiles = {}
         for k, v in self.bpf_program.bpf["profiles"].iteritems():
             k = k.value
             profiles[k] = self.fetch_profile(k)
         return profiles
 
-    def fetch_all_processes(self):
+    def fetch_processes(self):
         processes = {}
         for k, v in self.bpf_program.bpf["processes"].iteritems():
             k = k.value

@@ -94,7 +94,7 @@ class BPFProgram:
         # Set flags
         flags = []
         if self.args.debug:
-            flags.append("-DDEBUG")
+            flags.append("-DEBPH_DEBUG")
         if self.args.ludikris:
             flags.append("-DLUDIKRIS")
         # Include project src

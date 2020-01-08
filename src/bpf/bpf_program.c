@@ -165,13 +165,13 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         if (profile->frozen)
             profile->frozen = 0;
         ebpH_add_seq(profile, process, ctx);
-        if (profile->last_mod_count > 0)
-        {
-            bpf_trace_printk("Profile %s:\n", profile->comm);
-            for (int i = 1; i < EBPH_SEQLEN; i++)
-                bpf_trace_printk("System call %ld has caused a change in profile stability\n", process->seq[i]);
-        }
         profile->last_mod_count = 0;
+
+#ifdef EBPH_DEBUG
+        bpf_trace_printk("New LAP(s) generated for %s by the following sequence:\n", profile->comm);
+        for (int i = 1; i < EBPH_SEQLEN; i++)
+            bpf_trace_printk("|   System call %ld\n", process->seq[i]);
+#endif
     }
     else
     {
