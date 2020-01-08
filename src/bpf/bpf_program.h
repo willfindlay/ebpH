@@ -79,6 +79,7 @@ static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx);
 static u64 ebpH_get_ppid_tgid();
+static u64 ebpH_get_glpid_tgid();
 static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx);
 static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_execve);

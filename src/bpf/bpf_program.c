@@ -367,6 +367,19 @@ static u64 ebpH_get_ppid_tgid()
     return ppid_tgid;
 }
 
+/* Return the group leader process id of the task making the current systemcall.
+ * This is useful for when we need to copy the task leader process' profile during a clone. */
+static u64 ebpH_get_glpid_tgid()
+{
+    u64 glpid_tgid;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    glpid_tgid = ((u64)task->group_leader->tgid << 32) | (u64)task->group_leader->pid;
+
+    return glpid_tgid;
+}
+
 /* Create a process struct for the given pid if it doesn't exist */
 static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 {
@@ -525,6 +538,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
+    u64 glpid_tgid = ebpH_get_glpid_tgid();
     u64 key = 0;
     struct ebpH_profile *e;
     struct ebpH_process *process;
@@ -552,22 +566,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         }
         process->in_execve = 0;
 
-       /* Wipe process' current sequence */
-       for (int i = 0; i < EBPH_SEQLEN; i++)
-       {
+        /* Wipe process' current sequence */
+        for (int i = 0; i < EBPH_SEQLEN; i++)
+        {
             process->seq[i] = EBPH_EMPTY;
-       }
-       process->count = 0;
+        }
+        process->count = 0;
     }
 
     /* Associate pids on fork */
-    /* TODO: fix clone */
-    //if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
-    if (syscall == __NR_fork || syscall == __NR_vfork)
+    if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
     {
-        /* We want to be in the child process */
-        if (args->ret != 0)
+        /* We want to be in the child process...
+         * fork/vfork and clone handle this differently. */
+        if ((syscall == __NR_fork || syscall == __NR_vfork) && args->ret != 0)
             return 0;
+        //if (syscall == __NR_clone)
+        //    return 0; /* FIXME: For now... */
 
         ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
         process = processes.lookup(&pid_tgid);
@@ -579,34 +594,41 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
 
-       /* Check if we are tracing its parent process */
-       parent_process = processes.lookup(&ppid_tgid);
-       if (!parent_process || !parent_process->exe_key)
-       {
-           /* FIXME: This message is annoying. It will be more relevant when we are actually
-            * starting the daemon on system startup. For now, we can comment it out. */
-           //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
-           return 0;
-       }
+        /* Check if we are tracing its parent process or thread group leader */
+        if (syscall == __NR_clone) /* FIXME: check for threaded */
+        {
+            parent_process = processes.lookup(&glpid_tgid);
+        }
+        else /* fork, vfork, on non-threaded clone */
+        {
+            parent_process = processes.lookup(&ppid_tgid);
+        }
+        if (!parent_process || !parent_process->exe_key)
+        {
+            /* FIXME: This message is annoying. It will be more relevant when we are actually
+             * starting the daemon on system startup. For now, we can comment it out. */
+            //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
+            return 0;
+        }
 
-       key = parent_process->exe_key;
-       e = profiles.lookup(&key);
-       if (!e)
-       {
-           /* We should never ever get here! */
-           EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
-           return 0;
-       }
+        key = parent_process->exe_key;
+        e = profiles.lookup(&key);
+        if (!e)
+        {
+            /* We should never ever get here! */
+            EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
+            return 0;
+        }
 
-       /* Copy parent process' sequence to child */
-       for (int i = 0; i < EBPH_SEQLEN; i++)
-       {
+        /* Copy parent process' sequence to child */
+        for (int i = 0; i < EBPH_SEQLEN; i++)
+        {
             process->seq[i] = parent_process->seq[i];
-       }
-       process->count = parent_process->count;
+        }
+        process->count = parent_process->count;
 
-       /* Associate process with its parent profile */
-       ebpH_start_tracing(e, process, (struct pt_regs *)args);
+        /* Associate process with its parent profile */
+        ebpH_start_tracing(e, process, (struct pt_regs *)args);
     }
 
     return 0;
