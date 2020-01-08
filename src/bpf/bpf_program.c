@@ -168,7 +168,7 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         profile->last_mod_count = 0;
 
 #ifdef EBPH_DEBUG
-        bpf_trace_printk("New LAP(s) generated for %s by the following sequence:\n", profile->comm);
+        bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
         for (int i = 1; i < EBPH_SEQLEN; i++)
             bpf_trace_printk("|   System call %ld\n", process->seq[i]);
 #endif
@@ -198,7 +198,9 @@ static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *
     profile->normal = 1;
     profile->frozen = 0;
     profile->anomalies = 0;
-    profile->last_mod_count = 0;
+    /* TODO: This technically applies to training data only? */
+    //profile->last_mod_count = 0;
+    //profile->train_count = 0;
 
     ebpH_reset_ALF(process, ctx);
 
