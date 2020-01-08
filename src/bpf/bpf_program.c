@@ -165,6 +165,12 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         if (profile->frozen)
             profile->frozen = 0;
         ebpH_add_seq(profile, process, ctx);
+        if (profile->last_mod_count > 0)
+        {
+            bpf_trace_printk("Profile %s:\n", profile->comm);
+            for (int i = 1; i < EBPH_SEQLEN; i++)
+                bpf_trace_printk("System call %ld has caused a change in profile stability\n", process->seq[i]);
+        }
         profile->last_mod_count = 0;
     }
     else
@@ -554,7 +560,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
     /* Associate pids on fork */
     /* TODO: fix clone */
-    if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
+    //if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
+    if (syscall == __NR_fork || syscall == __NR_vfork)
     {
         /* We want to be in the child process */
         if (args->ret != 0)

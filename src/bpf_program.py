@@ -40,11 +40,10 @@ class BPFProgram:
         self.logger = logging.getLogger('ebpH')
 
     def cleanup(self):
-        self.logger.info('Unloading BPF program...')
-        try:
-            self.stop_monitoring()
-        except TypeError:
-            pass
+        self.logger.info('Running cleanup hooks...')
+        self.stop_monitoring()
+        if self.should_save:
+            self.save_profiles()
         self.logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
@@ -112,7 +111,6 @@ class BPFProgram:
 
         if self.should_load:
             self.load_profiles()
-            self.logger.info('Loaded profiles')
 
         self.start_monitoring()
 
@@ -155,8 +153,6 @@ class BPFProgram:
             self.logger.info('System is not being monitored')
             return 1
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
-        if self.should_save:
-            self.save_profiles()
         self.logger.info('Stopped monitoring the system')
         return 0
 
@@ -202,7 +198,8 @@ class BPFProgram:
             # Update our profile map
             self.bpf["profiles"].__setitem__(ct.c_int64(profile_struct.key), profile_struct)
 
-            self.logger.info(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
+            self.logger.debug(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
+        self.logger.info(f"Successfully loaded all profiles")
 
     def fetch_profile(self, key):
         # TODO: check if bpf is None
