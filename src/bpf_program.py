@@ -29,10 +29,6 @@ class BPFProgram:
     def __init__(self, args):
         self.args = args
 
-        # Should we save/load profiles?
-        self.should_load = not self.args.noload
-        self.should_save = not self.args.nosave
-
         # BPF program
         self.bpf = None
 
@@ -42,8 +38,7 @@ class BPFProgram:
     def cleanup(self):
         self.logger.info('Running cleanup hooks...')
         self.stop_monitoring()
-        if self.should_save:
-            self.save_profiles()
+        self.save_profiles()
         self.logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
@@ -109,8 +104,7 @@ class BPFProgram:
         self.register_exit_hooks()
         self.register_perf_buffers()
 
-        if self.should_load:
-            self.load_profiles()
+        self.load_profiles()
 
         self.start_monitoring()
 
@@ -158,6 +152,9 @@ class BPFProgram:
 
     # save all profiles to disk
     def save_profiles(self):
+        if self.args.nosave:
+            self.logger.warning("nosave flag is set, refusing to save profiles!")
+            return
         # notify bpf that we are saving
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
         # save monitoring state to be restored later
@@ -182,6 +179,9 @@ class BPFProgram:
 
     # load all profiles from disk
     def load_profiles(self):
+        if self.args.noload:
+            self.logger.warning("noload flag is set, refusing to load profiles!")
+            return
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
             path = os.path.join(config.profiles_dir, filename)
