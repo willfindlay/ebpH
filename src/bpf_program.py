@@ -26,10 +26,12 @@ signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 class BPFProgram:
-    def __init__(self, should_save, should_load):
+    def __init__(self, args):
+        self.args = args
+
         # Should we save/load profiles?
-        self.should_load = should_load
-        self.should_save = should_save
+        self.should_load = not self.args.noload
+        self.should_save = not self.args.nosave
 
         # BPF program
         self.bpf = None
@@ -58,13 +60,6 @@ class BPFProgram:
             return closure
 
         # executable has been processed in ebpH_on_do_open_execat
-        def on_pid_assoc(cpu, data, size):
-            event = self.bpf["on_pid_assoc"].event(data)
-            s = f"PID {event.pid} associated with profile {event.comm.decode('utf-8')} ({event.key})"
-            self.logger.debug(s)
-        self.bpf["on_pid_assoc"].open_perf_buffer(on_pid_assoc, lost_cb=lost_cb("on_pid_assoc"))
-
-        # executable has been processed in ebpH_on_do_open_execat
         def on_executable_processed(cpu, data, size):
             event = self.bpf["on_executable_processed"].event(data)
             s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
@@ -78,7 +73,7 @@ class BPFProgram:
             self.logger.warning(s)
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
-        # error, warning, debug, info
+        # error, warning
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
@@ -91,24 +86,6 @@ class BPFProgram:
             self.logger.warning(s)
         self.bpf["ebpH_warning"].open_perf_buffer(on_warning, lost_cb=lost_cb("on_warning"))
 
-        def on_debug(cpu, data, size):
-            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
-            s = f"{event}"
-            self.logger.debug(s)
-        self.bpf["ebpH_debug"].open_perf_buffer(on_debug, lost_cb=lost_cb("on_debug"))
-
-        def on_debug_int(cpu, data, size):
-            event = ct.cast(data, ct.POINTER(ct.c_ulong)).contents.value
-            s = f"{event}"
-            self.logger.debug(s)
-        self.bpf["ebpH_debug_int"].open_perf_buffer(on_debug_int, lost_cb=lost_cb("on_debug_int"))
-
-        def on_info(cpu, data, size):
-            event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
-            s = f"{event}"
-            self.logger.info(s)
-        self.bpf["ebpH_info"].open_perf_buffer(on_info, lost_cb=lost_cb("on_info"))
-
         self.logger.info(f'Registered perf buffers')
 
     def load_bpf(self):
@@ -117,6 +94,10 @@ class BPFProgram:
 
         # Set flags
         flags = []
+        if self.args.debug:
+            flags.append("-DDEBUG")
+        if self.args.ludikris:
+            flags.append("-DLUDIKRIS")
         # Include project src
         flags.append(f"-I{config.project_path}/src")
 
@@ -137,9 +118,19 @@ class BPFProgram:
 
         self.logger.info('BPF program initialized')
 
+    def trace_print(self):
+        while True:
+            fields = self.bpf.trace_fields(nonblocking=True)
+            msg = fields[-1]
+            if msg == None:
+                return
+            self.logger.debug(msg.decode('utf-8'))
+
     # Poll perf_buffers on every daemon tick
     def on_tick(self):
         self.bpf.perf_buffer_poll(30)
+        if self.args.debug:
+            self.trace_print()
 
 # Commands below this line ----------------------------------------------
 

@@ -18,6 +18,13 @@ from functools import wraps
 
 import config
 
+def setup_dir(d):
+    """
+    Make dirs if path does not exist.
+    """
+    if not os.path.exists(d):
+        os.makedirs(d)
+
 def path(f):
     """
     Return the path of a file relative to the root dir of this project (parent directory of "src").

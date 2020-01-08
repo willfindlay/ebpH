@@ -23,15 +23,11 @@
 
 #define EBPH_ERROR(MSG, CTX) char m[] = (MSG); __ebpH_log_error(m, sizeof(m), (CTX))
 #define EBPH_WARNING(MSG, CTX) char m[] = (MSG); __ebpH_log_warning(m, sizeof(m), (CTX))
-#define EBPH_DEBUG(MSG, CTX) char m[] = (MSG); __ebpH_log_debug(m, sizeof(m), (CTX))
-#define EBPH_INFO(MSG, CTX) char m[] = (MSG); __ebpH_log_info(m, sizeof(m), (CTX))
 
 /* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
-BPF_PERF_OUTPUT(ebpH_debug);
 BPF_PERF_OUTPUT(ebpH_debug_int);
-BPF_PERF_OUTPUT(ebpH_info);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
@@ -50,23 +46,11 @@ static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx)
     ebpH_warning.perf_submit(ctx, m, size);
 }
 
-/* log a debug message -- this function should not be called, use macro EBPH_DEBUG instead */
-static inline void __ebpH_log_debug(char *m, int size, struct pt_regs *ctx)
-{
-    ebpH_debug.perf_submit(ctx, m, size);
-}
-
-/* log a info message -- this function should not be called, use macro EBPH_INFO instead */
-static inline void __ebpH_log_info(char *m, int size, struct pt_regs *ctx)
-{
-    ebpH_info.perf_submit(ctx, m, size);
-}
-
 /* BPF tables below this line --------------------- */
 
 /* pid_tgid to ebpH_process */
 //BPF_HASH(processes, u32, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
-BPF_F_TABLE("hash", u32, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
 /* inode key to ebpH_profile */
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
@@ -86,25 +70,25 @@ static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx
 {
     if (!curr)
     {
-        EBPH_ERROR("NULL curr syscall -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead_index", ctx);
         return 0;
     }
 
     if (!prev)
     {
-        EBPH_ERROR("NULL prev syscall -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead_index", ctx);
         return 0;
     }
 
     if (*curr >= EBPH_NUM_SYSCALLS || *curr < 0)
     {
-        EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_get_lookahead_index", ctx);
         return 0;
     }
 
     if (*prev >= EBPH_NUM_SYSCALLS || *prev < 0)
     {
-        EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number -- ebpH_update_lookahead", ctx);
+        EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number -- ebpH_get_lookahead_index", ctx);
         return 0;
     }
 
@@ -337,6 +321,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
+        bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
         return 0;
     }
 
@@ -375,35 +360,36 @@ static u64 ebpH_get_ppid_tgid()
 }
 
 /* Create a process struct for the given pid if it doesn't exist */
-static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
+static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 {
     int zero = 0;
-    struct ebpH_process *init;
+    struct ebpH_process *process;
 
     /* Process already exists */
-    if (processes.lookup(pid))
+    if (processes.lookup(pid_tgid))
         return 0;
 
     /* Get the address of the zeroed executable struct */
-    init = __process_init.lookup(&zero);
+    process = __process_init.lookup(&zero);
 
-    if (!init)
+    if (!process)
     {
-        EBPH_ERROR("NULL init -- ebpH_create_process", ctx);
+        EBPH_ERROR("NULL process -- ebpH_create_process", ctx);
         return 0;
     }
 
     /* Copy memory over */
-    init = processes.lookup_or_try_init(pid, init);
-    if (!init)
+    process = processes.lookup_or_try_init(pid_tgid, process);
+    if (!process)
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
         return 0;
     }
 
-    init->pid = *pid;
+    process->pid = (*pid_tgid) >> 32;
+    process->tid = (*pid_tgid);
     for (int i = 0; i < EBPH_SEQLEN; i++)
-        init->seq[i] = EBPH_EMPTY;
+        process->seq[i] = EBPH_EMPTY;
 
     return 0;
 }
@@ -425,15 +411,11 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
 
     process->exe_key = profile->key;
 
-    struct ebpH_information info = {.pid=process->pid, .key=profile->key};
-    bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
-    on_pid_assoc.perf_submit(ctx, &info, sizeof(info));
-
     return 0;
 }
 
 /* Create a profile if one does not already exist. */
-static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *comm, u8 in_execve)
+static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_execve)
 {
     int zero = 0;
     struct ebpH_profile *profile = NULL;
@@ -450,12 +432,6 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     if (!comm)
     {
         EBPH_ERROR("NULL comm -- ebpH_create_profile", ctx);
-        return 0;
-    }
-
-    if (!pid)
-    {
-        EBPH_ERROR("NULL pid -- ebpH_create_profile", ctx);
         return 0;
     }
 
@@ -487,7 +463,14 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
     bpf_probe_read_str(profile->comm, sizeof(profile->comm), comm);
     ebpH_set_normal_time(profile, ctx);
 
-    struct ebpH_information info = {.pid=*pid, .key=profile->key};
+    /* Send info to userspace for logging */
+    struct info
+    {
+        char comm[EBPH_FILENAME_LEN];
+        u64 key;
+    };
+    struct info info = {};
+    info.key = profile->key;
     bpf_probe_read_str(info.comm, sizeof(info.comm), profile->comm);
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
@@ -499,7 +482,7 @@ static int ebpH_create_profile(u64 *key, u32 *pid, struct pt_regs *ctx, char *co
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     long syscall = args->id;
-    u32 pid = bpf_get_current_pid_tgid() >> 32;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process;
 
     int zero = 0;
@@ -515,7 +498,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    process = processes.lookup(&pid);
+    process = processes.lookup(&pid_tgid);
 
     /* Process does not already exist */
     if (!process)
@@ -532,8 +515,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 {
     long syscall = args->id;
-    u32 pid = bpf_get_current_pid_tgid() >> 32;
-    u32 ppid = ebpH_get_ppid_tgid() >> 32;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u64 ppid_tgid = ebpH_get_ppid_tgid();
     u64 key = 0;
     struct ebpH_profile *e;
     struct ebpH_process *process;
@@ -552,9 +535,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         return 0;
     }
 
-    if (syscall == EBPH_EXECVE || syscall == EBPH_EXECVEAT)
+    if (syscall == __NR_execve || syscall == __NR_execveat)
     {
-        process = processes.lookup(&pid);
+        process = processes.lookup(&pid_tgid);
         if (!process)
         {
             return 0;
@@ -571,14 +554,14 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
     /* Associate pids on fork */
     /* TODO: fix clone */
-    if (syscall == EBPH_FORK || syscall == EBPH_VFORK || syscall == EBPH_CLONE)
+    if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
     {
         /* We want to be in the child process */
         if (args->ret != 0)
             return 0;
 
-        ebpH_create_process(&pid, (struct pt_regs *)args);
-        process = processes.lookup(&pid);
+        ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
+        process = processes.lookup(&pid_tgid);
 
         if (!process)
         {
@@ -588,7 +571,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         }
 
        /* Check if we are tracing its parent process */
-       parent_process = processes.lookup(&ppid);
+       parent_process = processes.lookup(&ppid_tgid);
        if (!parent_process || !parent_process->exe_key)
        {
            /* FIXME: This message is annoying. It will be more relevant when we are actually
@@ -624,8 +607,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 TRACEPOINT_PROBE(sched, sched_process_exit)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    u32 pid = pid_tgid >> 32;
-    processes.delete(&pid);
+    processes.delete(&pid_tgid);
 
     return 0;
 }
@@ -686,7 +668,7 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     key  = exec_inode->i_ino;
     key |= ((u64)exec_inode->i_rdev << 32);
 
-    u32 pid = bpf_get_current_pid_tgid() >> 32;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
 
     /* Load executable name into comm */
     struct qstr dn = {};
@@ -695,8 +677,8 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     bpf_probe_read(&comm, sizeof(comm), dn.name);
 
     /* Create the process if it doesn't already exist */
-    ebpH_create_process(&pid, ctx);
-    process = processes.lookup(&pid);
+    ebpH_create_process(&pid_tgid, ctx);
+    process = processes.lookup(&pid_tgid);
     if (!process)
     {
         EBPH_ERROR("NULL process, cannot start tracing --  ebpH_on_do_open_execat", ctx);
@@ -708,7 +690,7 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
         return 0;
 
     /* Create a profile if necessary */
-    ebpH_create_profile(&key, &pid, ctx, comm, process->in_execve);
+    ebpH_create_profile(&key, ctx, comm, process->in_execve);
     process->in_execve = 1;
 
     /* Start tracing the process */
