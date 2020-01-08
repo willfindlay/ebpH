@@ -1,9 +1,1 @@
-#! /usr/bin/env bash
-
-DIR=$(dirname $(readlink -f $0))
-
-unset PYTHONPATH
-export PYTHONPATH=$DIR/src/ebphd/python
-exec /usr/bin/env python3 $DIR/src/ebphd/python/main.py $*
-
-# vim:ft=sh
+src/ebphd.py

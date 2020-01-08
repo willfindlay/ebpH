@@ -36,9 +36,11 @@
 #define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
 
 /* Amount of time a profile must remain frozen before becoming normal */
+#ifdef LUDIKRIS
+#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000 /* Three seconds in nanoseconds, LudiKRIS Mode */
+#else
 #define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
-/* 3 seconds in nanoseconds uncomment this and comment the above for quick testing */
-//#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000
+#endif
 
 /* Multiply by a profile's train_count and compare with... */
 #define EBPH_NORMAL_FACTOR_DEN 32
@@ -51,15 +53,7 @@
 /* Maximum length for a filename... This seems fine for now. */
 #define EBPH_FILENAME_LEN 128
 
-/* Systemcall stuff below this line -------------------------- */
-#define EBPH_CLONE      56
-#define EBPH_FORK       57
-#define EBPH_VFORK      58
-#define EBPH_EXECVE     59
-#define EBPH_EXECVEAT   __NR_execveat
-#define EBPH_EXIT       60
-#define EBPH_WAIT       61
-#define EBPH_EXIT_GROUP 231
+/* Define "EMPTY" sequence entry to be 9999 */
 #define EBPH_EMPTY      9999
 
 #endif
