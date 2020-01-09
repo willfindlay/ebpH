@@ -232,9 +232,9 @@ class EBPHDaemon(Daemon):
                 'frozen': profile.frozen,
                 'normal': profile.normal,
                 'normal_time': profile.normal_time,
-                'normal_count': profile.test.normal_count if profile.normal else profile.train.normal_count,
-                'last_mod_count': profile.test.last_mod_count if profile.normal else profile.train.last_mod_count,
-                'train_count': profile.test.train_count if profile.normal else profile.train.train_count,
+                'normal_count': profile.train.normal_count,
+                'last_mod_count': profile.train.last_mod_count,
+                'train_count': profile.train.train_count,
                 'anomalies': profile.anomalies,
                 }
         return attrs

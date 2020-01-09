@@ -50,6 +50,9 @@
 /* Number of anomalies allowed before a profile is no longer considered normal */
 #define EBPH_ANOMALY_LIMIT 30
 
+/* Max LFC before training data is reset */
+#define EBPH_TOLERIZE_LIMIT 12
+
 /* Maximum length for a filename... This seems fine for now. */
 #define EBPH_FILENAME_LEN 128
 

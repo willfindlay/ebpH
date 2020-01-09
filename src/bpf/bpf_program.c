@@ -117,6 +117,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
     }
 
     profile->anomalies += anomalies;
+    //ebpH_add_anomaly_count(profile, process, anomalies, ctx);
 
     return 0;
 }
@@ -239,11 +240,14 @@ static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx)
 {
     for (int i=0; i < EBPH_LOCALITY_WIN; i++)
     {
-        process->lf.win[i] = 0;
+        process->alf.win[i] = 0;
     }
 
-    process->lf.lfc = 0;
-    process->lf.lfc_max = 0;
+    process->alf.total = 0;
+    process->alf.max = 0;
+    process->alf.first = 0;
+
+    /* TODO: zero out delay here */
 
     return 0;
 }
@@ -282,11 +286,54 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     return 0;
 }
 
+static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx)
+{
+    /* TODO: figure out how to make this work for the verifier */
+    //int curr = process->alf.first;
+    //int next = process->alf.first + 1;
+
+    //if (curr >= EBPH_LOCALITY_WIN)
+    //{
+    //    curr = 0;
+    //}
+
+    //if (next >= EBPH_LOCALITY_WIN)
+    //{
+    //    next = 0;
+    //}
+
+    //if (count > 0)
+    //{
+    //    profile->anomalies++;
+    //    if (process->alf.win[curr] == 0)
+    //    {
+    //        process->alf.win[curr] = 1;
+    //        process->alf.total++;
+    //        if (process->alf.total > process->alf.max)
+    //            process->alf.max = process->alf.total;
+    //    }
+    //}
+    //else if (process->alf.win[curr] > 0)
+    //{
+    //    process->alf.win[curr] = 0;
+    //    process->alf.total--;
+    //}
+    //process->alf.first = next;
+
+    if (count > 0)
+    {
+        profile->anomalies++;
+    }
+
+    return 0;
+}
+
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
     int *monitoring, *saving;
     int zero = 0;
+    int lfc = 0;
 
     if (!process)
     {
@@ -342,6 +389,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     process->seq[0] = *syscall;
     process->count = process->count < EBPH_SEQLEN ? process->count + 1 : process->count;
 
+    /* TODO: take profile lock here */
+
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
@@ -351,6 +400,16 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
 
     ebpH_process_normal(profile, process, ctx);
+
+    lfc = process->alf.total;
+    if (lfc > EBPH_TOLERIZE_LIMIT)
+    {
+        ebpH_reset_profile_data(&(profile->train), ctx);
+    }
+
+    /* TODO: release profile lock here */
+
+    /* TODO: delay task here */
 
     return 0;
 }
@@ -437,7 +496,7 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
 }
 
 /* Create a profile if one does not already exist. */
-static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_execve)
+static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_regs *ctx)
 {
     int zero = 0;
     struct ebpH_profile *profile = NULL;
@@ -514,6 +573,14 @@ static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
         }
 
         return 0;
+}
+
+static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx)
+{
+    u8 zero = 0;
+    bpf_probe_read(data->flags, sizeof(data->flags), &zero);
+
+    return 0;
 }
 
 /* Tracepoints and kprobes below this line --------------------- */
@@ -739,7 +806,7 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
         return 0;
 
     /* Create a profile if necessary */
-    ebpH_create_profile(&key, ctx, comm, process->in_execve);
+    ebpH_create_profile(&key, comm, process->in_execve, ctx);
     process->in_execve = 1;
 
     /* Start tracing the process */
