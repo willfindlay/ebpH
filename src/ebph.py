@@ -36,13 +36,13 @@ def print_profile_information(v, header=0):
 
 def print_process_information(v, header=0):
     if header:
-        print(f"%-12s %-16s %-12s %-12s %-12s %-12s" % ('PID', 'COMM', 'STATUS', 'COUNT', 'LAST_MOD', 'ANOMALIES'))
+        print(f"%-12s %-12s %-16s %-12s %-12s %-12s %-12s" % ('PID', 'TID', 'COMM', 'STATUS', 'COUNT', 'LAST_MOD', 'ANOMALIES'))
 
     p = v["profile"]
     comm = p["comm"] if len(p["comm"]) < 16 else ''.join([p["comm"][:(16-3)], '...'])
     status = 'Frozen' if p["frozen"] else 'Normal' if p["normal"] else 'Training'
 
-    print(f"%-12d %-16s %-12s %-12d %-12s %-12d" % (v["pid"], comm, status, p["train_count"],
+    print(f"%-12d %-12d %-16s %-12s %-12d %-12s %-12d" % (v["pid"], v["tid"], comm, status, p["train_count"],
         p["last_mod_count"], p["anomalies"]))
 
 
