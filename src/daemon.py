@@ -242,6 +242,7 @@ class EBPHDaemon(Daemon):
     def fetch_process(self, key):
         process = self.bpf_program.fetch_process(key)
         attrs = {'pid': process.pid,
+                'tid': process.tid,
                 'profile': self.fetch_profile(process.exe_key),
                 }
         return attrs
