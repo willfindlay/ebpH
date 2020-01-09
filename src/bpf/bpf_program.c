@@ -101,7 +101,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
 
     if (profile->normal)
     {
-        anomalies = ebpH_test(profile, process, ctx);
+        anomalies = ebpH_test(&(profile->test), process, ctx);
         if (anomalies)
         {
             struct ebpH_anomaly event = {.pid=process->pid, .key=profile->key, .syscall=process->seq[0],
@@ -121,7 +121,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
     return 0;
 }
 
-static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
+static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx)
 {
     int mismatches = 0;
     long entry = -1;
@@ -144,10 +144,10 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
             continue;
 
         /* lookup the syscall data */
-        u8 data = profile->flags[entry];
+        u8 the_entry = data->flags[entry];
 
         /* check for mismatch */
-        if ((data & (1 << (i-1))) == 0)
+        if ((the_entry & (1 << (i-1))) == 0)
         {
             mismatches++;
         }
@@ -159,13 +159,13 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     /* update train_count and last_mod_count */
-    profile->train_count++;
-    if (ebpH_test(profile, process, ctx))
+    profile->train.train_count++;
+    if (ebpH_test(&(profile->train), process, ctx))
     {
         if (profile->frozen)
             profile->frozen = 0;
         ebpH_add_seq(profile, process, ctx);
-        profile->last_mod_count = 0;
+        profile->train.last_mod_count = 0;
 
 #ifdef EBPH_DEBUG
         bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
@@ -175,15 +175,15 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     }
     else
     {
-        profile->last_mod_count++;
+        profile->train.last_mod_count++;
 
         if (profile->frozen)
             return 0;
 
-        profile->normal_count = profile->train_count - profile->last_mod_count;
+        profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
-        if ((profile->normal_count > 0) && (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
-                    profile->normal_count * EBPH_NORMAL_FACTOR))
+        if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
+                    profile->train.normal_count * EBPH_NORMAL_FACTOR))
         {
             profile->frozen = 1;
             ebpH_set_normal_time(profile, ctx);
@@ -195,12 +195,13 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
 
 static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
+    ebpH_copy_train_to_test(profile);
+
     profile->normal = 1;
     profile->frozen = 0;
     profile->anomalies = 0;
-    /* TODO: This technically applies to training data only? */
-    //profile->last_mod_count = 0;
-    //profile->train_count = 0;
+    profile->train.last_mod_count = 0;
+    profile->train.train_count = 0;
 
     ebpH_reset_ALF(process, ctx);
 
@@ -271,11 +272,11 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
             continue;
 
         /* Lookup the syscall data */
-        u8 data = profile->flags[entry];
+        u8 data = profile->train.flags[entry];
 
         /* Set lookahead pair */
         data |= (1 << (i - 1));
-        profile->flags[entry] = data;
+        profile->train.flags[entry] = data;
     }
 
     return 0;
@@ -341,8 +342,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     process->seq[0] = *syscall;
     process->count = process->count < EBPH_SEQLEN ? process->count + 1 : process->count;
 
-    ebpH_process_normal(profile, process, ctx);
-
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
@@ -350,6 +349,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_start_normal(profile, process, ctx);
     }
+
+    ebpH_process_normal(profile, process, ctx);
 
     return 0;
 }
@@ -365,6 +366,19 @@ static u64 ebpH_get_ppid_tgid()
     ppid_tgid = ((u64)task->real_parent->tgid << 32) | (u64)task->real_parent->pid;
 
     return ppid_tgid;
+}
+
+/* Return the group leader process id of the task making the current systemcall.
+ * This is useful for when we need to copy the task leader process' profile during a clone. */
+static u64 ebpH_get_glpid_tgid()
+{
+    u64 glpid_tgid;
+    struct task_struct *task;
+
+    task = (struct task_struct *)bpf_get_current_task();
+    glpid_tgid = ((u64)task->group_leader->tgid << 32) | (u64)task->group_leader->pid;
+
+    return glpid_tgid;
 }
 
 /* Create a process struct for the given pid if it doesn't exist */
@@ -485,6 +499,23 @@ static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_
     return 0;
 }
 
+static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
+{
+        struct ebpH_profile_data *train = &(profile->train);
+        struct ebpH_profile_data *test = &(profile->test);
+        int i;
+
+        //test->sequences = train->sequences;
+        test->last_mod_count = train->last_mod_count;
+        test->train_count = train->train_count;
+
+        for (i = 0; i < EBPH_LOOKAHEAD_ARRAY_SIZE; i++) {
+            test->flags[i] = train->flags[i];
+        }
+
+        return 0;
+}
+
 /* Tracepoints and kprobes below this line --------------------- */
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
@@ -525,6 +556,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     long syscall = args->id;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u64 ppid_tgid = ebpH_get_ppid_tgid();
+    u64 glpid_tgid = ebpH_get_glpid_tgid();
     u64 key = 0;
     struct ebpH_profile *e;
     struct ebpH_process *process;
@@ -552,22 +584,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         }
         process->in_execve = 0;
 
-       /* Wipe process' current sequence */
-       for (int i = 0; i < EBPH_SEQLEN; i++)
-       {
+        /* Wipe process' current sequence */
+        for (int i = 0; i < EBPH_SEQLEN; i++)
+        {
             process->seq[i] = EBPH_EMPTY;
-       }
-       process->count = 0;
+        }
+        process->count = 0;
     }
 
     /* Associate pids on fork */
-    /* TODO: fix clone */
-    //if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
-    if (syscall == __NR_fork || syscall == __NR_vfork)
+    if (syscall == __NR_fork || syscall == __NR_vfork || syscall == __NR_clone)
     {
-        /* We want to be in the child process */
-        if (args->ret != 0)
+        /* We want to be in the child process...
+         * fork/vfork and clone handle this differently. */
+        if ((syscall == __NR_fork || syscall == __NR_vfork) && args->ret != 0)
             return 0;
+        //if (syscall == __NR_clone)
+        //    return 0; /* FIXME: For now... */
 
         ebpH_create_process(&pid_tgid, (struct pt_regs *)args);
         process = processes.lookup(&pid_tgid);
@@ -579,34 +612,41 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
 
-       /* Check if we are tracing its parent process */
-       parent_process = processes.lookup(&ppid_tgid);
-       if (!parent_process || !parent_process->exe_key)
-       {
-           /* FIXME: This message is annoying. It will be more relevant when we are actually
-            * starting the daemon on system startup. For now, we can comment it out. */
-           //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
-           return 0;
-       }
+        /* Check if we are tracing its parent process or thread group leader */
+        if (syscall == __NR_clone) /* FIXME: check for threaded */
+        {
+            parent_process = processes.lookup(&glpid_tgid);
+        }
+        else /* fork, vfork, on non-threaded clone */
+        {
+            parent_process = processes.lookup(&ppid_tgid);
+        }
+        if (!parent_process || !parent_process->exe_key)
+        {
+            /* FIXME: This message is annoying. It will be more relevant when we are actually
+             * starting the daemon on system startup. For now, we can comment it out. */
+            //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
+            return 0;
+        }
 
-       key = parent_process->exe_key;
-       e = profiles.lookup(&key);
-       if (!e)
-       {
-           /* We should never ever get here! */
-           EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
-           return 0;
-       }
+        key = parent_process->exe_key;
+        e = profiles.lookup(&key);
+        if (!e)
+        {
+            /* We should never ever get here! */
+            EBPH_ERROR("A key has become detached from its binary -- sys_exit", (struct pt_regs *)args);
+            return 0;
+        }
 
-       /* Copy parent process' sequence to child */
-       for (int i = 0; i < EBPH_SEQLEN; i++)
-       {
+        /* Copy parent process' sequence to child */
+        for (int i = 0; i < EBPH_SEQLEN; i++)
+        {
             process->seq[i] = parent_process->seq[i];
-       }
-       process->count = parent_process->count;
+        }
+        process->count = parent_process->count;
 
-       /* Associate process with its parent profile */
-       ebpH_start_tracing(e, process, (struct pt_regs *)args);
+        /* Associate process with its parent profile */
+        ebpH_start_tracing(e, process, (struct pt_regs *)args);
     }
 
     return 0;

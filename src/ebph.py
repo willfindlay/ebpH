@@ -26,7 +26,7 @@ from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 def print_profile_information(v, header=0):
     comm = v["comm"] if len(v["comm"]) < 16 else ''.join([v["comm"][:(16-3)], '...'])
-    status = 'Frozen' if v["frozen"] and not v["normal"] else 'Normal' if v["normal"] else 'Training'
+    status = 'Frozen' if v["frozen"] else 'Normal' if v["normal"] else 'Training'
 
     if header:
         print(f"%-12s %-16s %-12s %-12s %-12s %-12s" % ('KEY', 'COMM', 'STATUS', 'COUNT', 'LAST_MOD', 'ANOMALIES'))
@@ -40,7 +40,7 @@ def print_process_information(v, header=0):
 
     p = v["profile"]
     comm = p["comm"] if len(p["comm"]) < 16 else ''.join([p["comm"][:(16-3)], '...'])
-    status = 'Frozen' if p["frozen"] and not p["normal"] else 'Normal' if p["normal"] else 'Training'
+    status = 'Frozen' if p["frozen"] else 'Normal' if p["normal"] else 'Training'
 
     print(f"%-12d %-16s %-12s %-12d %-12s %-12d" % (v["pid"], comm, status, p["train_count"],
         p["last_mod_count"], p["anomalies"]))
