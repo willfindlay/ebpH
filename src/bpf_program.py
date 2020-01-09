@@ -155,10 +155,10 @@ class BPFProgram:
         if self.args.nosave:
             self.logger.warning("nosave flag is set, refusing to save profiles!")
             return
-        # notify bpf that we are saving
-        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
         # save monitoring state to be restored later
         monitoring = self.bpf["__is_monitoring"][0]
+        # notify bpf that we are saving
+        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
         # wait until bpf stops monitoring
         while(self.bpf["__is_monitoring"][0]):
             pass
