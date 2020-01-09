@@ -45,13 +45,14 @@ struct ebpH_profile
 struct ebpH_locality
 {
     u8 win[EBPH_LOCALITY_WIN];
-    int lfc;
-    int lfc_max;
+    u32 first;
+    u32 total;
+    u32 max;
 };
 
 struct ebpH_process
 {
-    struct ebpH_locality lf;
+    struct ebpH_locality alf;
     long seq[EBPH_SEQLEN];
     u8 count;
     u32 pid; /* Kernel tgid */
@@ -85,12 +86,14 @@ static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ct
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx);
 static u64 ebpH_get_ppid_tgid();
 static u64 ebpH_get_glpid_tgid();
 static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx);
-static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_execve);
+static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_regs *ctx);
+static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx);
 
 #endif
 /* EBPH_H */
