@@ -1,4 +1,4 @@
-# ebpH v0.3.0
+# ebpH v0.4.0
 
 ## Description
 
@@ -42,3 +42,5 @@ $ docker-compose up
 ## Running
 
 Run `$ sudo ./ebphd start` in the root directory of this project to start the daemon.
+
+Issue commands with `$ sudo ./ebph <command>`.
