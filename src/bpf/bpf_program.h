@@ -18,16 +18,23 @@
 
 /* Struct definitions below this line ------------------- */
 
+struct ebpH_profile_data
+{
+    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
+    u64 last_mod_count;
+    u64 train_count;
+    u64 normal_count;
+    //u64 sequences;
+};
+
 struct ebpH_profile
 {
     u8 frozen;
     u8 normal;
     u64 normal_time;
-    u64 normal_count;
-    u64 last_mod_count;
-    u64 train_count;
     u64 anomalies;
-    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
+    struct ebpH_profile_data train;
+    struct ebpH_profile_data test;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
 //#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
@@ -69,8 +76,9 @@ static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx);
 static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx);
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx);
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
-static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_copy_train_to_test(struct ebpH_profile *profile);
 static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);

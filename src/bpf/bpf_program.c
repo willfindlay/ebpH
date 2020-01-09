@@ -101,7 +101,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
 
     if (profile->normal)
     {
-        anomalies = ebpH_test(profile, process, ctx);
+        anomalies = ebpH_test(&(profile->test), process, ctx);
         if (anomalies)
         {
             struct ebpH_anomaly event = {.pid=process->pid, .key=profile->key, .syscall=process->seq[0],
@@ -121,7 +121,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
     return 0;
 }
 
-static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
+static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx)
 {
     int mismatches = 0;
     long entry = -1;
@@ -144,10 +144,10 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
             continue;
 
         /* lookup the syscall data */
-        u8 data = profile->flags[entry];
+        u8 the_entry = data->flags[entry];
 
         /* check for mismatch */
-        if ((data & (1 << (i-1))) == 0)
+        if ((the_entry & (1 << (i-1))) == 0)
         {
             mismatches++;
         }
@@ -159,13 +159,13 @@ static int ebpH_test(struct ebpH_profile *profile, struct ebpH_process *process,
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     /* update train_count and last_mod_count */
-    profile->train_count++;
-    if (ebpH_test(profile, process, ctx))
+    profile->train.train_count++;
+    if (ebpH_test(&(profile->train), process, ctx))
     {
         if (profile->frozen)
             profile->frozen = 0;
         ebpH_add_seq(profile, process, ctx);
-        profile->last_mod_count = 0;
+        profile->train.last_mod_count = 0;
 
 #ifdef EBPH_DEBUG
         bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
@@ -175,15 +175,15 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     }
     else
     {
-        profile->last_mod_count++;
+        profile->train.last_mod_count++;
 
         if (profile->frozen)
             return 0;
 
-        profile->normal_count = profile->train_count - profile->last_mod_count;
+        profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
-        if ((profile->normal_count > 0) && (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
-                    profile->normal_count * EBPH_NORMAL_FACTOR))
+        if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
+                    profile->train.normal_count * EBPH_NORMAL_FACTOR))
         {
             profile->frozen = 1;
             ebpH_set_normal_time(profile, ctx);
@@ -195,12 +195,13 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
 
 static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
+    ebpH_copy_train_to_test(profile);
+
     profile->normal = 1;
     profile->frozen = 0;
     profile->anomalies = 0;
-    /* TODO: This technically applies to training data only? */
-    //profile->last_mod_count = 0;
-    //profile->train_count = 0;
+    profile->train.last_mod_count = 0;
+    profile->train.train_count = 0;
 
     ebpH_reset_ALF(process, ctx);
 
@@ -271,11 +272,11 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
             continue;
 
         /* Lookup the syscall data */
-        u8 data = profile->flags[entry];
+        u8 data = profile->train.flags[entry];
 
         /* Set lookahead pair */
         data |= (1 << (i - 1));
-        profile->flags[entry] = data;
+        profile->train.flags[entry] = data;
     }
 
     return 0;
@@ -341,8 +342,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     process->seq[0] = *syscall;
     process->count = process->count < EBPH_SEQLEN ? process->count + 1 : process->count;
 
-    ebpH_process_normal(profile, process, ctx);
-
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
@@ -350,6 +349,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_start_normal(profile, process, ctx);
     }
+
+    ebpH_process_normal(profile, process, ctx);
 
     return 0;
 }
@@ -496,6 +497,23 @@ static int ebpH_create_profile(u64 *key, struct pt_regs *ctx, char *comm, u8 in_
     on_executable_processed.perf_submit(ctx, &info, sizeof(info));
 
     return 0;
+}
+
+static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
+{
+        struct ebpH_profile_data *train = &(profile->train);
+        struct ebpH_profile_data *test = &(profile->test);
+        int i;
+
+        //test->sequences = train->sequences;
+        test->last_mod_count = train->last_mod_count;
+        test->train_count = train->train_count;
+
+        for (i = 0; i < EBPH_LOOKAHEAD_ARRAY_SIZE; i++) {
+            test->flags[i] = train->flags[i];
+        }
+
+        return 0;
 }
 
 /* Tracepoints and kprobes below this line --------------------- */
