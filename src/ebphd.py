@@ -21,7 +21,7 @@ import pwd
 import grp
 import stat
 
-from daemon import EBPHDaemon
+from ebph_daemon import EBPHDaemon
 import config
 from utils import setup_dir
 

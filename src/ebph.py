@@ -18,7 +18,6 @@ import ast
 import socket
 import argparse
 import struct
-from http import HTTPStatus as Status
 
 import config
 import json
