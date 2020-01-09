@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     if args.operation == 'fetch_processes':
         header = 1
-        for k, v in sorted(res['message'].items(), key = lambda item: item[1]["pid"]):
+        for k, v in sorted(res['message'].items(), key = lambda item: (item[1]["pid"], item[1]["tid"])):
             print_process_information(v, header)
             header = 0
 
