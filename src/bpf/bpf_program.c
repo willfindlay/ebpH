@@ -342,8 +342,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     process->seq[0] = *syscall;
     process->count = process->count < EBPH_SEQLEN ? process->count + 1 : process->count;
 
-    ebpH_process_normal(profile, process, ctx);
-
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
@@ -351,6 +349,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_start_normal(profile, process, ctx);
     }
+
+    ebpH_process_normal(profile, process, ctx);
 
     return 0;
 }
