@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebphd", epilog="Configuration file is located in config.py",
-                formatter_class=argparse.RawTextHelpFormatter)
+                formatter_class=argparse.RawDescriptionHelpFormatter)
 
         parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS, nargs='?',
                 help=f"Operation you want to perform. Not allowed with --nodaemon. Choices are: {', '.join(OPERATIONS)}.")

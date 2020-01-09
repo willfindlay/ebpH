@@ -23,14 +23,14 @@ import config
 import json
 from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
-OPERATIONS=['stop_monitoring', 'start_monitoring', 'save_profiles', 'fetch_profiles', 'fetch_processes']
-
 DESCRIPTION = """
-List processes/profiles being traced by ebpH.
-The ebpH daemon must be running in order to run this software.
+Issue commands to ebpH and make queries about system state.
+The ebpH daemon (ebphd) must be running in order to run this software.
 """
 
 EPILOG = """
+Example usage:
+    sudo ebph-admin
 """
 
 def command_argument(s):
@@ -40,14 +40,14 @@ def command_argument(s):
     pass
 
 def parse_args(args=[]):
-    parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-admin", epilog="Configuration file is located in config.py",
-            formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-admin", epilog=EPILOG,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS,
-            help=f"Operation you want to perform. Choices are: {', '.join(OPERATIONS)}.")
+            help=f"Operation you want to perform. Choices are: %(choices)s.")
     parser.add_argument('-v', dest='verbose', action='store_true',
             help=f"Print verbose output.")
-    parser.add_argument('args', metavar="Command Arguments", type=lambda s: ast.literal_eval(s), nargs='*',
+    parser.add_argument('args', metavar="Command Arguments", nargs='*',
             help=f"Arguments to the specified command")
 
     args = parser.parse_args(args)
@@ -61,10 +61,11 @@ def parse_args(args=[]):
 
     return args
 
-
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     config.init()
+
+    print(args.args)
 
     # Connect to socket
     try:
@@ -82,18 +83,3 @@ if __name__ == "__main__":
     # Handle response
     res = receive_message(sock)
     res = from_json_bytes(res)
-
-    items = sorted(res['message'].items(), key=sort_key(args))
-
-    if not args.profiles and not args.threads:
-        items = [(k, v) for k, v in items if v["pid"] == v["tid"]]
-
-    # Print output
-    header = 1
-    for k, v in items:
-        if args.profiles:
-            print_profile_information(v, header)
-        else:
-            print_process_information(v, header, args.threads)
-        header = 0
-    sock.close()

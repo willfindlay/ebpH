@@ -11,10 +11,14 @@ from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 DESCRIPTION = """
 List processes/profiles being traced by ebpH.
-The ebpH daemon must be running in order to run this software.
+The ebpH daemon (ebphd) must be running in order to run this software.
 """
 
 EPILOG = """
+Example usage:
+    sudo ebph-ps --profiles # Lists all profiles known to ebpH
+    sudo ebph-ps --threads  # Lists all threads being traced by ebpH
+    sudo ebph-ps            # Lists all processes being traced by ebpH
 """
 
 def format_comm(comm):
@@ -57,7 +61,7 @@ def sort_key(args):
 
 def parse_args(args=[]):
     parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-ps", epilog=EPILOG,
-            formatter_class=argparse.RawTextHelpFormatter)
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     options = parser.add_mutually_exclusive_group()
     options.add_argument('-t', '--threads', action='store_true',
