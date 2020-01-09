@@ -9,10 +9,16 @@ import config
 import json
 from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
-TASK_COMM_LEN = 16
+DESCRIPTION = """
+List processes/profiles being traced by ebpH.
+The ebpH daemon must be running in order to run this software.
+"""
+
+EPILOG = """
+"""
 
 def format_comm(comm):
-    return comm if len(comm) < TASK_COMM_LEN else ''.join([comm[:(TASK_COMM_LEN-3)], '...'])
+    return comm if len(comm) < 16 else ''.join([comm[:(16-3)], '...'])
 
 def print_profile_information(profile, header=0):
     comm = format_comm(profile["comm"])
@@ -49,33 +55,26 @@ def sort_key(args):
     else:
         return lambda item: item[1]["pid"]
 
-DESCRIPTION = """
-List processes/profiles being traced by ebpH.
-"""
+def parse_args(args=[]):
+    parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-ps", epilog=EPILOG,
+            formatter_class=argparse.RawTextHelpFormatter)
 
-EPILOG = """
-The ebpH daemon must be running in order to run this software.
-"""
+    options = parser.add_mutually_exclusive_group()
+    options.add_argument('-t', '--threads', action='store_true',
+            help=f"Print all threads instead of just thread group leader.")
+    options.add_argument('-p', '--profiles', action='store_true',
+            help=f"Print all profiles instead of active processes.")
+
+    args = parser.parse_args(args)
+
+    # check for root
+    if not (os.geteuid() == 0):
+        parser.error("This script must be run with root privileges! Exiting.")
+
+    return args
+
 
 if __name__ == "__main__":
-    def parse_args(args=[]):
-        parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph", epilog=EPILOG,
-                formatter_class=argparse.RawTextHelpFormatter)
-
-        options = parser.add_mutually_exclusive_group()
-        options.add_argument('-t', '--threads', action='store_true',
-                help=f"Print all threads instead of just thread group leader.")
-        options.add_argument('-p', '--profiles', action='store_true',
-                help=f"Print all profiles instead of active processes.")
-
-        args = parser.parse_args(args)
-
-        # check for root
-        if not (os.geteuid() == 0):
-            parser.error("This script must be run with root privileges! Exiting.")
-
-        return args
-
     args = parse_args(sys.argv[1:])
     config.init()
 
