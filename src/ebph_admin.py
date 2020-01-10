@@ -14,12 +14,12 @@
 # Licensed under GPL v2 License
 
 import os, sys
-import ast
 import socket
 import argparse
 import struct
 
 import config
+config.init()
 import json
 from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
@@ -33,27 +33,67 @@ Example usage:
     sudo ebph-admin
 """
 
-def command_argument(s):
+def command(operation, *command_arguments, ebph_func=None):
     """
-    Command argument type for argparse.
+    Decorator for commands sent to ebphd.
+    Handles all socket-related operations.
+    Decorated functions should be of the form func(res) where res is the resonse from the server.
     """
-    pass
+    if not ebph_func:
+        ebph_func = operation
+    def decorator(func):
+        def inner():
+            # Connect to socket
+            try:
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.connect(config.socket)
+            except ConnectionRefusedError:
+                print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+            # Form request
+            request = {'func': ebph_func, 'args': command_arguments}
+            # Send request
+            send_message(sock, to_json_bytes(request))
+            # Handle response
+            res = receive_message(sock)
+            res = from_json_bytes(res)
+            return func(res)
+        return inner
+    return decorator
 
 def parse_args(args=[]):
     parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-admin", epilog=EPILOG,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS,
-            help=f"Operation you want to perform. Choices are: %(choices)s.")
-    parser.add_argument('-v', dest='verbose', action='store_true',
-            help=f"Print verbose output.")
-    parser.add_argument('args', metavar="Command Arguments", nargs='*',
-            help=f"Arguments to the specified command")
+    commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='command')
+    pause = commands.add_parser('pause',
+            help="Pause system monitoring without killing the daemon.")
+
+    resume = commands.add_parser('resume',
+            help="Resume system monitoring.")
+
+    #start = commands.add_parser('start',
+    #        help="Start the ebpH daemon.")
+
+    #restart = commands.add_parser('restart',
+    #        help="Restart the ebpH daemon.")
+
+    #stop = commands.add_parser('stop',
+    #        help="Stop the ebpH daemon.")
+
+    is_monitoring = commands.add_parser('is-monitoring',
+            help="Check if the daemon is monitoring the system.")
+
+    reset_profile = commands.add_parser('reset-profile',
+            help="Reset a profile.")
+    reset_profile.add_argument('key',
+            help="Profile key that should be reset. You can find this with ebph-ps -p.")
+
+    delete_profile = commands.add_parser('delete-profile',
+            help="Delete a profile.")
+    delete_profile.add_argument('key',
+            help="Profile key that should be deleted. You can find this with ebph-ps -p.")
 
     args = parser.parse_args(args)
-
-    if not args.operation:
-        parser.error("Please specify an operation")
 
     # check for root
     if not (os.geteuid() == 0):
@@ -63,23 +103,27 @@ def parse_args(args=[]):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    config.init()
 
-    print(args.args)
+    @command('resume', ebph_func='start_monitoring')
+    def resume(res=None):
+        if res['code'] != 200:
+            print(f"Could not complete command. System replied with code: {res['code']}.")
+        elif res['message']:
+            print(f"System is already being monitored.")
+        else:
+            print(f"System monitoring resumed.")
 
-    # Connect to socket
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(config.socket)
-    except ConnectionRefusedError:
-        print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+    @command('pause', ebph_func='stop_monitoring')
+    def pause(res=None):
+        if res['code'] != 200:
+            print(f"Could not complete command. System replied with code: {res['code']}.")
+        elif res['message']:
+            print(f"System is not being monitored.")
+        else:
+            print(f"System monitoring paused.")
 
-    # Form request
-    request = {'func': args.operation, 'args': args.args}
-
-    # Send request
-    send_message(sock, to_json_bytes(request))
-
-    # Handle response
-    res = receive_message(sock)
-    res = from_json_bytes(res)
+    # Handle command
+    if  args.command == 'resume':
+        resume()
+    if  args.command == 'pause':
+        pause()
