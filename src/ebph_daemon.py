@@ -14,7 +14,9 @@ from utils import locks, to_json_bytes, from_json_bytes
 import config
 
 class EBPHDaemon(Daemon):
-    lock = threading.Lock()
+    monitoring_lock = threading.Lock()
+    profiles_lock = threading.Lock()
+    processes_lock = threading.Lock()
 
     def __init__(self, args):
         # Init Daemon superclass
@@ -37,6 +39,7 @@ class EBPHDaemon(Daemon):
         # TODO: register commands with dispatcher here
         self.request_dispatcher.register(self.start_monitoring)
         self.request_dispatcher.register(self.stop_monitoring)
+        self.request_dispatcher.register(self.is_monitoring)
         self.request_dispatcher.register(self.save_profiles)
         self.request_dispatcher.register(self.fetch_profile)
         self.request_dispatcher.register(self.fetch_profiles)
@@ -79,18 +82,23 @@ class EBPHDaemon(Daemon):
     # Commands below this line -----------------------------------
     # Return values must be json parsable
 
-    @locks(lock)
+    @locks(monitoring_lock)
     def start_monitoring(self):
         return self.bpf_program.start_monitoring()
 
-    @locks(lock)
+    @locks(monitoring_lock)
     def stop_monitoring(self):
         return self.bpf_program.stop_monitoring()
 
-    @locks(lock)
+    @locks(monitoring_lock)
+    def is_monitoring(self):
+        return self.bpf_program.monitoring
+
+    @locks(profiles_lock)
     def save_profiles(self):
         return self.bpf_program.save_profiles()
 
+    @locks(profiles_lock)
     def fetch_profile(self, key):
         profile = self.bpf_program.fetch_profile(key)
         attrs = {'comm': profile.comm.decode('utf-8'),
@@ -105,6 +113,7 @@ class EBPHDaemon(Daemon):
                 }
         return attrs
 
+    @locks(processes_lock)
     def fetch_process(self, key):
         process = self.bpf_program.fetch_process(key)
         attrs = {'pid': process.pid,

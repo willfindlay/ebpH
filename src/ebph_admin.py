@@ -83,15 +83,15 @@ def parse_args(args=[]):
     is_monitoring = commands.add_parser('is-monitoring',
             help="Check if the daemon is monitoring the system.")
 
-    reset_profile = commands.add_parser('reset-profile',
-            help="Reset a profile.")
-    reset_profile.add_argument('key',
-            help="Profile key that should be reset. You can find this with ebph-ps -p.")
+    #reset_profile = commands.add_parser('reset-profile',
+    #        help="Reset a profile.")
+    #reset_profile.add_argument('key',
+    #        help="Profile key that should be reset. You can find this with ebph-ps -p.")
 
-    delete_profile = commands.add_parser('delete-profile',
-            help="Delete a profile.")
-    delete_profile.add_argument('key',
-            help="Profile key that should be deleted. You can find this with ebph-ps -p.")
+    #delete_profile = commands.add_parser('delete-profile',
+    #        help="Delete a profile.")
+    #delete_profile.add_argument('key',
+    #        help="Profile key that should be deleted. You can find this with ebph-ps -p.")
 
     args = parser.parse_args(args)
 
@@ -108,6 +108,7 @@ if __name__ == "__main__":
     def resume(res=None):
         if res['code'] != 200:
             print(f"Could not complete command. System replied with code: {res['code']}.")
+            sys.exit(-1)
         elif res['message']:
             print(f"System is already being monitored.")
         else:
@@ -117,13 +118,26 @@ if __name__ == "__main__":
     def pause(res=None):
         if res['code'] != 200:
             print(f"Could not complete command. System replied with code: {res['code']}.")
+            sys.exit(-1)
         elif res['message']:
             print(f"System is not being monitored.")
         else:
             print(f"System monitoring paused.")
+
+    @command('is_monitoring', ebph_func='is_monitoring')
+    def is_monitoring(res=None):
+        if res['code'] != 200:
+            print(f"Could not complete command. System replied with code: {res['code']}.")
+            sys.exit(-1)
+        if res['message']:
+            print(f"Yes")
+        else:
+            print(f"No")
 
     # Handle command
     if  args.command == 'resume':
         resume()
     if  args.command == 'pause':
         pause()
+    if  args.command == 'is-monitoring':
+        is_monitoring()
