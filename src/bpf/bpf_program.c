@@ -196,6 +196,10 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         if (profile->frozen)
             return 0;
 
+        // FIXME: we won't need this when we have proper locking
+        if (profile->train.last_mod_count > profile->train.train_count)
+            profile->train.last_mod_count = profile->train.train_count;
+
         profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
         if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
@@ -303,23 +307,15 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
 
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx)
 {
-    /* TODO: figure out how to make this work for the verifier */
     int curr = process->alf.first;
-    int next = process->alf.first + 1;
+    int next = (process->alf.first + 1) % EBPH_LOCALITY_WIN;
 
-    if (curr >= EBPH_LOCALITY_WIN)
-    {
-        curr = 0;
-    }
-
-    if (next >= EBPH_LOCALITY_WIN)
-    {
-        next = 0;
-    }
-
-    /* make verifier happy */
+    /* All buffer and no check makes verifier a dull boy */
     if (curr >= EBPH_LOCALITY_WIN || curr < 0 || next >= EBPH_LOCALITY_WIN || next < 0)
-        return 0;
+    {
+        EBPH_ERROR("Access would be out of bounds -- ebpH_add_anomaly_count", ctx);
+        return 1;
+    }
 
     if (count > 0)
     {
