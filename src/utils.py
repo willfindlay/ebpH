@@ -38,15 +38,17 @@ def locks(lock):
     """
     Decorated functions take the specified lock before invoking and release it after returning.
     Usage:
-        @lock(the_lock)
+        @locks(the_lock)
         def func ...
     """
     def decorator(func):
         @wraps(func)
         def inner(*args, **kwargs):
-            lock.acquire()
-            ret =  func(*args, **kwargs)
-            lock.release()
+            try:
+                lock.acquire()
+                ret =  func(*args, **kwargs)
+            finally:
+                lock.release()
             return ret
         return inner
     return decorator
