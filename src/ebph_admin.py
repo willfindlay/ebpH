@@ -110,19 +110,13 @@ if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
 
     def start():
-        output = subprocess.check_output([EBPHD_PATH, 'start'])
-        for line in output.decode('utf-8').split('\n'):
-            print(line)
+        subprocess.run([EBPHD_PATH, 'start'])
 
     def stop():
-        output = subprocess.check_output([EBPHD_PATH, 'stop'])
-        for line in output.decode('utf-8').split('\n'):
-            print(line)
+        subprocess.run([EBPHD_PATH, 'stop'])
 
     def restart():
-        output = subprocess.check_output([EBPHD_PATH, 'restart'])
-        for line in output.decode('utf-8').split('\n'):
-            print(line)
+        subprocess.run([EBPHD_PATH, 'restart'])
 
     @command('resume', ebph_func='start_monitoring')
     def resume(res=None):
