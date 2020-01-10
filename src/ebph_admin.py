@@ -17,6 +17,7 @@ import os, sys
 import socket
 import argparse
 import struct
+import subprocess
 
 import config
 config.init()
@@ -32,6 +33,8 @@ EPILOG = """
 Example usage:
     sudo ebph-admin
 """
+
+EBPHD_PATH = os.path.join(config.project_path, 'ebphd')
 
 def command(operation, *command_arguments, ebph_func=None):
     """
@@ -73,14 +76,14 @@ def parse_args(args=[]):
     resume = commands.add_parser('resume',
             help="Resume system monitoring.")
 
-    #start = commands.add_parser('start',
-    #        help="Start the ebpH daemon.")
+    start = commands.add_parser('start',
+            help="Start the ebpH daemon.")
 
-    #restart = commands.add_parser('restart',
-    #        help="Restart the ebpH daemon.")
+    restart = commands.add_parser('restart',
+            help="Restart the ebpH daemon.")
 
-    #stop = commands.add_parser('stop',
-    #        help="Stop the ebpH daemon.")
+    stop = commands.add_parser('stop',
+            help="Stop the ebpH daemon.")
 
     is_monitoring = commands.add_parser('is-monitoring',
             help="Check if the daemon is monitoring the system.")
@@ -105,6 +108,21 @@ def parse_args(args=[]):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
+
+    def start():
+        output = subprocess.check_output([EBPHD_PATH, 'start'])
+        for line in output.decode('utf-8').split('\n'):
+            print(line)
+
+    def stop():
+        output = subprocess.check_output([EBPHD_PATH, 'stop'])
+        for line in output.decode('utf-8').split('\n'):
+            print(line)
+
+    def restart():
+        output = subprocess.check_output([EBPHD_PATH, 'restart'])
+        for line in output.decode('utf-8').split('\n'):
+            print(line)
 
     @command('resume', ebph_func='start_monitoring')
     def resume(res=None):
@@ -137,6 +155,12 @@ if __name__ == "__main__":
             print(f"No")
 
     # Handle command
+    if  args.command == 'start':
+        start()
+    if  args.command == 'stop':
+        stop()
+    if  args.command == 'restart':
+        restart()
     if  args.command == 'resume':
         resume()
     if  args.command == 'pause':
