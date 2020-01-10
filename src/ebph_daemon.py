@@ -40,6 +40,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.start_monitoring)
         self.request_dispatcher.register(self.stop_monitoring)
         self.request_dispatcher.register(self.is_monitoring)
+        self.request_dispatcher.register(self.status)
         self.request_dispatcher.register(self.save_profiles)
         self.request_dispatcher.register(self.fetch_profile)
         self.request_dispatcher.register(self.fetch_profiles)
@@ -93,6 +94,15 @@ class EBPHDaemon(Daemon):
     @locks(monitoring_lock)
     def is_monitoring(self):
         return self.bpf_program.monitoring
+
+    @locks(monitoring_lock)
+    def status(self):
+        status = {
+                'Monitoring': self.bpf_program.monitoring,
+                'Profiles': self.bpf_program.profile_count,
+                'TasksMonitored': self.bpf_program.process_count,
+                }
+        return status
 
     @locks(profiles_lock)
     def save_profiles(self):

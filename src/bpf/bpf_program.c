@@ -56,6 +56,9 @@ BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SI
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
+/* Statistics */
+//BPF_HISTOGRAM(stats);
+
 /* WARNING: These maps are READ-ONLY */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
