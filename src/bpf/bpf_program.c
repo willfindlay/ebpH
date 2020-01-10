@@ -501,7 +501,6 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
     }
 
     process->exe_key = profile->key;
-    stats_increment(0);
 
     return 0;
 }
@@ -704,6 +703,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             /* FIXME: This message is annoying. It will be more relevant when we are actually
              * starting the daemon on system startup. For now, we can comment it out. */
             //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
+            processes.delete(&pid_tgid);
             return 0;
         }
 
