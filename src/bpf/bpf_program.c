@@ -56,6 +56,9 @@ BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SI
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
+/* Statistics */
+BPF_HISTOGRAM(stats);
+
 /* WARNING: These maps are READ-ONLY */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
 BPF_ARRAY(__process_init, struct ebpH_process, 1);
@@ -65,6 +68,18 @@ BPF_ARRAY(__is_saving, int, 1);
 BPF_ARRAY(__is_monitoring, int, 1);
 
 /* Function definitions below this line --------------------- */
+
+static void stats_increment(int key)
+{
+    u64 *leaf = stats.lookup(&key);
+    if (leaf) (void)__sync_fetch_and_add(leaf, 1);
+}
+
+static void stats_decrement(int key)
+{
+    u64 *leaf = stats.lookup(&key);
+    if (leaf) (void)__sync_fetch_and_sub(leaf, 1);
+}
 
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
 {
@@ -181,6 +196,10 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         if (profile->frozen)
             return 0;
 
+        // FIXME: we won't need this when we have proper locking
+        if (profile->train.last_mod_count > profile->train.train_count)
+            profile->train.last_mod_count = profile->train.train_count;
+
         profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
         if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
@@ -288,42 +307,33 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
 
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx)
 {
-    /* TODO: figure out how to make this work for the verifier */
-    //int curr = process->alf.first;
-    //int next = process->alf.first + 1;
+    int curr = process->alf.first;
+    int next = (process->alf.first + 1) % EBPH_LOCALITY_WIN;
 
-    //if (curr >= EBPH_LOCALITY_WIN)
-    //{
-    //    curr = 0;
-    //}
-
-    //if (next >= EBPH_LOCALITY_WIN)
-    //{
-    //    next = 0;
-    //}
-
-    //if (count > 0)
-    //{
-    //    profile->anomalies++;
-    //    if (process->alf.win[curr] == 0)
-    //    {
-    //        process->alf.win[curr] = 1;
-    //        process->alf.total++;
-    //        if (process->alf.total > process->alf.max)
-    //            process->alf.max = process->alf.total;
-    //    }
-    //}
-    //else if (process->alf.win[curr] > 0)
-    //{
-    //    process->alf.win[curr] = 0;
-    //    process->alf.total--;
-    //}
-    //process->alf.first = next;
+    /* All buffer and no check makes verifier a dull boy */
+    if (curr >= EBPH_LOCALITY_WIN || curr < 0 || next >= EBPH_LOCALITY_WIN || next < 0)
+    {
+        EBPH_ERROR("Access would be out of bounds -- ebpH_add_anomaly_count", ctx);
+        return 1;
+    }
 
     if (count > 0)
     {
         profile->anomalies++;
+        if (process->alf.win[curr] == 0)
+        {
+            process->alf.win[curr] = 1;
+            process->alf.total++;
+            if (process->alf.total > process->alf.max)
+                process->alf.max = process->alf.total;
+        }
     }
+    else if (process->alf.win[curr] > 0)
+    {
+        process->alf.win[curr] = 0;
+        process->alf.total--;
+    }
+    process->alf.first = next;
 
     return 0;
 }
@@ -338,13 +348,13 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     if (!process)
     {
         EBPH_ERROR("NULL process -- ebpH_process_syscall", ctx);
-        return 0;
+        return 1;
     }
 
     if (!syscall)
     {
         EBPH_ERROR("NULL syscall -- ebpH_process_syscall", ctx);
-        return 0;
+        return 1;
     }
 
     if (!process->exe_key)
@@ -378,7 +388,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
         bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
-        return 0;
+        return 1;
     }
 
     /* Add syscall to process sequence */
@@ -456,7 +466,7 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
     if (!process)
     {
         EBPH_ERROR("NULL process -- ebpH_create_process", ctx);
-        return 0;
+        return 1;
     }
 
     /* Copy memory over */
@@ -464,7 +474,7 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
     if (!process)
     {
         EBPH_ERROR("Could not add process to processes map -- ebpH_create_process", ctx);
-        return 0;
+        return 1;
     }
 
     process->pid = (*pid_tgid) >> 32;
@@ -481,13 +491,13 @@ static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process 
     if (!process)
     {
         EBPH_ERROR("NULL process -- ebpH_start_tracing", ctx);
-        return 0;
+        return 1;
     }
 
     if (!profile)
     {
         EBPH_ERROR("NULL profile -- ebpH_start_tracing", ctx);
-        return 0;
+        return 1;
     }
 
     process->exe_key = profile->key;
@@ -502,18 +512,18 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     struct ebpH_profile *profile = NULL;
 
     if (in_execve)
-        return 0;
+        return 1;
 
     if (!key)
     {
         EBPH_ERROR("NULL key -- ebpH_create_profile", ctx);
-        return 0;
+        return 1;
     }
 
     if (!comm)
     {
         EBPH_ERROR("NULL comm -- ebpH_create_profile", ctx);
-        return 0;
+        return 1;
     }
 
     /* If the profile for this key already exists, move on */
@@ -529,7 +539,7 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     if (!profile)
     {
         EBPH_ERROR("NULL init -- ebpH_create_profile", ctx);
-        return 0;
+        return 1;
     }
 
     /* Copy memory over */
@@ -537,7 +547,7 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     if (!profile)
     {
         EBPH_ERROR("Could not add profile to profiles map -- ebpH_create_profile", ctx);
-        return 0;
+        return 1;
     }
 
     profile->key = *key;
@@ -693,6 +703,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             /* FIXME: This message is annoying. It will be more relevant when we are actually
              * starting the daemon on system startup. For now, we can comment it out. */
             //EBPH_WARNING("No data to copy to child process -- sys_exit", (struct pt_regs *)args);
+            processes.delete(&pid_tgid);
             return 0;
         }
 
