@@ -43,20 +43,22 @@ def command(operation, *command_arguments, ebph_func=None):
         ebph_func = operation
     def decorator(func):
         def inner():
-            # Connect to socket
             try:
+                # Connect to socket
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sock.connect(config.socket)
+                # Form request
+                request = {'func': ebph_func, 'args': command_arguments}
+                # Send request
+                send_message(sock, to_json_bytes(request))
+                # Handle response
+                res = receive_message(sock)
+                res = from_json_bytes(res)
+                return func(res)
             except ConnectionRefusedError:
                 print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
-            # Form request
-            request = {'func': ebph_func, 'args': command_arguments}
-            # Send request
-            send_message(sock, to_json_bytes(request))
-            # Handle response
-            res = receive_message(sock)
-            res = from_json_bytes(res)
-            return func(res)
+            finally:
+                sock.close()
         return inner
     return decorator
 
