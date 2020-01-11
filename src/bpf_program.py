@@ -19,6 +19,7 @@ import threading
 
 from bcc import BPF, lib
 
+from utils import locks
 import config
 
 # register handlers
@@ -26,6 +27,10 @@ signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 class BPFProgram:
+    monitoring_lock = threading.Lock()
+    profiles_lock = threading.Lock()
+    processes_lock = threading.Lock()
+
     def __init__(self, args):
         self.args = args
 
