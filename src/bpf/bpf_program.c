@@ -92,7 +92,7 @@ static void stats_decrement(int key)
 
     if (new > curr)
     {
-        bpf_trace_printk("WARNING: Integer underflow detected in stats_increment\n");
+        bpf_trace_printk("WARNING: Integer underflow detected in stats_decrement\n");
         *leaf = curr;
     }
 }
