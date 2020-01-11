@@ -57,7 +57,10 @@
 #define EBPH_FILENAME_LEN 128
 
 /* Define "EMPTY" sequence entry to be 9999 */
-#define EBPH_EMPTY      9999
+#define EBPH_EMPTY 9999
+
+/* "Enum" for stats map lookup... keep this in sync with userspace code */
+#define STATS_SYSCALLS 0
 
 #endif
 /* DEFS_H */

@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 
-DIR=$(dirname $(readlink -f $0))/..
+PROJECTDIR=$(dirname $(readlink -f $0))/..
 INSTALLDIR=/opt/ebpH
 
-cd $DIR
+cd $PROJECTDIR
 mkdir -p $INSTALLDIR
 
 # make sure root owns /opt/ebpH
@@ -18,5 +18,7 @@ cp -r ./* $INSTALLDIR
 # navigate to /opt/ebpH
 cd $INSTALLDIR
 
-# create the symbolic link for ebphd
-ln -sf $(readlink -f ./ebphd) /bin/ebphd
+# create the symbolic link for ebphd, ebph-ps, ebph-admin
+ln -vsnf $(readlink -f ./ebphd) /bin/ebphd
+ln -vsnf $(readlink -f ./ebph-ps) /bin/ebph-ps
+ln -vsnf $(readlink -f ./ebph-admin) /bin/ebph-admin

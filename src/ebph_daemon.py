@@ -94,6 +94,7 @@ class EBPHDaemon(Daemon):
                 'Monitoring': self.bpf_program.monitoring,
                 'Profiles': self.bpf_program.profile_count,
                 'TasksMonitored': self.bpf_program.process_count,
+                'SyscallsCount': self.bpf_program.syscall_count,
                 }
         return status
 
