@@ -46,6 +46,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.fetch_profiles)
         self.request_dispatcher.register(self.fetch_process)
         self.request_dispatcher.register(self.fetch_processes)
+        self.request_dispatcher.register(self.reset_profile)
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
@@ -148,4 +149,7 @@ class EBPHDaemon(Daemon):
             except KeyError:
                 pass
         return processes
+
+    def reset_profile(self, key):
+        return self.bpf_program.reset_profile(key)
 

@@ -209,6 +209,18 @@ class BPFProgram:
         # TODO: check if bpf is None
         return self.bpf['processes'][ct.c_uint64(key)]
 
+    def reset_profile(self, key):
+        key = int(key)
+        self.stop_monitoring()
+        profile = self.bpf['profiles'][ct.c_uint64(key)]
+        profile.normal = 0
+        profile.frozen = 0
+        ct.memset(ct.addressof(profile.train), 0, ct.sizeof(profile.train))
+        ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
+        self.bpf['profiles'][ct.c_uint64(key)] = profile
+        self.start_monitoring()
+
+
 # Attribute stuff below this line --------------------------------------------------------
 
     def __getattribute__(self, attr):

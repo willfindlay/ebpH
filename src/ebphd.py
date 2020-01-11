@@ -51,7 +51,7 @@ if __name__ == "__main__":
         parser.add_argument('--ludikris', action='store_true',
                 help=f"Run in LudiKRIS mode. This purposely sets insane options to help with testing.")
         parser.add_argument('--testing', action='store_true',
-                help=f"Run in testing mode. This option sets --nodaemon --nolog --nosave --noload --debug --ludikris flags.")
+                help=f"Quick testing mode. This option sets --nodaemon --nolog --nosave --noload flags.")
 
         args = parser.parse_args(args)
 
@@ -61,8 +61,6 @@ if __name__ == "__main__":
             args.nolog = True
             args.nosave = True
             args.noload = True
-            args.debug = True
-            args.ludikris = True
 
         # Check for root
         if not (os.geteuid() == 0):
