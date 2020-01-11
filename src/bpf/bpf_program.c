@@ -131,8 +131,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         }
     }
 
-    profile->anomalies += anomalies;
-    //ebpH_add_anomaly_count(profile, process, anomalies, ctx);
+    ebpH_add_anomaly_count(profile, process, anomalies, ctx);
 
     return 0;
 }
