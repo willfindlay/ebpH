@@ -14,10 +14,6 @@ from utils import locks, to_json_bytes, from_json_bytes
 import config
 
 class EBPHDaemon(Daemon):
-    monitoring_lock = threading.Lock()
-    profiles_lock = threading.Lock()
-    processes_lock = threading.Lock()
-
     def __init__(self, args):
         # Init Daemon superclass
         super().__init__(config.pidfile, config.socket)
@@ -46,6 +42,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.fetch_profiles)
         self.request_dispatcher.register(self.fetch_process)
         self.request_dispatcher.register(self.fetch_processes)
+        self.request_dispatcher.register(self.reset_profile)
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
@@ -83,19 +80,15 @@ class EBPHDaemon(Daemon):
     # Commands below this line -----------------------------------
     # Return values must be json parsable
 
-    @locks(monitoring_lock)
     def start_monitoring(self):
         return self.bpf_program.start_monitoring()
 
-    @locks(monitoring_lock)
     def stop_monitoring(self):
         return self.bpf_program.stop_monitoring()
 
-    @locks(monitoring_lock)
     def is_monitoring(self):
         return self.bpf_program.monitoring
 
-    @locks(monitoring_lock)
     def status(self):
         status = {
                 'Monitoring': self.bpf_program.monitoring,
@@ -104,11 +97,9 @@ class EBPHDaemon(Daemon):
                 }
         return status
 
-    @locks(profiles_lock)
     def save_profiles(self):
         return self.bpf_program.save_profiles()
 
-    @locks(profiles_lock)
     def fetch_profile(self, key):
         profile = self.bpf_program.fetch_profile(key)
         attrs = {'comm': profile.comm.decode('utf-8'),
@@ -123,7 +114,6 @@ class EBPHDaemon(Daemon):
                 }
         return attrs
 
-    @locks(processes_lock)
     def fetch_process(self, key):
         process = self.bpf_program.fetch_process(key)
         attrs = {'pid': process.pid,
@@ -148,4 +138,7 @@ class EBPHDaemon(Daemon):
             except KeyError:
                 pass
         return processes
+
+    def reset_profile(self, key):
+        return self.bpf_program.reset_profile(key)
 

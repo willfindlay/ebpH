@@ -19,6 +19,7 @@ import argparse
 import struct
 import subprocess
 from functools import wraps
+from copy import deepcopy
 
 import config
 config.init()
@@ -32,14 +33,16 @@ The ebpH daemon (ebphd) must be running in order to run this software.
 
 EPILOG = """
 Example usage:
-    sudo ebph-admin
+    sudo ebph-admin start  # Start the daemon
+    sudo ebph-admin off    # Pause monitoring
+    sudo ebph-admin status # Check system status
 """
 
 EBPHD_PATH = os.path.join(config.project_path, 'ebphd')
 
 commands = {}
 
-def command(operation, *command_arguments, ebph_func=None, use_socket=1):
+def command(operation, command_arguments={}, ebph_func=None, use_socket=1):
     """
     Register a command that can be sent to ebpH.
     Commands that use sockets should accept a res argument that defaults to None.
@@ -61,7 +64,7 @@ def command(operation, *command_arguments, ebph_func=None, use_socket=1):
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.connect(config.socket)
                     # Form request
-                    request = {'func': ebph_func, 'args': command_arguments}
+                    request = {'func': ebph_func, 'kwargs': command_arguments}
                     # Send request
                     send_message(sock, to_json_bytes(request))
                     # Handle response
@@ -91,10 +94,10 @@ def parse_args(args=[]):
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
     commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='command')
-    pause = commands.add_parser('pause',
+    off = commands.add_parser('off',
             help="Pause system monitoring without killing the daemon.")
 
-    resume = commands.add_parser('resume',
+    on = commands.add_parser('on',
             help="Resume system monitoring.")
 
     start = commands.add_parser('start',
@@ -112,7 +115,7 @@ def parse_args(args=[]):
     status = commands.add_parser('status',
             help="Print ebpH status to stdout.")
 
-    #reset_profile = commands.add_parser('reset-profile',
+    #reset_profile = commands.add_parser('reset',
     #        help="Reset a profile.")
     #reset_profile.add_argument('key',
     #        help="Profile key that should be reset. You can find this with ebph-ps -p.")
@@ -133,6 +136,8 @@ def parse_args(args=[]):
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
 
+    command_args = {k: v for k, v in vars(args).items() if k != 'command'}
+
     @command('start', use_socket=0)
     def start():
         subprocess.run([EBPHD_PATH, 'start'])
@@ -145,15 +150,15 @@ if __name__ == "__main__":
     def restart():
         subprocess.run([EBPHD_PATH, 'restart'])
 
-    @command('resume', ebph_func='start_monitoring')
-    def resume(res=None):
+    @command('on', ebph_func='start_monitoring')
+    def on(res=None):
         if res['message']:
             print(f"System is already being monitored.")
         else:
             print(f"System monitoring resumed.")
 
-    @command('pause', ebph_func='stop_monitoring')
-    def pause(res=None):
+    @command('off', ebph_func='stop_monitoring')
+    def off(res=None):
         if res['message']:
             print(f"System is not being monitored.")
         else:
@@ -168,6 +173,10 @@ if __name__ == "__main__":
     @command('save-profiles', ebph_func='save_profiles')
     def save_profiles(res=None):
         print("Saved profiles successfully.")
+
+    #@command('reset', command_args, ebph_func='reset_profile')
+    #def reset(res=None):
+    #    pass
 
     # Handle command
     commands[args.command]()

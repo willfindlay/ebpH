@@ -19,6 +19,7 @@ import threading
 
 from bcc import BPF, lib
 
+from utils import locks
 import config
 
 # register handlers
@@ -26,6 +27,10 @@ signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
 signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
 
 class BPFProgram:
+    monitoring_lock = threading.Lock()
+    profiles_lock = threading.Lock()
+    processes_lock = threading.Lock()
+
     def __init__(self, args):
         self.args = args
 
@@ -126,6 +131,7 @@ class BPFProgram:
 
 # Commands below this line ----------------------------------------------
 
+    @locks(monitoring_lock)
     def start_monitoring(self):
         """
         Start monitoring the system.
@@ -138,6 +144,7 @@ class BPFProgram:
         self.logger.info('Started monitoring the system')
         return 0
 
+    @locks(monitoring_lock)
     def stop_monitoring(self):
         """
         Stop monitoring the system.
@@ -151,6 +158,7 @@ class BPFProgram:
         return 0
 
     # save all profiles to disk
+    @locks(profiles_lock)
     def save_profiles(self):
         if self.args.nosave:
             self.logger.warning("nosave flag is set, refusing to save profiles!")
@@ -178,6 +186,7 @@ class BPFProgram:
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
 
     # load all profiles from disk
+    @locks(profiles_lock)
     def load_profiles(self):
         if self.args.noload:
             self.logger.warning("noload flag is set, refusing to load profiles!")
@@ -201,13 +210,27 @@ class BPFProgram:
             self.logger.debug(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
         self.logger.info(f"Successfully loaded all profiles")
 
+    @locks(profiles_lock)
     def fetch_profile(self, key):
         # TODO: check if bpf is None
         return self.bpf['profiles'][ct.c_uint64(key)]
 
+    @locks(processes_lock)
     def fetch_process(self, key):
         # TODO: check if bpf is None
         return self.bpf['processes'][ct.c_uint64(key)]
+
+    @locks(profiles_lock)
+    def reset_profile(self, key):
+        key = int(key)
+        self.stop_monitoring()
+        profile = self.bpf['profiles'][ct.c_uint64(key)]
+        profile.normal = 0
+        profile.frozen = 0
+        ct.memset(ct.addressof(profile.train), 0, ct.sizeof(profile.train))
+        ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
+        self.bpf['profiles'][ct.c_uint64(key)] = profile
+        self.start_monitoring()
 
 # Attribute stuff below this line --------------------------------------------------------
 
