@@ -114,10 +114,10 @@ def parse_args(args=[]):
     status = commands.add_parser('status',
             help="Print ebpH status to stdout.")
 
-    #reset_profile = commands.add_parser('reset-profile',
-    #        help="Reset a profile.")
-    #reset_profile.add_argument('key',
-    #        help="Profile key that should be reset. You can find this with ebph-ps -p.")
+    reset_profile = commands.add_parser('reset',
+            help="Reset a profile.")
+    reset_profile.add_argument('key',
+            help="Profile key that should be reset. You can find this with ebph-ps -p.")
 
     #delete_profile = commands.add_parser('delete-profile',
     #        help="Delete a profile.")
@@ -170,6 +170,10 @@ if __name__ == "__main__":
     @command('save-profiles', ebph_func='save_profiles')
     def save_profiles(res=None):
         print("Saved profiles successfully.")
+
+    @command('reset', args.key, ebph_func='reset_profile')
+    def reset(res=None):
+        pass
 
     # Handle command
     commands[args.command]()
