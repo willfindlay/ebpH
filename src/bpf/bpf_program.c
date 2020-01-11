@@ -69,16 +69,32 @@ BPF_ARRAY(__is_monitoring, int, 1);
 
 /* Function definitions below this line --------------------- */
 
+/* WARNING: Be cautious of overflows */
 static void stats_increment(int key)
 {
     u64 *leaf = stats.lookup(&key);
-    if (leaf) (void)__sync_fetch_and_add(leaf, 1);
+    u64 curr = (u64) __sync_fetch_and_add(leaf, 0);
+    u64 new = (u64) __sync_fetch_and_add(leaf, 1);
+
+    if (new < curr)
+    {
+        bpf_trace_printk("WARNING: Integer overflow detected in stats_increment\n");
+        *leaf = curr;
+    }
 }
 
+/* WARNING: Be cautious of underflows */
 static void stats_decrement(int key)
 {
     u64 *leaf = stats.lookup(&key);
-    if (leaf) (void)__sync_fetch_and_sub(leaf, 1);
+    u64 curr = (u64) __sync_fetch_and_add(leaf, 0);
+    u64 new = (u64) __sync_fetch_and_sub(leaf, 1);
+
+    if (new > curr)
+    {
+        bpf_trace_printk("WARNING: Integer underflow detected in stats_increment\n");
+        *leaf = curr;
+    }
 }
 
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
