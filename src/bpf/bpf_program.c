@@ -56,8 +56,8 @@ BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SI
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 
-/* Statistics */
-BPF_HISTOGRAM(stats);
+/* Statistics histogram (stat, key, size)*/
+BPF_HISTOGRAM(stats, u8, 2);
 
 /* WARNING: These maps are READ-ONLY */
 BPF_ARRAY(__profile_init, struct ebpH_profile, 1);
@@ -70,31 +70,35 @@ BPF_ARRAY(__is_monitoring, int, 1);
 /* Function definitions below this line --------------------- */
 
 /* WARNING: Be cautious of overflows */
-static void stats_increment(int key)
+static void stats_increment(u8 key)
 {
-    u64 *leaf = stats.lookup(&key);
-    u64 curr = (u64) __sync_fetch_and_add(leaf, 0);
-    u64 new = (u64) __sync_fetch_and_add(leaf, 1);
-
-    if (new < curr)
+    u64 zero = 0;
+    u64 *leaf = stats.lookup_or_try_init(&key, &zero);
+    if (!leaf || *leaf == (~(u64)0))
     {
-        bpf_trace_printk("WARNING: Integer overflow detected in stats_increment\n");
-        *leaf = curr;
+#ifdef EBPH_DEBUG
+        bpf_trace_printk("ERROR: Could not increment stat %u\n", key);
+#endif
+        return;
     }
+
+    (void) __sync_fetch_and_add(leaf, 1);
 }
 
 /* WARNING: Be cautious of underflows */
-static void stats_decrement(int key)
+static void stats_decrement(u8 key)
 {
-    u64 *leaf = stats.lookup(&key);
-    u64 curr = (u64) __sync_fetch_and_add(leaf, 0);
-    u64 new = (u64) __sync_fetch_and_sub(leaf, 1);
-
-    if (new > curr)
+    u64 zero = 0;
+    u64 *leaf = stats.lookup_or_try_init(&key, &zero);
+    if (!leaf || *leaf == 0)
     {
-        bpf_trace_printk("WARNING: Integer underflow detected in stats_decrement\n");
-        *leaf = curr;
+#ifdef EBPH_DEBUG
+        bpf_trace_printk("ERROR: Could not decrement stat %u\n", key);
+#endif
+        return;
     }
+
+    (void) __sync_fetch_and_sub(leaf, 1);
 }
 
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
@@ -402,7 +406,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
+#ifdef EBPH_DEBUG
         bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
+#endif
         return 1;
     }
 
@@ -636,6 +642,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         return 0;
     }
+
+    stats_increment(STATS_SYSCALLS);
 
     /* The juicy stuff goes right here */
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);

@@ -245,6 +245,11 @@ class BPFProgram:
                 return len(self.bpf["processes"].values())
             except TypeError:
                 return 0
+        elif attr == 'syscall_count':
+            try:
+                return self.bpf["stats"][ct.c_uint8(0)].value
+            except TypeError:
+                return 0
         elif attr == 'monitoring':
             try:
                 return bool(self.bpf["__is_monitoring"][0].value)
