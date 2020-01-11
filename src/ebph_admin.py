@@ -32,7 +32,9 @@ The ebpH daemon (ebphd) must be running in order to run this software.
 
 EPILOG = """
 Example usage:
-    sudo ebph-admin
+    sudo ebph-admin start  # Start the daemon
+    sudo ebph-admin off    # Pause monitoring
+    sudo ebph-admin status # Check system status
 """
 
 EBPHD_PATH = os.path.join(config.project_path, 'ebphd')
@@ -91,10 +93,10 @@ def parse_args(args=[]):
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
     commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='command')
-    pause = commands.add_parser('pause',
+    off = commands.add_parser('off',
             help="Pause system monitoring without killing the daemon.")
 
-    resume = commands.add_parser('resume',
+    on = commands.add_parser('on',
             help="Resume system monitoring.")
 
     start = commands.add_parser('start',
@@ -145,15 +147,15 @@ if __name__ == "__main__":
     def restart():
         subprocess.run([EBPHD_PATH, 'restart'])
 
-    @command('resume', ebph_func='start_monitoring')
-    def resume(res=None):
+    @command('on', ebph_func='start_monitoring')
+    def on(res=None):
         if res['message']:
             print(f"System is already being monitored.")
         else:
             print(f"System monitoring resumed.")
 
-    @command('pause', ebph_func='stop_monitoring')
-    def pause(res=None):
+    @command('off', ebph_func='stop_monitoring')
+    def off(res=None):
         if res['message']:
             print(f"System is not being monitored.")
         else:
