@@ -194,7 +194,8 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     /* update train_count and last_mod_count */
-    profile->train.train_count++;
+    // proile->train_count++;
+    lock_xadd(&profile->train.train_count, 1);
     if (ebpH_test(&(profile->train), process, ctx))
     {
         if (profile->frozen)
@@ -210,14 +211,15 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     }
     else
     {
-        profile->train.last_mod_count++;
+        // profile->train.last_mod_count++;
+        lock_xadd(&profile->train.last_mod_count, 1);
 
         if (profile->frozen)
             return 0;
 
-        // FIXME: we won't need this when we have proper locking
-        if (profile->train.last_mod_count > profile->train.train_count)
-            profile->train.last_mod_count = profile->train.train_count;
+        // TODO: make sure this is no longer necessary
+        //if (profile->train.last_mod_count > profile->train.train_count)
+        //    profile->train.last_mod_count = profile->train.train_count;
 
         profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
@@ -338,11 +340,13 @@ static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_proc
 
     if (count > 0)
     {
-        profile->anomalies++;
+        //profile->anomalies++;
+        lock_xadd(&profile->anomalies, 1);
         if (process->alf.win[curr] == 0)
         {
             process->alf.win[curr] = 1;
-            process->alf.total++;
+            //process->alf.total++;
+            lock_xadd(&process->alf.total, 1);
             if (process->alf.total > process->alf.max)
                 process->alf.max = process->alf.total;
         }
