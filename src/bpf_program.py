@@ -97,6 +97,11 @@ class BPFProgram:
             flags.append("-DEBPH_DEBUG")
         if self.args.ludikris:
             flags.append("-DLUDIKRIS")
+        for k, v in config.bpf_params.items():
+            if type(v) == str:
+                v = f"\"{v}\""
+            self.logger.info(f"Using {k}={v}...")
+            flags.append(f"-D{k}={v}")
         # Include project src
         flags.append(f"-I{config.project_path}/src")
 
