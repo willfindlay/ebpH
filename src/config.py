@@ -57,8 +57,8 @@ bpf_params = {
         'EBPH_NORMAL_WAIT': 24 * 7 * 3600 * 1000000000,
         'EBPH_ANOMALY_LIMIT': 30,
         'EBPH_TOLERIZE_LIMIT': 12,
-        'EBPH_PROCESSES_TABLE_SIZE': 1000,
-        'EBPH_PROFILES_TABLE_SIZE': 1000,
+        'EBPH_PROFILES_TABLE_SIZE': 10240,
+        'EBPH_PROCESSES_TABLE_SIZE': 4194304,
         # Messing with anything below this line will require deleting all current profiles
         'EBPH_NUM_SYSCALLS': 450,
         }
