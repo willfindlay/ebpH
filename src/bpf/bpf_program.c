@@ -49,12 +49,14 @@ static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* pid_tgid to ebpH_process */
-//BPF_HASH(processes, u32, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
-BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+//BPF_HASH(processes, u64, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
+//BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+BPF_F_TABLE("lru_hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, 0);
 
 /* inode key to ebpH_profile */
 //BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
-BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+//BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+BPF_F_TABLE("lru_hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, 0);
 
 /* Statistics histogram (stat, key, size)*/
 BPF_HISTOGRAM(stats, u8, 2);
