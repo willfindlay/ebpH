@@ -16,6 +16,8 @@ import atexit
 import ctypes as ct
 import signal
 import threading
+import time
+import subprocess
 
 from bcc import BPF, lib
 
@@ -97,8 +99,18 @@ class BPFProgram:
             flags.append("-DEBPH_DEBUG")
         if self.args.ludikris:
             flags.append("-DLUDIKRIS")
+        for k, v in config.bpf_params.items():
+            if type(v) == str:
+                v = f"\"{v}\""
+            self.logger.info(f"Using {k}={v}...")
+            flags.append(f"-D{k}={v}")
         # Include project src
         flags.append(f"-I{config.project_path}/src")
+        # Estimate boot time - epoch time
+        #boot_time = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
+        boot_time = time.monotonic_ns()
+        boot_epoch = time.time_ns() - boot_time
+        flags.append(f"-DEBPH_BOOT_EPOCH=(u64){boot_epoch}")
 
         # Compile ebpf code
         with open(config.bpf_program, "r") as f:

@@ -49,12 +49,12 @@ static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx)
 /* BPF tables below this line --------------------- */
 
 /* pid_tgid to ebpH_process */
-//BPF_HASH(processes, u32, struct ebpH_process, EBPH_PROCESSES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+//BPF_F_TABLE("lru_hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, 0);
 
 /* inode key to ebpH_profile */
-//BPF_HASH(profiles, u64, struct ebpH_profile, EBPH_PROFILES_TABLE_SIZE);
 BPF_F_TABLE("hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, BPF_F_NO_PREALLOC);
+//BPF_F_TABLE("lru_hash", u64, struct ebpH_profile, profiles, EBPH_PROFILES_TABLE_SIZE, 0);
 
 /* Statistics histogram (stat, key, size)*/
 BPF_HISTOGRAM(stats, u8, 2);
@@ -99,6 +99,11 @@ static void stats_decrement(u8 key)
     }
 
     (void) __sync_fetch_and_sub(leaf, 1);
+}
+
+static u64 ebpH_epoch_time_ns()
+{
+    return (u64) bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
 }
 
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
@@ -259,7 +264,7 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
-    u64 time_ns = (u64) bpf_ktime_get_ns();
+    u64 time_ns = ebpH_epoch_time_ns();
     time_ns += EBPH_NORMAL_WAIT;
 
     profile->normal_time = time_ns;
@@ -269,7 +274,7 @@ static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ct
 
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
-    u64 time_ns = (u64) bpf_ktime_get_ns();
+    u64 time_ns = ebpH_epoch_time_ns();
     if (profile->frozen && (time_ns > profile->normal_time))
         return 1;
 
@@ -597,15 +602,7 @@ static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
 {
         struct ebpH_profile_data *train = &(profile->train);
         struct ebpH_profile_data *test = &(profile->test);
-        int i;
-
-        //test->sequences = train->sequences;
-        test->last_mod_count = train->last_mod_count;
-        test->train_count = train->train_count;
-
-        for (i = 0; i < EBPH_LOOKAHEAD_ARRAY_SIZE; i++) {
-            test->flags[i] = train->flags[i];
-        }
+        bpf_probe_read(test, sizeof(*test), train);
 
         return 0;
 }

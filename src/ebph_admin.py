@@ -39,6 +39,7 @@ Example usage:
 """
 
 EBPHD_PATH = os.path.join(config.project_path, 'ebphd')
+EBPH_PS_PATH = os.path.join(config.project_path, 'ebph-ps')
 
 commands = {}
 
@@ -94,12 +95,6 @@ def parse_args(args=[]):
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
     commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='command')
-    off = commands.add_parser('off',
-            help="Pause system monitoring without killing the daemon.")
-
-    on = commands.add_parser('on',
-            help="Resume system monitoring.")
-
     start = commands.add_parser('start',
             help="Start the ebpH daemon.")
 
@@ -109,11 +104,30 @@ def parse_args(args=[]):
     stop = commands.add_parser('stop',
             help="Stop the ebpH daemon.")
 
-    stop = commands.add_parser('save-profiles',
+    on = commands.add_parser('on',
+            help="Resume system monitoring.")
+
+    off = commands.add_parser('off',
+            help="Pause system monitoring without killing the daemon.")
+
+    save_profiles = commands.add_parser('save-profiles',
             help="Save all profiles to disk. (This command only works if the daemon is allowed to save profiles).")
 
     status = commands.add_parser('status',
             help="Print ebpH status to stdout.")
+
+    ps = commands.add_parser('ps',
+            help="Run ebph-ps with the specified flags and arguments.")
+    ps_options = ps.add_mutually_exclusive_group()
+    ps_options.add_argument('-t', '--threads', action='store_true',
+            help=f"Print all threads instead of just thread group leader.")
+    ps_options.add_argument('-p', '--profiles', action='store_true',
+            help=f"Print all profiles instead of active processes.")
+
+    inspect = commands.add_parser('inspect',
+            help="Inspect the profile with key <key>. Use ebph-ps -p to find profile keys.")
+    inspect.add_argument('key',
+            help="Key of the profile to inspect.")
 
     #reset_profile = commands.add_parser('reset',
     #        help="Reset a profile.")
@@ -140,18 +154,27 @@ if __name__ == "__main__":
 
     @command('start', use_socket=0)
     def start():
+        """
+        Start the daemon.
+        """
         subprocess.run([EBPHD_PATH, 'start'])
-
-    @command('stop', use_socket=0)
-    def stop():
-        subprocess.run([EBPHD_PATH, 'stop'])
 
     @command('restart', use_socket=0)
     def restart():
         subprocess.run([EBPHD_PATH, 'restart'])
 
+    @command('stop', use_socket=0)
+    def stop():
+        """
+        Stop the daemon.
+        """
+        subprocess.run([EBPHD_PATH, 'stop'])
+
     @command('on', ebph_func='start_monitoring')
     def on(res=None):
+        """
+        Start monitoring the system.
+        """
         if res['message']:
             print(f"System is already being monitored.")
         else:
@@ -159,20 +182,49 @@ if __name__ == "__main__":
 
     @command('off', ebph_func='stop_monitoring')
     def off(res=None):
+        """
+        Stop monitoring the system.
+        """
         if res['message']:
             print(f"System is not being monitored.")
         else:
             print(f"System monitoring paused.")
 
+    @command('save-profiles', ebph_func='save_profiles')
+    def save_profiles(res=None):
+        """
+        Force save profiles to disk.
+        """
+        print("Saved profiles successfully.")
+
     @command('status')
     def status(res=None):
+        """
+        Print ebphd status to the console.
+        """
         print(f"{'ITEM':<16s} {'STATUS'}")
         for k, v in res['message'].items():
             print(f"{k:<16s} {v}")
 
-    @command('save-profiles', ebph_func='save_profiles')
-    def save_profiles(res=None):
-        print("Saved profiles successfully.")
+    @command('ps', use_socket=0)
+    def ps(res=None):
+        """
+        Invoke ebph-ps with the desired arguments.
+        """
+        flags = []
+        if args.profiles:
+            flags.append('-p')
+        if args.threads:
+            flags.append('-t')
+        subprocess.run([EBPH_PS_PATH, *flags])
+
+    @command('inspect', command_args, ebph_func='inspect_profile')
+    def inspect(res=None):
+        """
+        Print ebphd status to the console.
+        """
+        print(res['message'])
+
 
     #@command('reset', command_args, ebph_func='reset_profile')
     #def reset(res=None):
