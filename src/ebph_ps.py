@@ -4,6 +4,7 @@ import os, sys
 import socket
 import argparse
 import struct
+import datetime
 
 import config
 import json
@@ -29,10 +30,13 @@ def print_profile_information(profile, header=0):
     status = 'Frozen' if profile["frozen"] else 'Normal' if profile["normal"] else 'Training'
 
     if header:
-        print(f"{'KEY':<12} {'COMM':<16} {'STATUS':<12} {'TRAIN_COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12}")
+        print(f"{'KEY':<12} {'COMM':<16} {'STATUS':<12} {'TRAIN_COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12} {'NORMAL TIME':<16}")
+
+    normal_time = datetime.datetime.fromtimestamp(profile['normal_time'] // 1000000000)
+    normal_time = normal_time.strftime('%Y-%m-%d %H:%M:%S')
 
     print(f"{profile['key']:<12} {comm:<16} {status:<12} {profile['train_count']:<12} {profile['last_mod_count']:<12} "
-          f"{profile['anomalies']:<12}")
+            f"{profile['anomalies']:<12} {normal_time:<16}")
 
 def print_process_information(process, header=0, show_threads=0):
     profile = process["profile"]

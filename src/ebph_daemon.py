@@ -53,7 +53,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.fetch_process)
         self.request_dispatcher.register(self.fetch_processes)
         #self.request_dispatcher.register(self.reset_profile)
-        self.request_dispatcher.register(self.inspect_profile)
+        #self.request_dispatcher.register(self.inspect_profile)
 
     # Listen for incoming socket connections and dispatch to connection handler thread
     def listen_for_connections(self):
@@ -156,27 +156,27 @@ class EBPHDaemon(Daemon):
                 }
         return attrs
 
-    def inspect_profile(self, key):
-        """
-        Return a dictionary of ALL profile info, including things like lookahead pairs.
-        """
-        key = int(key)
-        profile = self.bpf_program.fetch_profile(key)
-        data = profile.test if profile.normal else profile.train
-        lookahead_pairs = list(data.flags)
-        print(lookahead_pairs)
-        attrs = {'comm': profile.comm.decode('utf-8'),
-                'key': profile.key,
-                'frozen': profile.frozen,
-                'normal': profile.normal,
-                'normal_time': profile.normal_time,
-                'normal_count': profile.train.normal_count,
-                'last_mod_count': profile.train.last_mod_count,
-                'train_count': profile.train.train_count,
-                'anomalies': profile.anomalies,
-                'lookahead_pairs': lookahead_pairs
-                }
-        return attrs
+    #def inspect_profile(self, key):
+    #    """
+    #    Return a dictionary of ALL profile info, including things like lookahead pairs.
+    #    """
+    #    key = int(key)
+    #    profile = self.bpf_program.fetch_profile(key)
+    #    data = profile.test if profile.normal else profile.train
+    #    lookahead_pairs = list(data.flags)
+    #    print(lookahead_pairs)
+    #    attrs = {'comm': profile.comm.decode('utf-8'),
+    #            'key': profile.key,
+    #            'frozen': profile.frozen,
+    #            'normal': profile.normal,
+    #            'normal_time': profile.normal_time,
+    #            'normal_count': profile.train.normal_count,
+    #            'last_mod_count': profile.train.last_mod_count,
+    #            'train_count': profile.train.train_count,
+    #            'anomalies': profile.anomalies,
+    #            'lookahead_pairs': lookahead_pairs
+    #            }
+    #    return attrs
 
     def fetch_process(self, key):
         """

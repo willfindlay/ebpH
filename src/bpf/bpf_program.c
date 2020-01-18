@@ -101,6 +101,11 @@ static void stats_decrement(u8 key)
     (void) __sync_fetch_and_sub(leaf, 1);
 }
 
+static u64 ebpH_epoch_time_ns()
+{
+    return (u64) bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
+}
+
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
 {
     if (!curr)
@@ -259,7 +264,7 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
-    u64 time_ns = (u64) bpf_ktime_get_ns();
+    u64 time_ns = ebpH_epoch_time_ns();
     time_ns += EBPH_NORMAL_WAIT;
 
     profile->normal_time = time_ns;
@@ -269,7 +274,7 @@ static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ct
 
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx)
 {
-    u64 time_ns = (u64) bpf_ktime_get_ns();
+    u64 time_ns = ebpH_epoch_time_ns();
     if (profile->frozen && (time_ns > profile->normal_time))
         return 1;
 
