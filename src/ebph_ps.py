@@ -44,16 +44,19 @@ def print_process_information(process, header=0, show_threads=0):
     status = 'Frozen' if profile["frozen"] else 'Normal' if profile["normal"] else 'Training'
 
     if header and show_threads:
-        print(f"{'PID':<8} {'TID':<8} {'COMM':<16} {'STATUS':<12} {'TRAIN_COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12}")
+        print(f"{'PID':<8} {'TID':<8} {'COMM':<16} {'STATUS':<12} {'TRAIN_COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12} {'NORMAL TIME':<16}")
     elif header:
-        print(f"{'PID':<8} {'COMM':<16} {'STATUS':<12} {'COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12}")
+        print(f"{'PID':<8} {'COMM':<16} {'STATUS':<12} {'COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12} {'NORMAL TIME':<16}")
+
+    normal_time = datetime.datetime.fromtimestamp(profile['normal_time'] // 1000000000)
+    normal_time = normal_time.strftime('%Y-%m-%d %H:%M:%S')
 
     if show_threads:
         print(f"{process['pid']:<8} {process['tid']:<8} {comm:<16} {status:<12} {profile['train_count']:<12} {profile['last_mod_count']:<12} "
-              f"{profile['anomalies']:<12}")
+              f"{profile['anomalies']:<12} {normal_time:<16}")
     else:
         print(f"{process['pid']:<8} {comm:<16} {status:<12} {profile['train_count']:<12} {profile['last_mod_count']:<12} "
-              f"{profile['anomalies']:<12}")
+              f"{profile['anomalies']:<12} {normal_time:<16}")
 
 def sort_key(args):
     if args.profiles:
