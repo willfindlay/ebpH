@@ -597,15 +597,7 @@ static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
 {
         struct ebpH_profile_data *train = &(profile->train);
         struct ebpH_profile_data *test = &(profile->test);
-        int i;
-
-        //test->sequences = train->sequences;
-        test->last_mod_count = train->last_mod_count;
-        test->train_count = train->train_count;
-
-        for (i = 0; i < EBPH_LOOKAHEAD_ARRAY_SIZE; i++) {
-            test->flags[i] = train->flags[i];
-        }
+        bpf_probe_read(test, sizeof(*test), train);
 
         return 0;
 }
