@@ -24,9 +24,17 @@ from bcc import BPF, lib
 from utils import locks
 import config
 
+logger = logging.getLogger('ebpH')
+
 # register handlers
-signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
-signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
+def handle_sigterm(x, y):
+    logger.warning("Caught SIGTERM")
+    sys.exit(0)
+signal.signal(signal.SIGTERM, handle_sigterm)
+def handle_sigint(x, y):
+    logger.warning("Caught SIGINT")
+    sys.exit(0)
+signal.signal(signal.SIGINT, handle_sigint)
 
 class BPFProgram:
     monitoring_lock = threading.Lock()
@@ -40,58 +48,57 @@ class BPFProgram:
         self.bpf = None
 
         # Logging stuff
-        self.logger = logging.getLogger('ebpH')
 
     def cleanup(self):
-        self.logger.info('Running cleanup hooks...')
+        logger.info('Running cleanup hooks...')
         self.stop_monitoring()
         self.save_profiles()
-        self.logger.info('BPF program unloaded')
+        logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
         atexit.unregister(self.cleanup)
         atexit.register(self.cleanup)
-        self.logger.info("Registered BPFProgram exit hooks")
+        logger.info("Registered BPFProgram exit hooks")
 
     def register_perf_buffers(self):
         # Returns a lost callback for a perf buffer with name buff_name
         def lost_cb(buff_name):
             def closure(lost):
-                self.logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
+                logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
             return closure
 
         # executable has been processed in ebpH_on_do_open_execat
         def on_executable_processed(cpu, data, size):
             event = self.bpf["on_executable_processed"].event(data)
             s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
-            self.logger.info(s)
+            logger.info(s)
         self.bpf["on_executable_processed"].open_perf_buffer(on_executable_processed, lost_cb=lost_cb("on_executable_processed"))
 
         # Anomaly detected
         def on_anomaly(cpu, data, size):
             event = self.bpf["on_anomaly"].event(data)
             s = f"PID {event.pid} ({event.comm.decode('utf-8')} {event.key}): {event.anomalies} anomalies detected for syscall {event.syscall} "
-            self.logger.warning(s)
+            logger.warning(s)
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         # error, warning
         def on_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
-            self.logger.error(s)
+            logger.error(s)
         self.bpf["ebpH_error"].open_perf_buffer(on_error, lost_cb=lost_cb("on_error"))
 
         def on_warning(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
-            self.logger.warning(s)
+            logger.warning(s)
         self.bpf["ebpH_warning"].open_perf_buffer(on_warning, lost_cb=lost_cb("on_warning"))
 
-        self.logger.info(f'Registered perf buffers')
+        logger.info(f'Registered perf buffers')
 
     def load_bpf(self):
         assert self.bpf == None
-        self.logger.info('Initializing BPF program...')
+        logger.info('Initializing BPF program...')
 
         # Set flags
         flags = []
@@ -102,7 +109,7 @@ class BPFProgram:
         for k, v in config.bpf_params.items():
             if type(v) == str:
                 v = f"\"{v}\""
-            self.logger.info(f"Using {k}={v}...")
+            logger.info(f"Using {k}={v}...")
             flags.append(f"-D{k}={v}")
         # Include project src
         flags.append(f"-I{config.project_path}/src")
@@ -125,7 +132,7 @@ class BPFProgram:
 
         self.start_monitoring()
 
-        self.logger.info('BPF program initialized')
+        logger.info('BPF program initialized')
 
     def trace_print(self):
         while True:
@@ -133,7 +140,7 @@ class BPFProgram:
             msg = fields[-1]
             if msg == None:
                 return
-            self.logger.debug(msg.decode('utf-8'))
+            logger.debug(msg.decode('utf-8'))
 
     # Poll perf_buffers on every daemon tick
     def on_tick(self):
@@ -150,10 +157,10 @@ class BPFProgram:
         Return 0 on success, 1 if system is already being monitored.
         """
         if self.monitoring:
-            self.logger.info('System is already being monitored')
+            logger.info('System is already being monitored')
             return 1
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
-        self.logger.info('Started monitoring the system')
+        logger.info('Started monitoring the system')
         return 0
 
     @locks(monitoring_lock)
@@ -163,17 +170,17 @@ class BPFProgram:
         Return 0 on success, 1 if system is already not being monitored.
         """
         if not self.monitoring:
-            self.logger.info('System is not being monitored')
+            logger.info('System is not being monitored')
             return 1
         self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
-        self.logger.info('Stopped monitoring the system')
+        logger.info('Stopped monitoring the system')
         return 0
 
     # save all profiles to disk
     @locks(profiles_lock)
     def save_profiles(self):
         if self.args.nosave:
-            self.logger.warning("nosave flag is set, refusing to save profiles!")
+            logger.warning("nosave flag is set, refusing to save profiles!")
             return
         # save monitoring state to be restored later
         monitoring = self.bpf["__is_monitoring"][0]
@@ -190,8 +197,8 @@ class BPFProgram:
                 f.write(profile)
             # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
-            self.logger.debug(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
-        self.logger.info(f"Successfully saved all profiles")
+            logger.debug(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
+        logger.info(f"Successfully saved all profiles")
 
         # return to original state
         self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))
@@ -201,7 +208,7 @@ class BPFProgram:
     @locks(profiles_lock)
     def load_profiles(self):
         if self.args.noload:
-            self.logger.warning("noload flag is set, refusing to load profiles!")
+            logger.warning("noload flag is set, refusing to load profiles!")
             return
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
@@ -219,8 +226,8 @@ class BPFProgram:
             # Update our profile map
             self.bpf["profiles"].__setitem__(ct.c_int64(profile_struct.key), profile_struct)
 
-            self.logger.debug(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
-        self.logger.info(f"Successfully loaded all profiles")
+            logger.debug(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
+        logger.info(f"Successfully loaded all profiles")
 
     @locks(profiles_lock)
     def fetch_profile(self, key):
