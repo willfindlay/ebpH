@@ -108,8 +108,8 @@ class BPFProgram:
         flags.append(f"-I{config.project_path}/src")
         # Estimate boot time - epoch time
         #boot_time = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
-        boot_time = time.monotonic_ns()
-        boot_epoch = time.time_ns() - boot_time
+        boot_time = time.monotonic() * 1000000000
+        boot_epoch = time.time() * 1000000000 - boot_time
         flags.append(f"-DEBPH_BOOT_EPOCH=(u64){boot_epoch}")
 
         # Compile ebpf code
