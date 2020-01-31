@@ -16,7 +16,7 @@ This product comes with no warranty, and is built as a research system. It shoul
 
 ### pH
 
-- [My supervisor's original disseration on pH](https://people.scs.carleton.ca/~soma/pubs/soma-diss.pdf)
+- [My supervisor's original dissertation on pH](https://people.scs.carleton.ca/~soma/pubs/soma-diss.pdf)
 - [A Sense of Self for UNIX Processes](https://www.cs.unm.edu/~immsec/publications/ieee-sp-96-unix.pdf)
 - [Lightweight Intrustion Detection for Networked Operating Systems](http://people.scs.carleton.ca/~soma/pubs/jcs1998.pdf)
 - [Lookahead Pairs and Full Sequences: A Tale of Two Anomaly Detection Methods](http://people.scs.carleton.ca/~soma/pubs/inoue-albany2007.pdf)
