@@ -1,12 +1,25 @@
 # ebpH v0.5.0
 
+## Description
+
+ebpH is an eBPF daemon to monitor all processes on the system and watch for anomalous system calls. Effectively constitutes an eBPF implementation of [pH (Process Homeostasis)](https://people.scs.carleton.ca/~mvvelzen/pH/pH.html).
+
 ## Disclaimer
 
 This product comes with no warranty, and is built as a research system. It should be perfectly safe to run on your system due to the safety guarantees of eBPF, but we make no claims about functionality. This project is very much a work in progress at this stage.
 
-## Description
+## Papers
 
-ebpH is an eBPF daemon to monitor all processes on the system and watch for anomalous system calls. Effectively constitutes an eBPF implementation of [pH (Process Homeostasis)](https://people.scs.carleton.ca/~mvvelzen/pH/pH.html).
+### ebpH
+
+- [My thesis proposal](https://williamfindlay.com/written/thesis-proposal.pdf)
+
+### pH
+
+- [My supervisor's original disseration on pH](https://people.scs.carleton.ca/~soma/pubs/soma-diss.pdf)
+- [A Sense of Self for UNIX Processes](https://www.cs.unm.edu/~immsec/publications/ieee-sp-96-unix.pdf)
+- [Lightweight Intrustion Detection for Networked Operating Systems](http://people.scs.carleton.ca/~soma/pubs/jcs1998.pdf)
+- [Lookahead Pairs and Full Sequences: A Tale of Two Anomaly Detection Methods](http://people.scs.carleton.ca/~soma/pubs/inoue-albany2007.pdf)
 
 ## Prerequisites
 
