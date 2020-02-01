@@ -37,6 +37,9 @@ struct ebpH_profile
     struct ebpH_profile_data test;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    struct bpf_spin_lock lock;
+//#endif
 };
 
 struct ebpH_locality
@@ -50,8 +53,9 @@ struct ebpH_locality
 struct ebpH_process
 {
     struct ebpH_locality alf;
-    long seq[EBPH_SEQLEN];
+    long seq[EBPH_SEQSTACK_SIZE][EBPH_SEQLEN];
     u8 count;
+    u8 stacktop;
     u32 pid; /* Kernel tgid */
     u32 tid; /* Kernel pid */
     u64 exe_key;

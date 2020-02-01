@@ -29,6 +29,8 @@
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
 #define EBPH_SEQLEN  9
+/* Size of ebpH seq stack */
+#define EBPH_SEQSTACK_SIZE 3
 
 /* Window size for locality frames */
 #define EBPH_LOCALITY_WIN  128
