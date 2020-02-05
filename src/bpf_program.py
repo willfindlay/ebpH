@@ -47,8 +47,6 @@ class BPFProgram:
         # BPF program
         self.bpf = None
 
-        # Logging stuff
-
     def cleanup(self):
         logger.info('Running cleanup hooks...')
         self.stop_monitoring()
