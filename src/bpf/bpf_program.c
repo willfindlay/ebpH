@@ -135,6 +135,18 @@ static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx
     return (long) (*curr * EBPH_NUM_SYSCALLS + *prev);
 }
 
+static struct ebpH_sequence *ebpH_get_curr_seq(struct ebpH_process *process)
+{
+    /* NULL process */
+    if (!process)
+        return NULL;
+    /* Invalid access */
+    if (process->stack.top < 0 || process->stack.top >= EBPH_SEQSTACK_SIZE)
+        return NULL;
+
+    return &process->stack.seq[process->stack.top];
+}
+
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
     int anomalies = 0;
@@ -144,7 +156,11 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         anomalies = ebpH_test(&(profile->test), process, ctx);
         if (anomalies)
         {
-            struct ebpH_anomaly event = {.pid=process->pid, .key=profile->key, .syscall=process->seq[0],
+            struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+            if (!seq)
+                goto out;
+
+            struct ebpH_anomaly event = {.pid=process->pid, .key=profile->key, .syscall=seq->seq[0],
                 .anomalies=anomalies};
             bpf_probe_read_str(event.comm, sizeof(event.comm), profile->comm);
             on_anomaly.perf_submit(ctx, &event, sizeof(event));
@@ -156,6 +172,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         }
     }
 
+out:
     ebpH_add_anomaly_count(profile, process, anomalies, ctx);
 
     return 0;
@@ -166,14 +183,19 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
     int mismatches = 0;
     long entry = -1;
 
-    if (!process || process->count < 1)
+    if (!process)
+        return mismatches;
+
+    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+
+    if (!seq || !seq->count)
         return mismatches;
 
     /* access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long syscall = process->seq[0];
-        long prev = process->seq[i];
+        long syscall = seq->seq[0];
+        long prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -209,6 +231,7 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         profile->train.last_mod_count = 0;
 
 #ifdef EBPH_DEBUG
+        // FIXME: get this working for new stack
         bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
         for (int i = 1; i < EBPH_SEQLEN; i++)
             bpf_trace_printk("|   System call %ld\n", process->seq[i]);
@@ -303,14 +326,19 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     long syscall = 0;
     long prev = 0;
 
-    if (!process || process->count < 1)
-        return 0;
+    if (!process)
+        return -1;
 
-    /* Access at index [syscall][prev] */
+    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+
+    if (!seq || !seq->count)
+        return -1;
+
+    /* access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        syscall = process->seq[0];
-        prev = process->seq[i];
+        long syscall = seq->seq[0];
+        long prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -421,13 +449,18 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return 1;
     }
 
+    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+
+    if (!seq)
+        return -1;
+
     /* Add syscall to process sequence */
     for (int i = EBPH_SEQLEN - 1; i > 0; i--)
     {
-        process->seq[i] = process->seq[i-1];
+        seq->seq[i] = seq->seq[i-1];
     }
-    process->seq[0] = *syscall;
-    process->count = process->count < EBPH_SEQLEN ? process->count + 1 : process->count;
+    seq->seq[0] = *syscall;
+    seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
 
     /* TODO: take profile lock here */
 
@@ -509,8 +542,11 @@ static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx)
 
     process->pid = (*pid_tgid) >> 32;
     process->tid = (*pid_tgid);
-    for (int i = 0; i < EBPH_SEQLEN; i++)
-        process->seq[i] = EBPH_EMPTY;
+    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    {
+        for (int j = 0; j < EBPH_SEQLEN; j++)
+            process->stack.seq[i].seq[j] = EBPH_EMPTY;
+    }
 
     return 0;
 }
@@ -685,12 +721,13 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         }
         process->in_execve = 0;
 
-        /* Wipe process' current sequence */
-        for (int i = 0; i < EBPH_SEQLEN; i++)
+        /* Reset process' sequence stack */
+        for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
         {
-            process->seq[i] = EBPH_EMPTY;
+            process->stack.seq[i].count = 0;
+            for (int j = 0; j < EBPH_SEQLEN; j++)
+                process->stack.seq[i].seq[j] = EBPH_EMPTY;
         }
-        process->count = 0;
     }
 
     /* Associate pids on fork */
@@ -740,12 +777,14 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
             return 0;
         }
 
-        /* Copy parent process' sequence to child */
-        for (int i = 0; i < EBPH_SEQLEN; i++)
+        /* Copy parent process' sequences to child */
+        /* Reset process' sequence stack */
+        for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
         {
-            process->seq[i] = parent_process->seq[i];
+            process->stack.seq[i].count = parent_process->stack.seq[i].count;
+            for (int j = 0; j < EBPH_SEQLEN; j++)
+                process->stack.seq[i].seq[j] = parent_process->stack.seq[i].seq[j];
         }
-        process->count = parent_process->count;
 
         /* Associate process with its parent profile */
         ebpH_start_tracing(e, process, (struct pt_regs *)args);
