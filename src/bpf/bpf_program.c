@@ -941,14 +941,16 @@ int kprobe__get_signal(struct pt_regs *ctx, struct ksignal *ksig)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process = processes.lookup(&pid_tgid);
-#ifdef EBPH_DEBUG
-    bpf_trace_printk("Hello signal world!\n");
-#endif
     if (!process)
     {
         /* Process is not being traced */
         return 0;
     }
+#ifdef EBPH_DEBUG
+    char comm[16];
+    bpf_get_current_comm(comm, sizeof(comm));
+    bpf_trace_printk("%s -- Hello signal world!\n", comm);
+#endif
 
     if (ebpH_push_seq(process))
     {
@@ -964,14 +966,16 @@ int kretprobe__get_signal(struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process = processes.lookup(&pid_tgid);
-#ifdef EBPH_DEBUG
-    bpf_trace_printk("Goodbye signal world!\n");
-#endif
     if (!process)
     {
         /* Process is not being traced */
         return 0;
     }
+#ifdef EBPH_DEBUG
+    char comm[16];
+    bpf_get_current_comm(comm, sizeof(comm));
+    bpf_trace_printk("%s -- Goodbye signal world!\n", comm);
+#endif
 
     if (ebpH_pop_seq(process))
     {
