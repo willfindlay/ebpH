@@ -95,7 +95,11 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
+
 static struct ebpH_sequence *ebpH_get_curr_seq(struct ebpH_process *process); // add new sequence stack functions here
+static int ebpH_push_seq(struct ebpH_process *process);
+static int ebpH_pop_seq(struct ebpH_process *process);
+
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx);
