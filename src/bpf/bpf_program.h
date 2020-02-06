@@ -24,7 +24,6 @@ struct ebpH_profile_data
     u64 last_mod_count;
     u64 train_count;
     u64 normal_count;
-    //u64 sequences;
 };
 
 struct ebpH_profile
@@ -37,6 +36,9 @@ struct ebpH_profile
     struct ebpH_profile_data test;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
+//    struct bpf_spin_lock lock;
+//#endif
 };
 
 struct ebpH_locality
@@ -47,11 +49,22 @@ struct ebpH_locality
     u32 max;
 };
 
+struct ebpH_sequence
+{
+    long seq[EBPH_SEQLEN];
+    u8 count;
+};
+
+struct ebpH_sequence_stack
+{
+    struct ebpH_sequence seq[EBPH_SEQSTACK_SIZE];
+    u8 top;
+};
+
 struct ebpH_process
 {
     struct ebpH_locality alf;
-    long seq[EBPH_SEQLEN];
-    u8 count;
+    struct ebpH_sequence_stack stack;
     u32 pid; /* Kernel tgid */
     u32 tid; /* Kernel pid */
     u64 exe_key;
@@ -82,6 +95,11 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
+
+static struct ebpH_sequence *ebpH_get_curr_seq(struct ebpH_process *process); // add new sequence stack functions here
+static int ebpH_push_seq(struct ebpH_process *process);
+static int ebpH_pop_seq(struct ebpH_process *process);
+
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx);

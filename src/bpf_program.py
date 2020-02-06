@@ -127,7 +127,6 @@ class BPFProgram:
         self.register_perf_buffers()
 
         self.load_profiles()
-
         self.start_monitoring()
 
         logger.info('BPF program initialized')
