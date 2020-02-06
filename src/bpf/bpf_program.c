@@ -937,7 +937,8 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
 }
 
 //int kprobe__do_sigaction(struct pt_regs *ctx, int sig, struct k_sigaction *act, struct k_sigaction *oact)
-int kprobe__get_signal(struct pt_regs *ctx, struct ksignal *ksig)
+//int kprobe__get_signal(struct pt_regs *ctx, struct ksignal *ksig)
+int kprobe__do_signal(struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process = processes.lookup(&pid_tgid);
@@ -962,7 +963,8 @@ int kprobe__get_signal(struct pt_regs *ctx, struct ksignal *ksig)
 }
 
 //int kretprobe__do_sigaction(struct pt_regs *ctx, int sig, struct k_sigaction *act, struct k_sigaction *oact)
-int kretprobe__get_signal(struct pt_regs *ctx)
+//int kretprobe__get_signal(struct pt_regs *ctx)
+int kretprobe__do_signal(struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct ebpH_process *process = processes.lookup(&pid_tgid);
