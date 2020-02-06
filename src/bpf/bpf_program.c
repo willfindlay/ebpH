@@ -27,7 +27,6 @@
 /* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
-BPF_PERF_OUTPUT(ebpH_debug_int);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
@@ -138,11 +137,23 @@ static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx
 static int ebpH_push_seq(struct ebpH_process *process)
 {
     if (!process)
+    {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Null process %s -- ebpH_push_seq\n", comm);
+#endif
         return -1;
+    }
 
     /* Increment top if we can */
     if (++process->stack.top >= EBPH_SEQSTACK_SIZE)
     {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Unable to change stack.top to %d in process %s -- ebpH_push_seq\n", process->stack.top, comm);
+#endif
         process->stack.top--;
         return -2;
     }
@@ -150,7 +161,14 @@ static int ebpH_push_seq(struct ebpH_process *process)
     struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
 
     if (!seq)
+    {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Null sequence in process %s -- ebpH_push_seq\n", comm);
+#endif
         return -3;
+    }
 
     /* Reinitialize the sequence */
     seq->count = 0;
@@ -163,11 +181,23 @@ static int ebpH_push_seq(struct ebpH_process *process)
 static int ebpH_pop_seq(struct ebpH_process *process)
 {
     if (!process)
+    {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Null process %s -- ebpH_pop_seq\n", comm);
+#endif
         return -1;
+    }
 
     /* Decrement top if we can */
     if (--process->stack.top < 0)
     {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Unable to change stack.top to %d in process %s -- ebpH_pop_seq\n", process->stack.top, comm);
+#endif
         process->stack.top++;
         return -2;
     }
@@ -484,7 +514,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 
     if (!profile)
     {
-        ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
 #ifdef EBPH_DEBUG
         bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
@@ -955,7 +984,7 @@ int kprobe__do_signal(struct pt_regs *ctx)
 
     if (ebpH_push_seq(process))
     {
-        EBPH_ERROR("Failed to push sequence onto stack --  kprobe__do_sigaction", ctx);
+        EBPH_ERROR("Failed to push sequence onto stack -- kprobe__do_sigaction", ctx);
         return -1;
     }
 
@@ -981,7 +1010,7 @@ int kretprobe__do_signal(struct pt_regs *ctx)
 
     if (ebpH_pop_seq(process))
     {
-        EBPH_ERROR("Failed to pop sequence from stack --  kretprobe__do_sigaction", ctx);
+        EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", ctx);
         return -1;
     }
 
