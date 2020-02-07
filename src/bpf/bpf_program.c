@@ -748,7 +748,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
     /* Pop on sigreturn, sigsuspend */
-    if (syscall == __NR_rt_sigreturn || syscall == __NR_rt_sigsuspend)
+    //if (syscall == __NR_rt_sigreturn || syscall == __NR_rt_sigsuspend)
+    if (syscall == __NR_rt_sigreturn)
     {
         process = processes.lookup(&pid_tgid);
         if (!process)
