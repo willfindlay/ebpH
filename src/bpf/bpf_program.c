@@ -165,6 +165,10 @@ static int ebpH_pop_seq(struct ebpH_process *process)
     if (!process)
         return -1;
 
+#ifdef EBPH_DEBUG
+    bpf_trace_printk("Popping sequence %d in pid %u\n", process->stack.top, process->pid);
+#endif
+
     /* Decrement top if we can */
     if (--process->stack.top < 0)
     {
@@ -504,6 +508,12 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
     seq->seq[0] = *syscall;
     seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
+#ifdef EBPH_DEBUG
+    if (process->stack.top > 0)
+    {
+        bpf_trace_printk("frame %d: system call %lu\n", process->stack.top, *syscall);
+    }
+#endif
 
     /* TODO: take profile lock here */
 
@@ -728,6 +738,23 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     /* The juicy stuff goes right here */
     ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
 
+
+    /* Pop on sigreturn, sigsuspend */
+    if (syscall == __NR_rt_sigreturn || syscall == __NR_rt_sigsuspend)
+    {
+        process = processes.lookup(&pid_tgid);
+        if (!process)
+        {
+            return 0;
+        }
+
+        if (ebpH_pop_seq(process))
+        {
+            EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", (struct pt_regs *)args);
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -755,6 +782,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         return 0;
     }
 
+    /* Associate task with profile on execve */
     if (syscall == __NR_execve || syscall == __NR_execveat)
     {
         process = processes.lookup(&pid_tgid);
@@ -955,7 +983,7 @@ int kprobe__do_signal(struct pt_regs *ctx)
 
     if (ebpH_push_seq(process))
     {
-        EBPH_ERROR("Failed to push sequence onto stack --  kprobe__do_sigaction", ctx);
+        EBPH_ERROR("Failed to push sequence onto stack -- kprobe__do_sigaction", ctx);
         return -1;
     }
 
@@ -979,11 +1007,11 @@ int kretprobe__do_signal(struct pt_regs *ctx)
     bpf_trace_printk("%s -- Goodbye signal world!\n", comm);
 #endif
 
-    if (ebpH_pop_seq(process))
-    {
-        EBPH_ERROR("Failed to pop sequence from stack --  kretprobe__do_sigaction", ctx);
-        return -1;
-    }
+    //if (ebpH_pop_seq(process))
+    //{
+    //    EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", ctx);
+    //    return -1;
+    //}
 
     return 0;
 }
