@@ -272,6 +272,14 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         /* check for mismatch */
         if ((the_entry & (1 << (i-1))) == 0)
         {
+#ifdef EBPH_DEBUG
+            struct ebpH_profile *profile = profiles.lookup(&process->exe_key);
+            if (profile)
+            {
+                //bpf_trace_printk("Mismatch occurred between curr %ld and prev %ld at distance %d in %s\n", syscall, prev, i, profile->comm);
+                bpf_trace_printk("Mismatch occurred at entry %ld at distance %d in %s\n", entry, i, profile->comm);
+            }
+#endif
             mismatches++;
         }
     }
