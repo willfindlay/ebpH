@@ -454,7 +454,7 @@ static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_proc
     return 0;
 }
 
-static inline int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
+static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
     int *monitoring, *saving;
@@ -464,18 +464,18 @@ static inline int ebpH_process_syscall(struct ebpH_process *process, long *sysca
     if (!process)
     {
         EBPH_ERROR("NULL process -- ebpH_process_syscall", ctx);
-        return 1;
+        return -1;
     }
 
     if (!syscall)
     {
         EBPH_ERROR("NULL syscall -- ebpH_process_syscall", ctx);
-        return 1;
+        return -1;
     }
 
     if (!process->exe_key)
     {
-        return 0;
+        return -1;
     }
 
     monitoring = __is_monitoring.lookup(&zero);
@@ -747,11 +747,17 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
     stats_increment(STATS_SYSCALLS);
 
-    /* The juicy stuff goes right here */
-    ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
+    if (process->stack.should_pop)
+    {
+        process->stack.should_pop = 0;
+        if (ebpH_pop_seq(process))
+        {
+            EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", (struct pt_regs *)args);
+            return -1;
+        }
+    }
 
-    /* Pop on sigreturn, sigsuspend */
-    //if (syscall == __NR_rt_sigreturn || syscall == __NR_rt_sigsuspend)
+    /* Pop on sigreturn */
     if (syscall == __NR_rt_sigreturn)
     {
         process = processes.lookup(&pid_tgid);
@@ -760,11 +766,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
             return 0;
         }
 
-        if (ebpH_pop_seq(process))
-        {
-            EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", (struct pt_regs *)args);
-            return -1;
-        }
+        process->stack.should_pop = 1;
     }
 
     return 0;
@@ -793,6 +795,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         return 0;
     }
+
+    if (args->id < 0)
+        return 0;
 
     /* Associate task with profile on execve */
     if (syscall == __NR_execve || syscall == __NR_execveat)
@@ -869,6 +874,22 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 
         /* Associate process with its parent profile */
         ebpH_start_tracing(e, process, (struct pt_regs *)args);
+    }
+
+    process = processes.lookup(&pid_tgid);
+    if (!process)
+        return 0;
+
+    /* The juicy stuff goes right here */
+    if (args->ret != -ERESTARTSYS)
+    {
+        ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
+    }
+    else
+    {
+#ifdef EBPH_DEBUG
+        bpf_trace_printk("Refusing to process syscall %d since it will be restarted.\n", syscall);
+#endif
     }
 
     return 0;

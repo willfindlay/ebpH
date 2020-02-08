@@ -59,6 +59,7 @@ struct ebpH_sequence_stack
 {
     struct ebpH_sequence seq[EBPH_SEQSTACK_SIZE];
     u8 top;
+    u8 should_pop;
 };
 
 struct ebpH_process
