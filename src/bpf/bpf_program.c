@@ -27,7 +27,6 @@
 /* TODO: deprecate some of these */
 BPF_PERF_OUTPUT(ebpH_error);
 BPF_PERF_OUTPUT(ebpH_warning);
-BPF_PERF_OUTPUT(ebpH_debug_int);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
@@ -139,6 +138,11 @@ static int ebpH_push_seq(struct ebpH_process *process)
 {
     if (!process)
     {
+#ifdef EBPH_DEBUG
+        char comm[16];
+        bpf_get_current_comm(comm, sizeof(comm));
+        bpf_trace_printk("Null process %s -- ebpH_push_seq\n", comm);
+#endif
         return -1;
     }
 
@@ -497,7 +501,6 @@ static inline int ebpH_process_syscall(struct ebpH_process *process, long *sysca
 
     if (!profile)
     {
-        ebpH_debug_int.perf_submit(ctx, &process->exe_key, sizeof(process->exe_key));
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
 #ifdef EBPH_DEBUG
         bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
@@ -995,32 +998,6 @@ int kprobe__do_signal(struct pt_regs *ctx)
         EBPH_ERROR("Failed to push sequence onto stack -- kprobe__do_sigaction", ctx);
         return -1;
     }
-
-    return 0;
-}
-
-//int kretprobe__do_sigaction(struct pt_regs *ctx, int sig, struct k_sigaction *act, struct k_sigaction *oact)
-//int kretprobe__get_signal(struct pt_regs *ctx)
-int kretprobe__do_signal(struct pt_regs *ctx)
-{
-    u64 pid_tgid = bpf_get_current_pid_tgid();
-    struct ebpH_process *process = processes.lookup(&pid_tgid);
-    if (!process)
-    {
-        /* Process is not being traced */
-        return 0;
-    }
-#ifdef EBPH_DEBUG
-    char comm[16];
-    bpf_get_current_comm(comm, sizeof(comm));
-    bpf_trace_printk("%s -- Goodbye signal world!\n", comm);
-#endif
-
-    //if (ebpH_pop_seq(process))
-    //{
-    //    EBPH_ERROR("Failed to pop sequence from stack -- kretprobe__do_sigaction", ctx);
-    //    return -1;
-    //}
 
     return 0;
 }
