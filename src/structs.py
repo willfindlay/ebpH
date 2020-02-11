@@ -18,6 +18,11 @@ EBPH_LOOKAHEAD_ARRAY_SIZE = EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
 EBPH_FILENAME_LEN = 128
 
 class EBPHProfileData(ct.Structure):
+    """
+    ctypes structure representing struct ebpH_profile_data from src/bpf/bpf_program.h
+
+    This class MUST be kept in sync with src/bpf/bpf_program.h
+    """
     _fields_ = [
             ('flags', (ct.c_uint8 * EBPH_NUM_SYSCALLS) * EBPH_NUM_SYSCALLS),
             ('last_mod_count', ct.c_uint64),
@@ -26,6 +31,11 @@ class EBPHProfileData(ct.Structure):
             ]
 
 class EBPHProfile(ct.Structure):
+    """
+    ctypes structure representing struct ebpH_profile from src/bpf/bpf_program.h
+
+    This class MUST be kept in sync with src/bpf/bpf_program.h
+    """
     _fields_ = [
             ('flags', ct.c_uint8),
             ('normal', ct.c_uint8),
