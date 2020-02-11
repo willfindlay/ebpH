@@ -111,13 +111,14 @@ class BPFProgram:
             flags.append(f"-D{k}={v}")
         # Include project src
         flags.append(f"-I{config.project_path}/src")
-        # Estimate boot time - epoch time
-        #boot_time = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
+        # Estimate epoch boot time.
+        # This is used to establish normal times within the BPF program
+        # since eBPF only provides times since system boot.
         boot_time = time.monotonic() * 1000000000
         boot_epoch = time.time() * 1000000000 - boot_time
         flags.append(f"-DEBPH_BOOT_EPOCH=(u64){boot_epoch}")
 
-        # Compile ebpf code
+        # Compile and load eBPF program
         with open(config.bpf_program, "r") as f:
             text = f.read()
             self.bpf = BPF(text=text, cflags=flags)
