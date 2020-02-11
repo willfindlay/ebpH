@@ -11,6 +11,16 @@
  *
  * Licensed under GPL v2 License */
 
+/* ===============================================================
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * ===============================================================
+ * Keep in sync with src/structs.py
+ * ===============================================================
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * =============================================================== */
+
 #ifndef EBPH_H
 #define EBPH_H
 
