@@ -114,7 +114,7 @@ def print_profile(profile: EBPHProfile, show_empty: bool):
 
 def __profile_key_type(s):
     """
-    Wrapper for argparse.FileType that prepends config.ebph_data_dir to the provided string.
+    Wrapper for argparse.FileType that prepends config.profiles_dir to the provided string.
 
     To be used as an argparse type.
     """
@@ -128,11 +128,13 @@ def parse_args(args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-inspect", epilog=EPILOG,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    options = parser.add_mutually_exclusive_group()
+    options = parser.add_mutually_exclusive_group(required=1)
     options.add_argument('-k', '--key', type=__profile_key_type, dest='profile',
             help=f"Inspect profile with key <KEY>.")
     options.add_argument('-p', '--path', type=argparse.FileType(mode='rb'), dest='profile',
             help=f"Inspect the profile located at <PATH>.")
+    options.add_argument('-l', '--list', action='store_true',
+            help=f"List all profiles in {config.profiles_dir}.")
 
     parser.add_argument('-e', '--empty', action='store_true',
             help='Show empty lookahead pairs instead of hiding.')
@@ -147,5 +149,17 @@ def parse_args(args=sys.argv[1:]):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # List all profiles and exit
+    if args.list:
+        summary = []
+        for fn in os.listdir(config.profiles_dir):
+            with open(os.path.join(config.profiles_dir, fn), 'rb') as f:
+                name = parse_profile(f).comm.decode('utf-8')
+            summary.append((name, fn))
+        for entry in sorted(summary, key=lambda item: (item[0].lower(), item[1])):
+            print(f'{entry[0][:20]:<20} {entry[1]}')
+        sys.exit(0)
+
     profile = parse_profile(args.profile)
     print_profile(profile, args.empty)

@@ -22,3 +22,4 @@ cd $INSTALLDIR
 ln -vsnf $(readlink -f ./ebphd) /bin/ebphd
 ln -vsnf $(readlink -f ./ebph-ps) /bin/ebph-ps
 ln -vsnf $(readlink -f ./ebph-admin) /bin/ebph-admin
+ln -vsnf $(readlink -f ./ebph-inspect) /bin/ebph-inspect
