@@ -16,6 +16,8 @@ import json
 import time
 from functools import wraps
 
+import bcc.syscall
+
 import config
 
 def syscall_name(num: int):

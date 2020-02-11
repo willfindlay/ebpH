@@ -6,8 +6,6 @@ import time
 import datetime
 import signal
 
-import bcc.syscall
-
 from structs import EBPHProfile
 from utils import syscall_name
 
