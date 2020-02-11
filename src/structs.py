@@ -37,7 +37,7 @@ class EBPHProfile(ct.Structure):
     This class MUST be kept in sync with src/bpf/bpf_program.h
     """
     _fields_ = [
-            ('flags', ct.c_uint8),
+            ('frozen', ct.c_uint8),
             ('normal', ct.c_uint8),
             ('normal_time', ct.c_uint64),
             ('anomalies', ct.c_uint64),
