@@ -17,7 +17,6 @@ import time
 from functools import wraps
 
 import config
-config.init()
 
 def syscall_name(num: int):
     """
