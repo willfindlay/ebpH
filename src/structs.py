@@ -9,11 +9,17 @@
 # WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
 # ===============================================================
 
+import config
+config.init()
 import ctypes as ct
+
+EBPH_NUM_SYSCALLS = config.bpf_params['EBPH_NUM_SYSCALLS']
+EBPH_LOOKAHEAD_ARRAY_SIZE = EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
+EBPH_FILENAME_LEN = 128
 
 class EBPHProfileData(ct.Structure):
     _fields_ = [
-            ('flags', ct.c_uint8),
+            ('flags', (ct.c_uint8 * EBPH_NUM_SYSCALLS) * EBPH_NUM_SYSCALLS),
             ('last_mod_count', ct.c_uint64),
             ('train_count', ct.c_uint64),
             ('normal_count', ct.c_uint64),
@@ -22,4 +28,11 @@ class EBPHProfileData(ct.Structure):
 class EBPHProfile(ct.Structure):
     _fields_ = [
             ('flags', ct.c_uint8),
+            ('normal', ct.c_uint8),
+            ('normal_time', ct.c_uint64),
+            ('anomalies', ct.c_uint64),
+            ('train', EBPHProfileData),
+            ('test', EBPHProfileData),
+            ('key', ct.c_uint64),
+            ('comm', ct.c_char * EBPH_FILENAME_LEN),
             ]

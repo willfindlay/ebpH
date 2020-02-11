@@ -21,6 +21,7 @@ import subprocess
 
 from bcc import BPF, lib
 
+from structs import EBPHProfile
 from utils import locks
 import config
 
