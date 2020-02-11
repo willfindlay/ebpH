@@ -9,6 +9,7 @@ import signal
 import bcc.syscall
 
 from structs import EBPHProfile
+from utils import syscall_name
 
 import config
 config.init()
@@ -42,19 +43,6 @@ def parse_profile(f):
     profile = EBPHProfile()
     f.readinto(profile)
     return profile
-
-def syscall_name(num: int):
-    """
-    Convert a system call number into a name.
-
-    Args:
-        num: system call number
-
-    Return:
-        Uppercase string system call name
-    """
-    name_bin = bcc.syscall.syscall_name(num)
-    return name_bin.decode('utf-8').upper()
 
 def print_profile_data(profile: EBPHProfile, data: 'train' or 'test', show_empty: bool):
     """

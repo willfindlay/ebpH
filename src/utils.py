@@ -17,6 +17,20 @@ import time
 from functools import wraps
 
 import config
+config.init()
+
+def syscall_name(num: int):
+    """
+    Convert a system call number into a name.
+
+    Args:
+        num: system call number
+
+    Return:
+        Uppercase string system call name
+    """
+    name_bin = bcc.syscall.syscall_name(num)
+    return name_bin.decode('utf-8').upper()
 
 def setup_dir(d):
     """
