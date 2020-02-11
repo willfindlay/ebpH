@@ -8,7 +8,7 @@ import datetime
 
 import config
 import json
-from utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from utils import to_json_bytes, from_json_bytes, receive_message, send_message, connect_to_socket
 
 DESCRIPTION = """
 List processes/profiles being traced by ebpH.
@@ -89,12 +89,7 @@ if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     config.init()
 
-    # Connect to socket
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(config.socket)
-    except ConnectionRefusedError:
-        print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+    sock = connect_to_socket()
 
     # Form request
     request = {'func': 'fetch_profiles' if args.profiles else 'fetch_processes'}

@@ -14,6 +14,7 @@
 import os, sys
 import json
 import time
+import socket
 from functools import wraps
 
 import bcc.syscall
@@ -79,6 +80,18 @@ def from_json_bytes(x, encoding='utf-8'):
     Unserialize json.
     """
     return json.loads(x.decode(encoding))
+
+def connect_to_socket():
+    """
+    Connect to ebpH's socket and return the corresponding socket object.
+    """
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(config.socket)
+        return sock
+    except ConnectionRefusedError:
+        print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+        sys.exit(-1)
 
 def receive_message(sock):
     """
