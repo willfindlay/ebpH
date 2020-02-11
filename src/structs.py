@@ -21,5 +21,5 @@ class EBPHProfileData(ct.Structure):
 
 class EBPHProfile(ct.Structure):
     _fields_ = [
-            (),
+            ('flags', ct.c_uint8),
             ]
