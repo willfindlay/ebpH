@@ -7,7 +7,7 @@ import datetime
 import signal
 
 from structs import EBPHProfile
-from utils import syscall_name
+from utils import syscall_name, connect_to_socket, from_json_bytes, to_json_bytes, send_message, receive_message
 
 import config
 config.init()
@@ -27,6 +27,20 @@ Example usage:
     sudo ebph-inspect -k 21342                   # Inspect profile with key 21342
     sudo ebph-inspect -p /tmp/testprofiles/21342 # Inspect profile stored in /tmp/testprofiles/21342
 """
+
+#def fetch_profile_from_daemon():
+#    # Connect to socket
+#    sock = connect_to_socket()
+#
+#    # Form request
+#    request = {'func': 'fetch_profile', 'args': []}
+#
+#    # Send request
+#    send_message(sock, to_json_bytes(request))
+#
+#    # Handle response
+#    res = receive_message(sock)
+#    res = from_json_bytes(res)
 
 def parse_profile(f):
     """
