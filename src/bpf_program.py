@@ -211,20 +211,14 @@ class BPFProgram:
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
             path = os.path.join(config.profiles_dir, filename)
+            profile = EBPHProfile()
             with open(path, 'rb') as f:
-                profile = f.read()
+                f.readinto(profile)
 
-            # Yoink structure info from the init array
-            # FIXME: This is kind of hacky, but it works
-            profile_struct = self.bpf["__profile_init"][0]
-            # Make sure we're not messing with memory we shouldn't
-            fit = min(len(profile), ct.sizeof(profile_struct))
-            # Write contents of profile into profile_struct
-            ct.memmove(ct.addressof(profile_struct), profile, fit)
             # Update our profile map
-            self.bpf["profiles"].__setitem__(ct.c_int64(profile_struct.key), profile_struct)
+            self.bpf["profiles"].__setitem__(ct.c_int64(profile.key), profile)
 
-            logger.debug(f"Successfully loaded profile {profile_struct.comm.decode('utf-8')} ({profile_struct.key})")
+            logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} ({profile.key})")
         logger.info(f"Successfully loaded all profiles")
 
     @locks(profiles_lock)
