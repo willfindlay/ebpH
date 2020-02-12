@@ -1,5 +1,5 @@
 /* ebpH An eBPF intrusion detection program.
- *      Monitors system call patterns and detects anomalies.
+ * Monitors system call patterns and detects anomalies.
  * Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
  * Anil Somayaji (soma@scs.carleton.ca)
  *
@@ -26,9 +26,14 @@
 
 /* Struct definitions below this line ------------------- */
 
+struct ebpH_lookahead_row
+{
+    u8 flags[EBPH_NUM_SYSCALLS];
+};
+
 struct ebpH_profile_data
 {
-    u8 flags[EBPH_LOOKAHEAD_ARRAY_SIZE];
+    struct ebpH_lookahead_row rows[EBPH_NUM_SYSCALLS];
     u64 last_mod_count;
     u64 train_count;
     u64 normal_count;
@@ -92,9 +97,13 @@ struct ebpH_anomaly
     char comm[EBPH_FILENAME_LEN];
 };
 
+/* Submit perf events related to errors and warnings, not called directly */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx);
 static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx);
+
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx);
+static u8 *ebpH_lookahead(struct ebpH_profile_data *data, long curr, long prev);
+
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
@@ -105,7 +114,7 @@ static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ct
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
 
-static struct ebpH_sequence *ebpH_get_curr_seq(struct ebpH_process *process); // add new sequence stack functions here
+static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process);
 static int ebpH_push_seq(struct ebpH_process *process);
 static int ebpH_pop_seq(struct ebpH_process *process);
 

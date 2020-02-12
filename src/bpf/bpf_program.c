@@ -1,5 +1,5 @@
 /* ebpH An eBPF intrusion detection program.
- *      Monitors system call patterns and detects anomalies.
+ * Monitors system call patterns and detects anomalies.
  * Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
  * Anil Somayaji (soma@scs.carleton.ca)
  *
@@ -103,33 +103,23 @@ static u64 ebpH_epoch_time_ns()
     return (u64) bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
 }
 
-static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx)
+static u8 *ebpH_lookahead(struct ebpH_profile_data *data, long curr, long prev)
 {
-    if (!curr)
-    {
-        EBPH_ERROR("NULL curr syscall -- ebpH_get_lookahead_index", ctx);
-        return 0;
-    }
+    /* NULL process */
+    if (!data)
+        return NULL;
 
-    if (!prev)
-    {
-        EBPH_ERROR("NULL prev syscall -- ebpH_get_lookahead_index", ctx);
-        return 0;
-    }
+    /* Invalid access */
+    if (curr < 0 || curr >= EBPH_NUM_SYSCALLS)
+        return NULL;
 
-    if (*curr >= EBPH_NUM_SYSCALLS || *curr < 0)
-    {
-        EBPH_ERROR("Access out of bounds (curr)... Please update maximum syscall number -- ebpH_get_lookahead_index", ctx);
-        return 0;
-    }
+    struct ebpH_lookahead_row *row = &data->rows[curr];
 
-    if (*prev >= EBPH_NUM_SYSCALLS || *prev < 0)
-    {
-        EBPH_ERROR("Access out of bounds (prev)... Please update maximum syscall number -- ebpH_get_lookahead_index", ctx);
-        return 0;
-    }
+    /* Invalid access */
+    if (!row || prev < 0 || prev >= EBPH_NUM_SYSCALLS)
+        return NULL;
 
-    return (long) (*curr * EBPH_NUM_SYSCALLS + *prev);
+    return &row->flags[prev];
 }
 
 static int ebpH_push_seq(struct ebpH_process *process)
@@ -155,7 +145,7 @@ static int ebpH_push_seq(struct ebpH_process *process)
     /* Increment top if we can */
     process->stack.top++;
 
-    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+    struct ebpH_sequence *seq = ebpH_curr_seq(process);
     if (!seq)
     {
         return -3;
@@ -194,7 +184,7 @@ static int ebpH_pop_seq(struct ebpH_process *process)
     return 0;
 }
 
-static struct ebpH_sequence *ebpH_get_curr_seq(struct ebpH_process *process)
+static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process)
 {
     /* NULL process */
     if (!process)
@@ -215,7 +205,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         anomalies = ebpH_test(&(profile->test), process, ctx);
         if (anomalies)
         {
-            struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+            struct ebpH_sequence *seq = ebpH_curr_seq(process);
             if (!seq)
                 goto out;
 
@@ -240,12 +230,12 @@ out:
 static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx)
 {
     int mismatches = 0;
-    long entry = -1;
+    u8 *entry;
 
     if (!process)
         return mismatches;
 
-    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+    struct ebpH_sequence *seq = ebpH_curr_seq(process);
 
     if (!seq || !seq->count)
         return mismatches;
@@ -253,29 +243,26 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
     /* access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long syscall = seq->seq[0];
+        long curr = seq->seq[0];
         long prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
         /* determine which entry we need */
-        entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
+        entry = ebpH_lookahead(data, curr, prev);
 
-        if (entry == -1)
+        if (!entry)
             continue;
 
-        /* lookup the syscall data */
-        u8 the_entry = data->flags[entry];
-
         /* check for mismatch */
-        if ((the_entry & (1 << (i-1))) == 0)
+        if ((*entry & (1 << (i-1))) == 0)
         {
 #ifdef EBPH_DEBUG
             struct ebpH_profile *profile = profiles.lookup(&process->exe_key);
             if (profile)
             {
                 //bpf_trace_printk("Mismatch occurred between curr %ld and prev %ld at distance %d in %s\n", syscall, prev, i, profile->comm);
-                bpf_trace_printk("Mismatch occurred at entry %ld at distance %d in %s\n", entry, i, profile->comm);
+                //bpf_trace_printk("Mismatch occurred at entry %ld at distance %d in %s\n", entry, i, profile->comm);
             }
 #endif
             mismatches++;
@@ -297,7 +284,7 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         profile->train.last_mod_count = 0;
 
 //#ifdef EBPH_DEBUG
-//        struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+//        struct ebpH_sequence *seq = ebpH_curr_seq(process);
 //        if (seq)
 //        {
 //            bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
@@ -390,14 +377,12 @@ static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx)
 
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
 {
-    long entry = -1;
-    long syscall = 0;
-    long prev = 0;
+    u8 *entry;
 
     if (!process)
         return -1;
 
-    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+    struct ebpH_sequence *seq = ebpH_curr_seq(process);
 
     if (!seq || !seq->count)
         return -1;
@@ -405,23 +390,19 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     /* access at index [syscall][prev] */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long syscall = seq->seq[0];
+        long curr = seq->seq[0];
         long prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
         /* Determine which entry we need */
-        entry = ebpH_get_lookahead_index(&syscall, &prev, ctx);
+        entry = ebpH_lookahead(&profile->train, curr, prev);
 
-        if (entry == -1)
+        if (!entry)
             continue;
 
-        /* Lookup the syscall data */
-        u8 data = profile->train.flags[entry];
-
         /* Set lookahead pair */
-        data |= (1 << (i - 1));
-        profile->train.flags[entry] = data;
+        *entry |= (1 << (i - 1));
     }
 
     return 0;
@@ -514,7 +495,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return 1;
     }
 
-    struct ebpH_sequence *seq = ebpH_get_curr_seq(process);
+    struct ebpH_sequence *seq = ebpH_curr_seq(process);
 
     if (!seq)
         return -1;
@@ -717,7 +698,7 @@ static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
 static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx)
 {
     u8 zero = 0;
-    bpf_probe_read(data->flags, sizeof(data->flags), &zero);
+    bpf_probe_read(data->rows, sizeof(data->rows), &zero);
 
     return 0;
 }

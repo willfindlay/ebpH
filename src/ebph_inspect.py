@@ -85,8 +85,8 @@ def print_profile_data(profile: EBPHProfile, data: 'train' or 'test', show_empty
     print('TRAINING DATA:' if data == 'train' else 'TESTING DATA:')
     print(f'{"CURR":>24} {"PREV":>24} {"":>10} FLAGS')
     # Print all entries
-    for prev, row in enumerate(profile_data.flags):
-        for curr, flag in enumerate(row):
+    for curr, row in enumerate(profile_data.flags):
+        for prev, flag in enumerate(row):
             # Either ignore empty entries or show all
             if flag != 0 or show_empty:
                 flag = bin(flag)[2:].zfill(8)
