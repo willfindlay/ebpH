@@ -213,10 +213,9 @@ class BPFProgram:
                 f.readinto(profile)
 
             # Update our profile map
-            print(f"trying to update {profile.comm.decode('utf-8')} {profile.key} from {path}")
             self.bpf["profiles"][ct.c_uint64(profile.key)] = profile
 
-            logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} ({profile.key})")
+            logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} from {path}")
         logger.info(f"Successfully loaded all profiles")
 
     @locks(profiles_lock)
