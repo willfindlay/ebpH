@@ -110,7 +110,7 @@ def parse_args(args=[]):
     off = commands.add_parser('off',
             help="Pause system monitoring without killing the daemon.")
 
-    save_profiles = commands.add_parser('save-profiles',
+    save_profiles = commands.add_parser('save',
             help="Save all profiles to disk. (This command only works if the daemon is allowed to save profiles).")
 
     status = commands.add_parser('status',
@@ -190,7 +190,7 @@ if __name__ == "__main__":
         else:
             print(f"System monitoring paused.")
 
-    @command('save-profiles', ebph_func='save_profiles')
+    @command('save', ebph_func='save_profiles')
     def save_profiles(res=None):
         """
         Force save profiles to disk.
