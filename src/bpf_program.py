@@ -216,7 +216,8 @@ class BPFProgram:
                 f.readinto(profile)
 
             # Update our profile map
-            self.bpf["profiles"].__setitem__(ct.c_int64(profile.key), profile)
+            #self.bpf["profiles"].__setitem__(ct.c_int64(profile.key), profile)
+            self.bpf["profiles"][ct.c_uint64(profile.key)] = profile
 
             logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} ({profile.key})")
         logger.info(f"Successfully loaded all profiles")
