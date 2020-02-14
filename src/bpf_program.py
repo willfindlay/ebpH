@@ -157,7 +157,7 @@ class BPFProgram:
         if self.monitoring:
             logger.info('System is already being monitored')
             return 1
-        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(1))
+        self.bpf["__is_monitoring"][ct.c_int(0)] = ct.c_int(1)
         logger.info('Started monitoring the system')
         return 0
 
@@ -170,7 +170,7 @@ class BPFProgram:
         if not self.monitoring:
             logger.info('System is not being monitored')
             return 1
-        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), ct.c_int(0))
+        self.bpf["__is_monitoring"][ct.c_int(0)] = ct.c_int(0)
         logger.info('Stopped monitoring the system')
         return 0
 
@@ -180,12 +180,10 @@ class BPFProgram:
         if self.args.nosave:
             logger.warning("nosave flag is set, refusing to save profiles!")
             return
-        # save monitoring state to be restored later
-        monitoring = self.bpf["__is_monitoring"][0]
         # notify bpf that we are saving
-        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(1))
-        # wait until bpf stops monitoring
-        while(self.bpf["__is_monitoring"][0]):
+        self.bpf["__is_saving"][ct.c_int(0)] = ct.c_int(1)
+        # wait until bpf knows it is saving
+        while not self.bpf["__is_saving"][0]:
             pass
         # Must be itervalues, not values
         for profile in self.bpf["profiles"].itervalues():
@@ -199,8 +197,7 @@ class BPFProgram:
         logger.info(f"Successfully saved all profiles")
 
         # return to original state
-        self.bpf["__is_saving"].__setitem__(ct.c_int(0), ct.c_int(0))
-        self.bpf["__is_monitoring"].__setitem__(ct.c_int(0), monitoring)
+        self.bpf["__is_saving"][ct.c_int(0)] = ct.c_int(0)
 
     # load all profiles from disk
     @locks(profiles_lock)
@@ -216,7 +213,7 @@ class BPFProgram:
                 f.readinto(profile)
 
             # Update our profile map
-            #self.bpf["profiles"].__setitem__(ct.c_int64(profile.key), profile)
+            print(f"trying to update {profile.comm.decode('utf-8')} {profile.key} from {path}")
             self.bpf["profiles"][ct.c_uint64(profile.key)] = profile
 
             logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} ({profile.key})")

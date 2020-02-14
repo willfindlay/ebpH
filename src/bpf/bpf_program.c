@@ -473,13 +473,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return 0;
     }
 
-    if (*saving)
-    {
-        *monitoring = 0;
-        __is_monitoring.update(&zero, monitoring);
-    }
-
-    if (!(*monitoring))
+    if (!(*monitoring) || (*saving))
     {
         return 0;
     }
