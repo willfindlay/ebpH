@@ -49,9 +49,6 @@ struct ebpH_profile
     struct ebpH_profile_data test;
     u64 key;
     char comm[EBPH_FILENAME_LEN];
-//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-//    struct bpf_spin_lock lock;
-//#endif
 };
 
 struct ebpH_locality
@@ -83,9 +80,6 @@ struct ebpH_process
     u32 tid; /* Kernel pid */
     u64 exe_key;
     u8 in_execve;
-//#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,1,0)
-//    struct bpf_spin_lock lock;
-//#endif
 };
 
 struct ebpH_anomaly

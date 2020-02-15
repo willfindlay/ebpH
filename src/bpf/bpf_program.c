@@ -71,11 +71,20 @@ static void stats_increment(u8 key)
 {
     u64 zero = 0;
     u64 *leaf = stats.lookup_or_try_init(&key, &zero);
-    if (!leaf || *leaf == (~(u64)0))
+
+    if (!leaf)
     {
-#ifdef EBPH_DEBUG
-        bpf_trace_printk("ERROR: Could not increment stat %u\n", key);
-#endif
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("stats_increment: Null leaf for key %u\n", key);
+        #endif
+        return;
+    }
+
+    if (*leaf == (~(u64)0))
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("stats_increment: Cannot increment leaf value of %llu for key %u\n", *leaf, key);
+        #endif
         return;
     }
 
@@ -87,11 +96,20 @@ static void stats_decrement(u8 key)
 {
     u64 zero = 0;
     u64 *leaf = stats.lookup_or_try_init(&key, &zero);
-    if (!leaf || *leaf == 0)
+
+    if (!leaf)
     {
-#ifdef EBPH_DEBUG
-        bpf_trace_printk("ERROR: Could not decrement stat %u\n", key);
-#endif
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("stats_decrement: Null leaf for key %u\n", key);
+        #endif
+        return;
+    }
+
+    if (*leaf <= 0)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("stats_decrement: Cannot decrement leaf value of %llu for key %u\n", *leaf, key);
+        #endif
         return;
     }
 
@@ -105,19 +123,34 @@ static u64 ebpH_epoch_time_ns()
 
 static u8 *ebpH_lookahead(struct ebpH_profile_data *data, long curr, long prev)
 {
-    /* NULL process */
+    /* Null profile data */
     if (!data)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_lookahead: Null profile data\n");
+        #endif
         return NULL;
+    }
 
     /* Invalid access */
     if (curr < 0 || curr >= EBPH_NUM_SYSCALLS)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_lookahead: Invalid curr value %lu\n", curr);
+        #endif
         return NULL;
+    }
 
     struct ebpH_lookahead_row *row = &data->rows[curr];
 
     /* Invalid access */
     if (!row || prev < 0 || prev >= EBPH_NUM_SYSCALLS)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_lookahead: Invalid prev value %lu\n", prev);
+        #endif
         return NULL;
+    }
 
     return &row->flags[prev];
 }
@@ -126,19 +159,17 @@ static int ebpH_push_seq(struct ebpH_process *process)
 {
     if (!process)
     {
-#ifdef EBPH_DEBUG
-        char comm[16];
-        bpf_get_current_comm(comm, sizeof(comm));
-        bpf_trace_printk("Null process %s -- ebpH_push_seq\n", comm);
-#endif
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_push_seq: Null process\n");
+        #endif
         return -1;
     }
 
     if (process->stack.top == EBPH_SEQSTACK_SIZE - 1)
     {
-#ifdef EBPH_DEBUG
-    bpf_trace_printk("Cannot push to stack since top is %d in pid %u\n", process->stack.top, process->pid);
-#endif
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_push_seq: Cannot push to stack since top is %d\n", process->stack.top, process->pid);
+        #endif
         return -2;
     }
 
@@ -148,6 +179,9 @@ static int ebpH_push_seq(struct ebpH_process *process)
     struct ebpH_sequence *seq = ebpH_curr_seq(process);
     if (!seq)
     {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_push_seq: Null sequence\n");
+        #endif
         return -3;
     }
 
@@ -161,24 +195,25 @@ static int ebpH_push_seq(struct ebpH_process *process)
 
 static int ebpH_pop_seq(struct ebpH_process *process)
 {
+    /* Check to see if process is null */
     if (!process)
     {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_pop_seq: Null process\n");
+        #endif
         return -1;
     }
 
+    /* Check to see if we can decrement top of stack */
     if (process->stack.top == 0)
     {
-#ifdef EBPH_DEBUG
-    bpf_trace_printk("Cannot pop from stack since top is %d in pid %u\n", process->stack.top, process->pid);
-#endif
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_pop_seq: Cannot pop from stack, top is %d\n", process->stack.top);
+        #endif
         return -2;
     }
 
-#ifdef EBPH_DEBUG
-    bpf_trace_printk("Popping sequence %d in pid %u\n", process->stack.top, process->pid);
-#endif
-
-    /* Decrement top if we can */
+    /* Decrement top */
     process->stack.top--;
 
     return 0;
@@ -186,12 +221,23 @@ static int ebpH_pop_seq(struct ebpH_process *process)
 
 static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process)
 {
-    /* NULL process */
+    /* Check to see if process is null */
     if (!process)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_curr_seq: Null process\n");
+        #endif
         return NULL;
-    /* Invalid access */
+    }
+
+    /* Check for invalid access */
     if (process->stack.top < 0 || process->stack.top >= EBPH_SEQSTACK_SIZE)
+    {
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("ebpH_curr_seq: Invalid stack access, top is %d\n", process->stack.top);
+        #endif
         return NULL;
+    }
 
     return &process->stack.seq[process->stack.top];
 }
@@ -207,9 +253,15 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         {
             struct ebpH_sequence *seq = ebpH_curr_seq(process);
             if (!seq)
+            {
+                #ifdef EBPH_DEBUG
+                bpf_trace_printk("ebpH_process_normal: Null sequence, cannot submit anomaly event\n");
+                #endif
                 goto out;
+            }
 
             on_anomaly.perf_submit(ctx, process, sizeof(*process));
+            // TODO: check for successful submission here
 
             if (profile->anomalies > EBPH_ANOMALY_LIMIT)
             {
@@ -254,14 +306,14 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         /* check for mismatch */
         if ((*entry & (1 << (i-1))) == 0)
         {
-#ifdef EBPH_DEBUG
+            #ifdef EBPH_DEBUG
             struct ebpH_profile *profile = profiles.lookup(&process->exe_key);
             if (profile)
             {
                 //bpf_trace_printk("Mismatch occurred between curr %ld and prev %ld at distance %d in %s\n", syscall, prev, i, profile->comm);
                 //bpf_trace_printk("Mismatch occurred at entry %ld at distance %d in %s\n", entry, i, profile->comm);
             }
-#endif
+            #endif
             mismatches++;
         }
     }
@@ -280,15 +332,15 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         ebpH_add_seq(profile, process, ctx);
         profile->train.last_mod_count = 0;
 
-//#ifdef EBPH_DEBUG
-//        struct ebpH_sequence *seq = ebpH_curr_seq(process);
-//        if (seq)
-//        {
-//            bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
-//            for (int i = 1; i < EBPH_SEQLEN; i++)
-//                bpf_trace_printk("|   System call %ld\n", seq->seq[i]);
-//        }
-//#endif
+        //#ifdef EBPH_DEBUG
+        //        struct ebpH_sequence *seq = ebpH_curr_seq(process);
+        //        if (seq)
+        //        {
+        //            bpf_trace_printk("New LAP(s) generated for %s by the following sequence [curr->prev]:\n", profile->comm);
+        //            for (int i = 1; i < EBPH_SEQLEN; i++)
+        //                bpf_trace_printk("|   System call %ld\n", seq->seq[i]);
+        //        }
+        //#endif
     }
     else
     {
@@ -480,9 +532,9 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     if (!profile)
     {
         EBPH_ERROR("NULL profile -- ebpH_process_syscall", ctx);
-#ifdef EBPH_DEBUG
+        #ifdef EBPH_DEBUG
         bpf_trace_printk("NULL profile for key %lu -- ebpH_process_syscall\n", process->exe_key);
-#endif
+        #endif
         return 1;
     }
 
@@ -498,12 +550,12 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
     seq->seq[0] = *syscall;
     seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
-#ifdef EBPH_DEBUG
+    #ifdef EBPH_DEBUG
     if (process->stack.top > 0)
     {
         bpf_trace_printk("frame %d: system call %lu\n", process->stack.top, *syscall);
     }
-#endif
+    #endif
 
     /* TODO: take profile lock here */
 
@@ -679,11 +731,11 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
 
 static int ebpH_copy_train_to_test(struct ebpH_profile *profile)
 {
-        struct ebpH_profile_data *train = &(profile->train);
-        struct ebpH_profile_data *test = &(profile->test);
-        bpf_probe_read(test, sizeof(*test), train);
+    struct ebpH_profile_data *train = &(profile->train);
+    struct ebpH_profile_data *test = &(profile->test);
+    bpf_probe_read(test, sizeof(*test), train);
 
-        return 0;
+    return 0;
 }
 
 static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx)
@@ -865,9 +917,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     }
     else
     {
-#ifdef EBPH_DEBUG
+        #ifdef EBPH_DEBUG
         bpf_trace_printk("Refusing to process syscall %d since it will be restarted.\n", syscall);
-#endif
+        #endif
     }
 
     return 0;
@@ -986,11 +1038,11 @@ int kprobe__do_signal(struct pt_regs *ctx)
         /* Process is not being traced */
         return 0;
     }
-#ifdef EBPH_DEBUG
+    #ifdef EBPH_DEBUG
     char comm[16];
     bpf_get_current_comm(comm, sizeof(comm));
     bpf_trace_printk("%s -- Hello signal world!\n", comm);
-#endif
+    #endif
 
     if (ebpH_push_seq(process))
     {
