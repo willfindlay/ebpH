@@ -209,10 +209,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
             if (!seq)
                 goto out;
 
-            struct ebpH_anomaly event = {.pid=process->pid, .key=profile->key, .syscall=seq->seq[0],
-                .anomalies=anomalies};
-            bpf_probe_read_str(event.comm, sizeof(event.comm), profile->comm);
-            on_anomaly.perf_submit(ctx, &event, sizeof(event));
+            on_anomaly.perf_submit(ctx, process, sizeof(*process));
 
             if (profile->anomalies > EBPH_ANOMALY_LIMIT)
             {

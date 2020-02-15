@@ -20,8 +20,8 @@ import subprocess
 
 from bcc import BPF, lib
 
-from structs import EBPHProfile
-from utils import locks
+from structs import EBPHProfile, EBPHProcess
+from utils import locks, syscall_name
 import config
 
 logger = logging.getLogger('ebpH')
@@ -74,23 +74,38 @@ class BPFProgram:
 
         # Anomaly detected
         def on_anomaly(cpu, data, size):
-            event = self.bpf["on_anomaly"].event(data)
-            s = f"PID {event.pid} ({event.comm.decode('utf-8')} {event.key}): {event.anomalies} anomalies detected for syscall {event.syscall} "
-            logger.warning(s)
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.exe_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.exe_key
+                profile.comm = b'UNKNOWN'
+
+            # Get sequence array from correct stack frame
+            sequence = process.stack.seq[process.stack.top].seq
+            # 9999 is empty
+            sequence = [syscall_name(syscall) for syscall in sequence if syscall != 9999]
+            # Sequences are actually reversed
+            sequence = reversed(sequence)
+
+            logger.warning(f"Anomalies detected in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key})")
+            logger.debug(f"Stack count: {process.stack.top}")
+            logger.warning(f"Seq: {', '.join(sequence)}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         # error, warning
-        def on_error(cpu, data, size):
+        def ebpH_error(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             logger.error(s)
-        self.bpf["ebpH_error"].open_perf_buffer(on_error, lost_cb=lost_cb("on_error"))
+        self.bpf["ebpH_error"].open_perf_buffer(ebpH_error, lost_cb=lost_cb("ebpH_error"))
 
-        def on_warning(cpu, data, size):
+        def ebpH_warning(cpu, data, size):
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             logger.warning(s)
-        self.bpf["ebpH_warning"].open_perf_buffer(on_warning, lost_cb=lost_cb("on_warning"))
+        self.bpf["ebpH_warning"].open_perf_buffer(ebpH_warning, lost_cb=lost_cb("ebpH_warning"))
 
         logger.info(f'Registered perf buffers')
 
