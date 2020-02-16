@@ -971,9 +971,10 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     }
     else
     {
-        #ifdef EBPH_DEBUG
-        bpf_trace_printk("raw_syscalls:sys_exit: Refusing to process syscall %d since it will be restarted.\n", syscall);
-        #endif
+        // TODO: consider removing this print completely
+        //#ifdef EBPH_DEBUG
+        //bpf_trace_printk("raw_syscalls:sys_exit: Refusing to process syscall %d since it will be restarted.\n", syscall);
+        //#endif
     }
 
     return 0;
