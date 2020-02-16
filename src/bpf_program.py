@@ -55,8 +55,12 @@ class BPFProgram:
         logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
+        # Unregister bcc's cleanup function, which was causing segmentation fault
+        # TODO: figure out a) why this was happening; and b) whether or not this is okay to do
         atexit.unregister(self.bpf.cleanup)
+        # Unregister our own cleanup if already registered
         atexit.unregister(self.cleanup)
+        # Register out own cleanup
         atexit.register(self.cleanup)
         logger.info("Registered BPFProgram exit hooks")
 
@@ -67,7 +71,7 @@ class BPFProgram:
                 logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
             return closure
 
-        # executable has been processed in ebpH_on_do_open_execat
+        # Executable has been processed in kretprobe__do_open_execat
         def on_executable_processed(cpu, data, size):
             event = self.bpf["on_executable_processed"].event(data)
             s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
