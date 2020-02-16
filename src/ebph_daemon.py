@@ -144,7 +144,8 @@ class EBPHDaemon(Daemon):
         Return a dictionary of basic profile info excluding things like lookahead pairs.
         """
         profile = self.bpf_program.fetch_profile(key)
-        attrs = {'comm': profile.comm.decode('utf-8'),
+        attrs = {
+                'comm': profile.comm.decode('utf-8'),
                 'key': profile.key,
                 'frozen': profile.frozen,
                 'normal': profile.normal,
@@ -183,7 +184,8 @@ class EBPHDaemon(Daemon):
         Return a dictionary of basic process info, including the accompanying profile.
         """
         process = self.bpf_program.fetch_process(key)
-        attrs = {'pid': process.pid,
+        attrs = {
+                'pid': process.pid,
                 'tid': process.tid,
                 'profile': self.fetch_profile(process.exe_key),
                 }
