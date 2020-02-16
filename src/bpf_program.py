@@ -43,6 +43,9 @@ class BPFProgram:
 
     def __init__(self, args):
         self.args = args
+        self.debug = self.args.debug
+        self.should_save = not self.args.nosave
+        self.should_load = not self.args.noload
 
         # BPF program
         self.bpf = None
@@ -121,11 +124,12 @@ class BPFProgram:
 
         # Set flags
         flags = []
-        if self.args.debug:
+        if self.debug:
             flags.append("-DEBPH_DEBUG")
         if self.args.ludikris:
             flags.append("-DLUDIKRIS")
         for k, v in config.bpf_params.items():
+            # Correctly handle string arguments
             if type(v) == str:
                 v = f"\"{v}\""
             logger.info(f"Using {k}={v}...")
@@ -164,7 +168,7 @@ class BPFProgram:
     # Poll perf_buffers on every daemon tick
     def on_tick(self):
         self.bpf.perf_buffer_poll(30)
-        if self.args.debug:
+        if self.debug:
             self.trace_print()
 
 # Commands below this line ----------------------------------------------
@@ -198,8 +202,8 @@ class BPFProgram:
     # save all profiles to disk
     @locks(profiles_lock)
     def save_profiles(self):
-        if self.args.nosave:
-            logger.warning("nosave flag is set, refusing to save profiles!")
+        if not self.should_save:
+            logger.warning("should_save is false, refusing to save profiles!")
             return
         # notify bpf that we are saving
         self.bpf["__is_saving"][ct.c_int(0)] = ct.c_int(1)
@@ -223,8 +227,8 @@ class BPFProgram:
     # load all profiles from disk
     @locks(profiles_lock)
     def load_profiles(self):
-        if self.args.noload:
-            logger.warning("noload flag is set, refusing to load profiles!")
+        if not self.should_load:
+            logger.warning("should_load is false, refusing to load profiles!")
             return
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
