@@ -51,9 +51,11 @@ class BPFProgram:
         logger.info('Running cleanup hooks...')
         self.stop_monitoring()
         self.save_profiles()
+        self.bpf = None
         logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
+        atexit.unregister(self.bpf.cleanup)
         atexit.unregister(self.cleanup)
         atexit.register(self.cleanup)
         logger.info("Registered BPFProgram exit hooks")

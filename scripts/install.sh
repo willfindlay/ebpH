@@ -9,6 +9,8 @@ mkdir -p $INSTALLDIR
 # make sure root owns /opt/ebpH
 chown root:root $INSTALLDIR
 
+# unlink /opt/ebpH
+rm -rf $INSTALLDIR
 # copy everything into /opt/ebpH
 cp -r ./* $INSTALLDIR
 
