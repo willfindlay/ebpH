@@ -33,15 +33,19 @@ if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
 
     def parse_args(args=[]):
-        parser = argparse.ArgumentParser(description="Daemon script for ebpH.", prog="ebphd", epilog="Configuration file is located in config.py",
+        parser = argparse.ArgumentParser(description="Daemon script for ebpH.",
+                prog="ebphd", epilog="Configuration file is located in config.py",
                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
-        parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(), choices=OPERATIONS, nargs='?',
-                help=f"Operation you want to perform. Not allowed with --nodaemon. Choices are: {', '.join(OPERATIONS)}.")
+        parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(),
+                choices=OPERATIONS, nargs='?',
+                help=f"Operation you want to perform. Not allowed with --nodaemon. "
+                "Choices are: {', '.join(OPERATIONS)}.")
         parser.add_argument('--nodaemon', dest='nodaemon', action='store_true',
                 help=f"Run this as a foreground process instead of a daemon.")
         parser.add_argument('--nolog', dest='nolog', action='store_true',
-                help=f"Write to stderr instead of logfile. In daemon mode, this will simply not write any logging information.")
+                help=f"Write to stderr instead of logfile. In daemon mode, "
+                "this will simply not write any logging information.")
         parser.add_argument('--nosave', dest='nosave', action='store_true',
                 help=f"Don't save profiles on exit.")
         parser.add_argument('--noload', dest='noload', action='store_true',

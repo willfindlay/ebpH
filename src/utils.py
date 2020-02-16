@@ -117,3 +117,31 @@ def send_message(sock, data):
     Send a message over a stream socket, terminating automatically with config.sentinel.
     """
     sock.send(b"".join([data, config.socket_sentinel]))
+
+class LoggerWriter:
+    """
+    LoggerWriter
+
+    A helper class for redirecting stdout and stderr to loggers.
+    """
+    def __init__(self, level):
+        self.level = level
+        self.message = ""
+
+    def write(self, message):
+        """
+        Write each line of the message to the log.
+        """
+        self.message = ''.join([self.message, message])
+        if message.endswith('\n'):
+            self.flush()
+
+    def flush(self):
+        """
+        Provide a dummy flush method.
+        """
+        for line in self.message.split('\n'):
+            if not line.strip():
+                continue
+            self.level(line)
+        self.message = ""
