@@ -37,20 +37,35 @@ def handle_sigint(x, y):
 signal.signal(signal.SIGINT, handle_sigint)
 
 class BPFProgram:
+    """
+    BPFProgram
+
+    Wrapper class to control and provide an interface to the eBPF program.
+    """
     monitoring_lock = threading.Lock()
     profiles_lock = threading.Lock()
     processes_lock = threading.Lock()
 
     def __init__(self, args):
+        # Arguments passed in from command line
         self.args = args
+
+        # Should the BPF program debugging information to debugfs and read it into the logs?
         self.debug = self.args.debug
+
+        # Should we save or load profiles?
         self.should_save = not self.args.nosave
         self.should_load = not self.args.noload
 
-        # BPF program
+        # BPF program should be None until it is loaded
         self.bpf = None
 
     def cleanup(self):
+        """
+        Cleanup hook for BPF program.
+        Stops monitoring the system and then saves all profiles.
+        Finally, sets BPF program to None and prints information to logs.
+        """
         logger.info('Running cleanup hooks...')
         self.stop_monitoring()
         self.save_profiles()
@@ -58,6 +73,9 @@ class BPFProgram:
         logger.info('BPF program unloaded')
 
     def register_exit_hooks(self):
+        """
+        Register the cleanup function as an exit hook.
+        """
         # Unregister bcc's cleanup function, which was causing segmentation fault
         # TODO: figure out a) why this was happening; and b) whether or not this is okay to do
         atexit.unregister(self.bpf.cleanup)
@@ -68,21 +86,33 @@ class BPFProgram:
         logger.info("Registered BPFProgram exit hooks")
 
     def register_perf_buffers(self):
-        # Returns a lost callback for a perf buffer with name buff_name
+        """
+        Register perf buffers for returning information to userspace from BPF program.
+        All perf buffer handlers are defined as closures in here.
+        """
         def lost_cb(buff_name):
+            """
+            Returns a closure that prints more detailed information on lost samples.
+            """
             def closure(lost):
                 logger.warning(f"Lost {lost} samples from perf_buffer {buff_name}")
             return closure
 
-        # Executable has been processed in kretprobe__do_open_execat
         def on_executable_processed(cpu, data, size):
+            """
+            Invoked every time an executable is processed in the BPF program.
+            Events are submitted in kretprobe__do_open_execat.
+            """
             event = self.bpf["on_executable_processed"].event(data)
             s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
             logger.info(s)
         self.bpf["on_executable_processed"].open_perf_buffer(on_executable_processed, lost_cb=lost_cb("on_executable_processed"))
 
-        # Anomaly detected
         def on_anomaly(cpu, data, size):
+            """
+            Invoked every time an anaomaly is detected by the BPF program.
+            Events are submitted in ebpH_process_normal.
+            """
             process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
             try:
                 profile = self.bpf["profiles"][ct.c_uint64(process.exe_key)]
@@ -103,14 +133,23 @@ class BPFProgram:
             logger.warning(f"Seq: {', '.join(sequence)}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
-        # error, warning
         def ebpH_error(cpu, data, size):
+            """
+            Generic function for returning simple error messages to userspace.
+            Events are submitted at various points of failure in the eBPF program.
+
+            For more detailed error reporting, use the --debug flag instead when starting the daemon.
+            """
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             logger.error(s)
         self.bpf["ebpH_error"].open_perf_buffer(ebpH_error, lost_cb=lost_cb("ebpH_error"))
 
         def ebpH_warning(cpu, data, size):
+            """
+            Generic function for returning simple warning messages to userspace.
+            Currently not used.
+            """
             event = ct.cast(data, ct.c_char_p).value.decode('utf-8')
             s = f"{event}"
             logger.warning(s)
@@ -119,6 +158,19 @@ class BPFProgram:
         logger.info(f'Registered perf buffers')
 
     def load_bpf(self):
+        """
+        Load BPF program and performs various setup functionality.
+
+        In order we:
+            1. Set up our cflags.
+            2. Calculate boot epoch time and set it as a flag.
+            3. Open the bpf program for reading.
+            4. Compile and load the BPF program, passing the flags we set previously.
+            5. Register exit hooks.
+            6. Register perf buffers.
+            7. Load profiles (if we should load).
+            8. Start monitoring the system.
+        """
         assert self.bpf == None
         logger.info('Initializing BPF program...')
 
@@ -158,15 +210,27 @@ class BPFProgram:
         logger.info('BPF program initialized')
 
     def trace_print(self):
-        while True:
-            fields = self.bpf.trace_fields(nonblocking=True)
-            msg = fields[-1]
-            if msg == None:
-                return
-            logger.debug(msg.decode('utf-8'))
+        """
+        Helper to print information from debugfs logfile until we have consumed it entirely.
 
-    # Poll perf_buffers on every daemon tick
+        This is great for debugging, but should not be used in production, since the debugfs logfile
+        is shared globally between all BPF programs.
+        """
+        while True:
+            try:
+                fields = self.bpf.trace_fields(nonblocking=True)
+                msg = fields[-1]
+                if msg == None:
+                    return
+                logger.debug(msg.decode('utf-8'))
+            except:
+                logger.warning("Could not correctly parse debug information from debugfs")
+
     def on_tick(self):
+        """
+        This function is executed continuously as the daemon runs.
+        Implements a "tick", polling perf buffers and optionally parsing debugfs logs.
+        """
         self.bpf.perf_buffer_poll(30)
         if self.debug:
             self.trace_print()
@@ -199,9 +263,11 @@ class BPFProgram:
         logger.info('Stopped monitoring the system')
         return 0
 
-    # save all profiles to disk
     @locks(profiles_lock)
     def save_profiles(self):
+        """
+        Save all profiles to disk, if configured to save.
+        """
         if not self.should_save:
             logger.warning("should_save is false, refusing to save profiles!")
             return
@@ -227,6 +293,9 @@ class BPFProgram:
     # load all profiles from disk
     @locks(profiles_lock)
     def load_profiles(self):
+        """
+        Load all profiles from disk, if configured to load.
+        """
         if not self.should_load:
             logger.warning("should_load is false, refusing to load profiles!")
             return
@@ -245,16 +314,25 @@ class BPFProgram:
 
     @locks(profiles_lock)
     def fetch_profile(self, key):
+        """
+        Get profile with key <key> from profiles map.
+        """
         # TODO: check if bpf is None
         return self.bpf['profiles'][ct.c_uint64(key)]
 
     @locks(processes_lock)
     def fetch_process(self, key):
+        """
+        Get process with key <key> from processes map.
+        """
         # TODO: check if bpf is None
         return self.bpf['processes'][ct.c_uint64(key)]
 
     @locks(profiles_lock)
     def reset_profile(self, key):
+        """
+        Reset a profile.
+        """
         key = int(key)
         self.stop_monitoring()
         profile = self.bpf['profiles'][ct.c_uint64(key)]
