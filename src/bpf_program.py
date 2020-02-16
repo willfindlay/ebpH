@@ -26,13 +26,13 @@ import config
 
 logger = logging.getLogger('ebpH')
 
-# register handlers
+# Register signal handlers
 def handle_sigterm(x, y):
-    logger.warning("Caught SIGTERM")
+    logger.debug("Caught SIGTERM")
     sys.exit(0)
 signal.signal(signal.SIGTERM, handle_sigterm)
 def handle_sigint(x, y):
-    logger.warning("Caught SIGINT")
+    logger.debug("Caught SIGINT")
     sys.exit(0)
 signal.signal(signal.SIGINT, handle_sigint)
 

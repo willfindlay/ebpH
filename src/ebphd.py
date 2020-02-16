@@ -25,10 +25,6 @@ from ebph_daemon import EBPHDaemon
 import config
 from utils import setup_dir
 
-# Register signal handlers
-signal.signal(signal.SIGTERM, lambda x, y: sys.exit(0))
-signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
-
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
 
