@@ -1,5 +1,4 @@
-# ebpH --  An eBPF intrusion detection program.
-# -------  Monitors system call patterns and detect anomalies.
+# ebpH  An eBPF intrusion detection program. Monitors system call patterns and detect anomalies.
 # Copyright 2019 William Findlay (williamfindlay@cmail.carleton.ca) and
 # Anil Somayaji (soma@scs.carleton.ca)
 #
@@ -7,16 +6,30 @@
 #  http://people.scs.carleton.ca/~mvvelzen/pH/pH.html
 #  Copyright 2003 Anil Somayaji
 #
-# USAGE: ebphd <COMMAND>
-#
 # Licensed under GPL v2 License
 
 import os, sys
 import json
 import time
+import socket
 from functools import wraps
 
+import bcc.syscall
+
 import config
+
+def syscall_name(num: int):
+    """
+    Convert a system call number into a name.
+
+    Args:
+        num: system call number
+
+    Return:
+        Uppercase string system call name
+    """
+    name_bin = bcc.syscall.syscall_name(num)
+    return name_bin.decode('utf-8').upper()
 
 def setup_dir(d):
     """
@@ -65,6 +78,18 @@ def from_json_bytes(x, encoding='utf-8'):
     """
     return json.loads(x.decode(encoding))
 
+def connect_to_socket():
+    """
+    Connect to ebpH's socket and return the corresponding socket object.
+    """
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(config.socket)
+        return sock
+    except ConnectionRefusedError:
+        print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+        sys.exit(-1)
+
 def receive_message(sock):
     """
     Receive a message of arbitrary length over a stream socket.
@@ -92,3 +117,31 @@ def send_message(sock, data):
     Send a message over a stream socket, terminating automatically with config.sentinel.
     """
     sock.send(b"".join([data, config.socket_sentinel]))
+
+class LoggerWriter:
+    """
+    LoggerWriter
+
+    A helper class for redirecting stdout and stderr to loggers.
+    """
+    def __init__(self, level):
+        self.level = level
+        self.message = ""
+
+    def write(self, message):
+        """
+        Write each line of the message to the log.
+        """
+        self.message = ''.join([self.message, message])
+        if message.endswith('\n'):
+            self.flush()
+
+    def flush(self):
+        """
+        Provide a dummy flush method.
+        """
+        for line in self.message.split('\n'):
+            if not line.strip():
+                continue
+            self.level(line)
+        self.message = ""

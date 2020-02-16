@@ -16,17 +16,16 @@ import atexit
 import socket
 import signal
 import time
+import logging
+
+from utils import LoggerWriter
 
 import config
 
 class Daemon:
-    def __init__(self, pidfile, socket, stdin="/dev/null",  stdout="/dev/null",  stderr="/dev/null"):
+    def __init__(self, pidfile, socket):
         self.pidfile = pidfile
         self.socket_adr = socket
-
-        self.stdin  = stdin
-        self.stdout = stdout
-        self.stderr = stderr
 
     def _daemonize(self):
         # first fork
@@ -54,26 +53,18 @@ class Daemon:
             sys.stderr.write(f"Failed second fork while daemonizing: {e.errno} {e.strerror}\n")
             sys.exit(-1)
 
-        # create stdin, stdout, stderr files if they don't exist
-        stdin_path  = os.path.dirname(self.stdin)
-        stdout_path = os.path.dirname(self.stdout)
-        stderr_path = os.path.dirname(self.stderr)
-        if not stdin_path:
-            os.makedirs(stdin_path)
-        if not stdout_path:
-            os.makedirs(stdout_path)
-        if not stderr_path:
-            os.makedirs(stderr_path)
-
-        # redirect standard fds
+        # Redirect stdout and stderr to logger
+        logger = logging.getLogger('ebpH')
+        # Flush first
         sys.stdout.flush()
         sys.stderr.flush()
-        si = open(self.stdin, 'r')
-        so = open(self.stdout, 'a+')
-        se = open(self.stderr, 'a+')
+        # Now redirect
+        sys.stdout = LoggerWriter(logger.debug)
+        sys.stderr = LoggerWriter(logger.error)
+
+        # Redirect stdin from /dev/null
+        si = open('/dev/null', 'r')
         os.dup2(si.fileno(), sys.stdin.fileno())
-        os.dup2(so.fileno(), sys.stdout.fileno())
-        os.dup2(se.fileno(), sys.stderr.fileno())
 
         # write pidfile
         atexit.register(self._del_pidfile)
