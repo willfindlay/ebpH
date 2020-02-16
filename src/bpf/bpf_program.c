@@ -971,9 +971,10 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     }
     else
     {
-        #ifdef EBPH_DEBUG
-        bpf_trace_printk("raw_syscalls:sys_exit: Refusing to process syscall %d since it will be restarted.\n", syscall);
-        #endif
+        // TODO: consider removing this print completely
+        //#ifdef EBPH_DEBUG
+        //bpf_trace_printk("raw_syscalls:sys_exit: Refusing to process syscall %d since it will be restarted.\n", syscall);
+        //#endif
     }
 
     return 0;
@@ -988,9 +989,8 @@ TRACEPOINT_PROBE(sched, sched_process_exit)
     return 0;
 }
 
-/* This is a special hook for execve-family calls
- * We need to inspect do_open_execat to snag information about the file
- * If this breaks in a future version of Linux (definitely possible!), I will be sad :( */
+/* Exit hook for execve implementation in order to get useful information about
+ * the opened executable file */
 int kretprobe__do_open_execat(struct pt_regs *ctx)
 {
     struct file *exec_file;
@@ -1081,6 +1081,7 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     return 0;
 }
 
+/* Entry hook for kernel signal handler implementation */
 int kprobe__do_signal(struct pt_regs *ctx)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();

@@ -4,11 +4,13 @@ PROJECTDIR=$(dirname $(readlink -f $0))/..
 INSTALLDIR=/opt/ebpH
 
 cd $PROJECTDIR
+
+# unlink and create /opt/ebpH
+rm -rf $INSTALLDIR
 mkdir -p $INSTALLDIR
 
 # make sure root owns /opt/ebpH
 chown root:root $INSTALLDIR
-
 # copy everything into /opt/ebpH
 cp -r ./* $INSTALLDIR
 
