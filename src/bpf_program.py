@@ -265,7 +265,7 @@ class BPFProgram:
             return msg
         self.bpf["__is_monitoring"][ct.c_int(0)] = ct.c_int(1)
         msg = 'Started monitoring the system'
-        logger.info()
+        logger.info(msg)
         return msg
 
     @locks(monitoring_lock)
