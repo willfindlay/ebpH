@@ -73,6 +73,9 @@ def init():
     global bpf_program
     bpf_program = utils.path('src/bpf/bpf_program.c')
 
+    global libebph
+    libebph = utils.path('src/libebph/libebph.so')
+
     # Configure file locations
     global socket
     socket = os.path.join(socketdir, 'ebph.sock')

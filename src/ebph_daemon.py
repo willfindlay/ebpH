@@ -42,16 +42,18 @@ class EBPHDaemon(Daemon):
 
         # Request dispatcher for server
         self.request_dispatcher = EBPHRequestDispatcher(self)
-        # TODO: register commands with dispatcher here
-        self.request_dispatcher.register(self.start_monitoring)
-        self.request_dispatcher.register(self.stop_monitoring)
-        self.request_dispatcher.register(self.is_monitoring)
-        self.request_dispatcher.register(self.status)
-        self.request_dispatcher.register(self.save_profiles)
-        self.request_dispatcher.register(self.fetch_profile)
-        self.request_dispatcher.register(self.fetch_profiles)
-        self.request_dispatcher.register(self.fetch_process)
-        self.request_dispatcher.register(self.fetch_processes)
+        # Register commands with dispatcher
+        self.request_dispatcher.register(self.bpf_program.start_monitoring)
+        self.request_dispatcher.register(self.bpf_program.stop_monitoring)
+        self.request_dispatcher.register(self.bpf_program.is_monitoring)
+        self.request_dispatcher.register(self.bpf_program.status)
+        self.request_dispatcher.register(self.bpf_program.save_profiles)
+        self.request_dispatcher.register(self.bpf_program.fetch_profile)
+        self.request_dispatcher.register(self.bpf_program.fetch_profiles)
+        self.request_dispatcher.register(self.bpf_program.fetch_process)
+        self.request_dispatcher.register(self.bpf_program.fetch_processes)
+        self.request_dispatcher.register(self.bpf_program.normalize)
+        # TODO: the following:
         #self.request_dispatcher.register(self.reset_profile)
         #self.request_dispatcher.register(self.inspect_profile)
 
@@ -72,7 +74,7 @@ class EBPHDaemon(Daemon):
         self.tick_count += 1
 
         if self.tick_count % config.saveinterval == 0:
-            self.save_profiles()
+            self.bpf_program.save_profiles()
 
         self.bpf_program.on_tick()
 
@@ -99,124 +101,4 @@ class EBPHDaemon(Daemon):
         """
         self.logger.info("Stopping ebpH daemon...")
         super().stop()
-
-    # Commands below this line -----------------------------------
-    # Return values must be json parsable
-
-    def start_monitoring(self):
-        """
-        Start monitoring the system.
-        """
-        return self.bpf_program.start_monitoring()
-
-    def stop_monitoring(self):
-        """
-        Stop monitoring the system.
-        """
-        return self.bpf_program.stop_monitoring()
-
-    def is_monitoring(self):
-        """
-        Return true if we are monitoring, else false.
-        """
-        return self.bpf_program.monitoring
-
-    def status(self):
-        """
-        Return a dictionary of basic information about ebphd's state.
-        """
-        status = {
-                'Monitoring': self.bpf_program.monitoring,
-                'Profiles': self.bpf_program.profile_count,
-                'TasksMonitored': self.bpf_program.process_count,
-                'SyscallsCount': self.bpf_program.syscall_count,
-                }
-        return status
-
-    def save_profiles(self):
-        """
-        Save all profiles to disk.
-        """
-        return self.bpf_program.save_profiles()
-
-    def fetch_profile(self, key):
-        """
-        Return a dictionary of basic profile info excluding things like lookahead pairs.
-        """
-        profile = self.bpf_program.fetch_profile(key)
-        attrs = {
-                'comm': profile.comm.decode('utf-8'),
-                'key': profile.key,
-                'frozen': profile.frozen,
-                'normal': profile.normal,
-                'normal_time': profile.normal_time,
-                'normal_count': profile.train.normal_count,
-                'last_mod_count': profile.train.last_mod_count,
-                'train_count': profile.train.train_count,
-                'anomalies': profile.anomalies,
-                }
-        return attrs
-
-    #def inspect_profile(self, key):
-    #    """
-    #    Return a dictionary of ALL profile info, including things like lookahead pairs.
-    #    """
-    #    key = int(key)
-    #    profile = self.bpf_program.fetch_profile(key)
-    #    data = profile.test if profile.normal else profile.train
-    #    lookahead_pairs = list(data.flags)
-    #    print(lookahead_pairs)
-    #    attrs = {'comm': profile.comm.decode('utf-8'),
-    #            'key': profile.key,
-    #            'frozen': profile.frozen,
-    #            'normal': profile.normal,
-    #            'normal_time': profile.normal_time,
-    #            'normal_count': profile.train.normal_count,
-    #            'last_mod_count': profile.train.last_mod_count,
-    #            'train_count': profile.train.train_count,
-    #            'anomalies': profile.anomalies,
-    #            'lookahead_pairs': lookahead_pairs
-    #            }
-    #    return attrs
-
-    def fetch_process(self, key):
-        """
-        Return a dictionary of basic process info, including the accompanying profile.
-        """
-        process = self.bpf_program.fetch_process(key)
-        attrs = {
-                'pid': process.pid,
-                'tid': process.tid,
-                'profile': self.fetch_profile(process.exe_key),
-                }
-        return attrs
-
-    def fetch_profiles(self):
-        """
-        Return profile info for all profiles.
-        """
-        profiles = {}
-        for k, v in self.bpf_program.bpf["profiles"].iteritems():
-            k = k.value
-            profiles[k] = self.fetch_profile(k)
-        return profiles
-
-    def fetch_processes(self):
-        """
-        Return process info for all processes.
-        """
-        processes = {}
-        for k, v in self.bpf_program.bpf["processes"].iteritems():
-            k = k.value
-            try:
-                processes[k] = self.fetch_process(k)
-            except KeyError:
-                pass
-        return processes
-
-    #def reset_profile(self, key):
-    #    """
-    #    Reset a profile. WARNING: not yet working 100%
-    #    """
-    #    return self.bpf_program.reset_profile(key)
 
