@@ -54,7 +54,7 @@ class Daemon:
             sys.exit(-1)
 
         # Redirect stdout and stderr to logger
-        logger = logging.getLogger('ebpH')
+        logger = logging.getLogger('ebph')
         # Flush first
         sys.stdout.flush()
         sys.stderr.flush()

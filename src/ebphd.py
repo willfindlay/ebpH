@@ -51,23 +51,31 @@ def setup(args):
     os.chmod(config.profiles_dir, 0o700)
 
     # Configure logging
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
+
     if args.debug:
         config.verbosity = logging.DEBUG
-    logger = logging.getLogger('ebpH')
+    logger = logging.getLogger('ebph')
     logger.setLevel(config.verbosity)
 
     handler = logging.handlers.WatchedFileHandler(config.logfile)
     handler.setLevel(config.verbosity)
-
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
     handler.setFormatter(formatter)
-
     logger.addHandler(handler)
+
+    # Configure newseq logging
+    newseq_logger = logging.getLogger('newseq')
+    newseq_logger.setLevel(config.verbosity)
+
+    new_seq_handler = logging.handlers.WatchedFileHandler(config.newseq_logfile)
+    new_seq_handler.setLevel(config.verbosity)
+    new_seq_handler.setFormatter(formatter)
+    newseq_logger.addHandler(new_seq_handler)
 
     # Handle nolog argument
     if args.nolog:
-        logger = logging.getLogger('ebpH')
+        logger = logging.getLogger('ebph')
 
         # create and configure a handler for stderr
         stream_handler = logging.StreamHandler()
@@ -81,7 +89,6 @@ def setup(args):
 
         # disable file handlers
         logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
-
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]

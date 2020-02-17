@@ -14,6 +14,8 @@ from server import EBPHUnixStreamServer, EBPHRequestDispatcher
 from utils import locks, to_json_bytes, from_json_bytes
 import config
 
+logger = logging.getLogger('ebph')
+
 class EBPHDaemon(Daemon):
     """
     EBPHDaemon
@@ -37,9 +39,6 @@ class EBPHDaemon(Daemon):
         # Number of elapsed ticks
         self.tick_count = 0
 
-        # Logging stuff
-        self.logger = logging.getLogger('ebpH')
-
         # Request dispatcher for server
         self.request_dispatcher = EBPHRequestDispatcher(self)
         # Register commands with dispatcher
@@ -62,9 +61,9 @@ class EBPHDaemon(Daemon):
         """
         Called by the connection handler thread to listen for incoming socket connections.
         """
-        self.logger.info("Starting ebpH server...")
+        logger.info("Starting ebpH server...")
         self.server = EBPHUnixStreamServer(self.request_dispatcher)
-        self.logger.info(f"Server listening for connections on {self.server.server_address}")
+        logger.info(f"Server listening for connections on {self.server.server_address}")
         self.server.serve_forever()
 
     def tick(self):
@@ -82,7 +81,7 @@ class EBPHDaemon(Daemon):
         """
         Main daemon setup + event loop.
         """
-        self.logger.info("Starting ebpH daemon...")
+        logger.info("Starting ebpH daemon...")
         self.bpf_program.load_bpf()
 
         # Spawn connection listener here
@@ -99,6 +98,6 @@ class EBPHDaemon(Daemon):
         """
         Stop the daemon. Overloaded from base daemon class to print log info.
         """
-        self.logger.info("Stopping ebpH daemon...")
+        logger.info("Stopping ebpH daemon...")
         super().stop()
 

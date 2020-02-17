@@ -30,6 +30,7 @@ BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
+BPF_PERF_OUTPUT(on_new_sequence);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx)
@@ -63,6 +64,7 @@ BPF_ARRAY(__process_init, struct ebpH_process, 1);
 /* Store program state */
 BPF_ARRAY(__is_saving, int, 1);
 BPF_ARRAY(__is_monitoring, int, 1);
+BPF_ARRAY(__is_logging_new_sequences, int, 1);
 
 /* Function definitions below this line --------------------- */
 
@@ -114,6 +116,48 @@ static void stats_decrement(u8 key)
     }
 
     (void) __sync_fetch_and_sub(leaf, 1);
+}
+
+static int ebpH_is_logging_new_sequences()
+{
+    int *param;
+    int zero = 0;
+
+    param = __is_logging_new_sequences.lookup(&zero);
+    if (!param)
+    {
+        return 0;
+    }
+
+    return *param;
+}
+
+static int ebpH_is_saving()
+{
+    int *param;
+    int zero = 0;
+
+    param = __is_saving.lookup(&zero);
+    if (!param)
+    {
+        return 0;
+    }
+
+    return *param;
+}
+
+static int ebpH_is_monitoring()
+{
+    int *param;
+    int zero = 0;
+
+    param = __is_monitoring.lookup(&zero);
+    if (!param)
+    {
+        return 0;
+    }
+
+    return *param;
 }
 
 static u64 ebpH_epoch_time_ns()
@@ -373,8 +417,10 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         ebpH_add_seq(profile, process, ctx);
         profile->train.last_mod_count = 0;
 
-        // TODO: optionally display log sequence based on runtime parameter
-        //       this could overlap with the same idea in the ebpH_test, not sure which one is better
+        if (ebpH_is_logging_new_sequences())
+        {
+            on_new_sequence.perf_submit(ctx, process, sizeof(*process));
+        }
     }
     else
     {
@@ -547,7 +593,6 @@ static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_proc
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
-    int *monitoring, *saving;
     int zero = 0;
     int lfc = 0;
 
@@ -569,22 +614,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return -1;
     }
 
-    monitoring = __is_monitoring.lookup(&zero);
-    saving = __is_saving.lookup(&zero);
-
-    if (!monitoring)
-    {
-        EBPH_ERROR("ebpH_process_syscall: Could not determine value for \"monitoring\"", ctx);
-        return -1;
-    }
-
-    if (!saving)
-    {
-        EBPH_ERROR("ebpH_process_syscall: Could not determine value for \"saving\"", ctx);
-        return -1;
-    }
-
-    if (!(*monitoring) || (*saving))
+    if (!(ebpH_is_monitoring()) || ebpH_is_saving())
     {
         return 0;
     }
@@ -793,15 +823,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     struct ebpH_process *process;
 
     int zero = 0;
-    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!monitoring)
-    {
-        EBPH_ERROR("raw_syscalls:sys_enter: Could not determine value for \"monitoring\"", (struct pt_regs *)args);
-        return -1;
-    }
-
-    if (!(*monitoring))
+    if (!(ebpH_is_monitoring()))
     {
         return 0;
     }
@@ -855,15 +878,8 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_process *parent_process;
 
     int zero = 0;
-    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!monitoring)
-    {
-        EBPH_ERROR("raw_syscalls:sys_exit: Could not determine value for \"monitoring\"", (struct pt_regs *)args);
-        return -1;
-    }
-
-    if (!(*monitoring))
+    if (!(ebpH_is_monitoring()))
     {
         return 0;
     }
@@ -1003,15 +1019,8 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     struct ebpH_profile *profile = NULL;
 
     int zero = 0;
-    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!monitoring)
-    {
-        EBPH_ERROR("kretprobe__do_open_execat: Could not determine value for \"monitoring\"", ctx);
-        return -1;
-    }
-
-    if (!(*monitoring))
+    if (!(ebpH_is_monitoring()))
     {
         return 0;
     }
