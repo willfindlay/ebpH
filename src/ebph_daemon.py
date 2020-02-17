@@ -74,7 +74,7 @@ class EBPHDaemon(Daemon):
         self.tick_count += 1
 
         if self.tick_count % config.saveinterval == 0:
-            self.save_profiles()
+            self.bpf_program.save_profiles()
 
         self.bpf_program.on_tick()
 
