@@ -129,6 +129,11 @@ def parse_args(args=[]):
     inspect.add_argument('key',
             help="Key of the profile to inspect.")
 
+    normalize = commands.add_parser('normalize',
+            help='Start normal mode on process with tid <tid>.')
+    normalize.add_argument('tid', type=int,
+            help='Thread ID of the process to normalize. Can also be a PID.')
+
     #reset_profile = commands.add_parser('reset',
     #        help="Reset a profile.")
     #reset_profile.add_argument('key',
@@ -195,7 +200,7 @@ if __name__ == "__main__":
         """
         Force save profiles to disk.
         """
-        print("Saved profiles successfully.")
+        print(res['message'])
 
     @command('status')
     def status(res=None):
@@ -220,8 +225,12 @@ if __name__ == "__main__":
 
     @command('inspect', command_args, ebph_func='inspect_profile')
     def inspect(res=None):
+        pass
+
+    @command('normalize', command_args, ebph_func='normalize')
+    def normalize(res=None):
         """
-        Print ebphd status to the console.
+        Normalize profile attached to process <tid>.
         """
         print(res['message'])
 

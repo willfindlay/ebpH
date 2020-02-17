@@ -100,8 +100,7 @@ def receive_message(sock):
 
     while True:
         msg = sock.recv(config.socket_buff_size)
-        msg = msg.strip()
-        if not msg:
+        if not msg.strip():
             break
         if bytes([msg[-1]]) == config.socket_sentinel:
             msg = msg[:-1]  # Remove sentinel from message

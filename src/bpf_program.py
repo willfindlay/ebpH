@@ -57,8 +57,19 @@ class BPFProgram:
         self.should_save = not self.args.nosave
         self.should_load = not self.args.noload
 
+        self.load_libebph()
+
         # BPF program should be None until it is loaded
         self.bpf = None
+
+    def load_libebph(self):
+        try:
+            self.libebph = ct.CDLL(config.libebph)
+        except:
+            raise(f"Could not load {config.libebph}. Have you run make?")
+        # Function definitions
+        self.libebph.cmd_normalize.argtypes = [ct.c_uint32]
+        logger.info('Loaded libebph')
 
     def cleanup(self):
         """
@@ -115,10 +126,10 @@ class BPFProgram:
             """
             process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
             try:
-                profile = self.bpf["profiles"][ct.c_uint64(process.exe_key)]
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
             except KeyError:
                 profile = EBPHProfile()
-                profile.key = process.exe_key
+                profile.key = process.profile_key
                 profile.comm = b'UNKNOWN'
 
             # Get sequence array from correct stack frame
@@ -156,6 +167,10 @@ class BPFProgram:
         self.bpf["ebpH_warning"].open_perf_buffer(ebpH_warning, lost_cb=lost_cb("ebpH_warning"))
 
         logger.info(f'Registered perf buffers')
+
+    def register_uprobes(self):
+        self.bpf.attach_uprobe(name=config.libebph, sym='cmd_normalize', pid=os.getpid(), fn_name='cmd_normalize')
+        logger.info('Registered uprobes')
 
     def load_bpf(self):
         """
@@ -203,6 +218,7 @@ class BPFProgram:
         # Regiter exit hooks and perf buffers
         self.register_exit_hooks()
         self.register_perf_buffers()
+        self.register_uprobes()
 
         self.load_profiles()
         self.start_monitoring()
@@ -269,11 +285,12 @@ class BPFProgram:
         Save all profiles to disk, if configured to save.
         """
         if not self.should_save:
-            logger.warning("should_save is false, refusing to save profiles!")
-            return
-        # notify bpf that we are saving
+            msg = 'should_save is false, refusing to save profiles!'
+            logger.warning(msg)
+            return msg
+        # Notify BPF program that we are saving
         self.bpf["__is_saving"][ct.c_int(0)] = ct.c_int(1)
-        # wait until bpf knows it is saving
+        # Wait until bpf knows it is saving
         while not self.bpf["__is_saving"][0]:
             pass
         # Must be itervalues, not values
@@ -285,10 +302,12 @@ class BPFProgram:
             # Just in case the file already existed with the wrong permissions
             os.chmod(path, 0o600)
             logger.debug(f"Successfully saved profile {profile.comm.decode('utf-8')} ({profile.key})")
-        logger.info(f"Successfully saved all profiles")
-
         # return to original state
         self.bpf["__is_saving"][ct.c_int(0)] = ct.c_int(0)
+        # Notify user
+        msg = "Successfully saved all profiles"
+        logger.info(msg)
+        return msg
 
     # load all profiles from disk
     @locks(profiles_lock)
@@ -297,36 +316,22 @@ class BPFProgram:
         Load all profiles from disk, if configured to load.
         """
         if not self.should_load:
-            logger.warning("should_load is false, refusing to load profiles!")
-            return
+            msg = 'should_load is false, refusing to load profiles!'
+            logger.warning(msg)
+            return msg
         for filename in os.listdir(config.profiles_dir):
             # Read bytes from profile file
             path = os.path.join(config.profiles_dir, filename)
             profile = EBPHProfile()
             with open(path, 'rb') as f:
                 f.readinto(profile)
-
             # Update our profile map
             self.bpf["profiles"][ct.c_uint64(profile.key)] = profile
-
             logger.debug(f"Successfully loaded profile {profile.comm.decode('utf-8')} from {path}")
-        logger.info(f"Successfully loaded all profiles")
-
-    @locks(profiles_lock)
-    def fetch_profile(self, key):
-        """
-        Get profile with key <key> from profiles map.
-        """
-        # TODO: check if bpf is None
-        return self.bpf['profiles'][ct.c_uint64(key)]
-
-    @locks(processes_lock)
-    def fetch_process(self, key):
-        """
-        Get process with key <key> from processes map.
-        """
-        # TODO: check if bpf is None
-        return self.bpf['processes'][ct.c_uint64(key)]
+        # Notify user
+        msg = 'Successfully loaded all profiles'
+        logger.info(msg)
+        return msg
 
     @locks(profiles_lock)
     def reset_profile(self, key):
@@ -342,6 +347,120 @@ class BPFProgram:
         ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
         self.bpf['profiles'][ct.c_uint64(key)] = profile
         self.start_monitoring()
+
+    @locks(profiles_lock)
+    def normalize(self, tid):
+        """
+        Start normal mode on a profile attached to process with <tid>.
+        """
+        return self.libebph.cmd_normalize(ct.c_uint32(tid))
+
+    def is_monitoring(self):
+        """
+        Return true if we are monitoring, else false.
+        """
+        return self.monitoring
+
+    def status(self):
+        """
+        Return a dictionary of basic information about ebphd's state.
+        """
+        status = {
+                'Monitoring': self.monitoring,
+                'Profiles': self.profile_count,
+                'TasksMonitored': self.process_count,
+                'SyscallsCount': self.syscall_count,
+                }
+        return status
+
+    @locks(profiles_lock)
+    def fetch_profile(self, key):
+        """
+        Return a dictionary of basic profile info excluding things like lookahead pairs.
+        """
+        profile = self.bpf['profiles'][ct.c_uint64(key)]
+        attrs = {
+                'comm': profile.comm.decode('utf-8'),
+                'key': profile.key,
+                'frozen': profile.frozen,
+                'normal': profile.normal,
+                'normal_time': profile.normal_time,
+                'normal_count': profile.train.normal_count,
+                'last_mod_count': profile.train.last_mod_count,
+                'train_count': profile.train.train_count,
+                'anomalies': profile.anomalies,
+                }
+        return attrs
+
+    @locks(processes_lock)
+    def fetch_process(self, key):
+        """
+        Return a dictionary of basic process info, including the accompanying profile.
+        """
+        process = self.bpf['processes'][ct.c_uint64(key)]
+        attrs = {
+                'pid': process.pid,
+                'tid': process.tid,
+                'profile': self.fetch_profile(process.profile_key),
+                }
+        return attrs
+
+    def fetch_profiles(self):
+        """
+        Return profile info for all profiles.
+        """
+        profiles = {}
+        for k, v in self.bpf["profiles"].iteritems():
+            k = k.value
+            profiles[k] = self.fetch_profile(k)
+        return profiles
+
+    def fetch_processes(self):
+        """
+        Return process info for all processes.
+        """
+        processes = {}
+        for k, v in self.bpf["processes"].iteritems():
+            k = k.value
+            try:
+                processes[k] = self.fetch_process(k)
+            except KeyError:
+                pass
+        return processes
+
+    def normalize(self, tid):
+        """
+        Start normal mode on a profile attached to process with <tid>.
+        """
+        return self.normalize(int(tid))
+
+    #def reset_profile(self, key):
+    #    """
+    #    Reset a profile. WARNING: not yet working 100%
+    #    """
+    #    return self.bpf_program.reset_profile(key)
+
+    #def inspect_profile(self, key):
+    #    """
+    #    Return a dictionary of ALL profile info, including things like lookahead pairs.
+    #    """
+    #    key = int(key)
+    #    profile = self.fetch_profile(key)
+    #    data = profile.test if profile.normal else profile.train
+    #    lookahead_pairs = list(data.flags)
+    #    print(lookahead_pairs)
+    #    attrs = {'comm': profile.comm.decode('utf-8'),
+    #            'key': profile.key,
+    #            'frozen': profile.frozen,
+    #            'normal': profile.normal,
+    #            'normal_time': profile.normal_time,
+    #            'normal_count': profile.train.normal_count,
+    #            'last_mod_count': profile.train.last_mod_count,
+    #            'train_count': profile.train.train_count,
+    #            'anomalies': profile.anomalies,
+    #            'lookahead_pairs': lookahead_pairs
+    #            }
+    #    return attrs
 
 # Attribute stuff below this line --------------------------------------------------------
 

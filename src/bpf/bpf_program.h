@@ -76,24 +76,18 @@ struct ebpH_process
 {
     struct ebpH_locality alf;
     struct ebpH_sequence_stack stack;
-    u32 pid; /* Kernel tgid */
+    u32 pid; /* Kernel pid */
     u32 tid; /* Kernel pid */
-    u64 exe_key;
+    u64 profile_key;
     u8 in_execve;
-};
-
-struct ebpH_anomaly
-{
-    u32 pid;
-    u64 syscall;
-    int anomalies;
-    u64 key;
-    char comm[EBPH_FILENAME_LEN];
 };
 
 /* Submit perf events related to errors and warnings, not called directly */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx);
 static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx);
+
+static u32 ebpH_get_parent_tid();
+static u32 ebpH_get_group_leader_tid();
 
 static long ebpH_get_lookahead_index(long *curr, long* prev, struct pt_regs *ctx);
 static u8 *ebpH_lookahead(struct ebpH_profile_data *data, long curr, long prev);
@@ -115,10 +109,8 @@ static int ebpH_pop_seq(struct ebpH_process *process);
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx);
-static u64 ebpH_get_ppid_tgid();
-static u64 ebpH_get_glpid_tgid();
 static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
-static int ebpH_create_process(u64 *pid_tgid, struct pt_regs *ctx);
+static int ebpH_create_process(u32 *tid, struct pt_regs *ctx);
 static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_regs *ctx);
 static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx);
 

@@ -109,6 +109,6 @@ class EBPHProcess(ct.Structure):
             ('stack', EBPHSequenceStack),
             ('pid', ct.c_uint32),
             ('tid', ct.c_uint32),
-            ('exe_key', ct.c_uint64),
+            ('profile_key', ct.c_uint64),
             ('in_execve', ct.c_uint8),
             ]

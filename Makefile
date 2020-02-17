@@ -1,11 +1,13 @@
 DIR=$(shell pwd)
 SCRIPTSDIR=$(DIR)/scripts
-PYTHONPATH=$(DIR)/src/python
+LIBEBPHDIR=$(DIR)/src/libebph
 
 .PHONY: all, install
 
-all:
-	$(error "Please run sudo make install")
+all: $(LIBEBPHDIR)/libebph.so
+
+$(LIBEBPHDIR)/libebph.so: $(LIBEBPHDIR)/libebph.c
+	cd $(LIBEBPHDIR) && cc -fPIC -shared -o libebph.so libebph.c
 
 install:
 	cd $(SCRIPTSDIR) && ./install.sh
