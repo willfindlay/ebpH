@@ -1,13 +1,19 @@
 DIR=$(shell pwd)
 SCRIPTSDIR=$(DIR)/scripts
+
 LIBEBPHDIR=$(DIR)/src/libebph
+LIBEBPHSRC=$(LIBEBPHDIR)/libebph.c
+LIBEBPHOBJ=$(LIBEBPHSRC:.c=.so)
 
-.PHONY: all, install
+.PHONY: all, install, clean
 
-all: $(LIBEBPHDIR)/libebph.so
+all: $(LIBEBPHOBJ)
 
-$(LIBEBPHDIR)/libebph.so: $(LIBEBPHDIR)/libebph.c
-	cd $(LIBEBPHDIR) && cc -fPIC -shared -o libebph.so libebph.c
+$(LIBEBPHOBJ): $(LIBEBPHSRC)
+	cc -fPIC -shared -o $(LIBEBPHOBJ) $(LIBEBPHSRC)
 
-install:
-	cd $(SCRIPTSDIR) && ./install.sh
+install: $(LIBEBPHOBJ)
+	cd $(SCRIPTSDIR) && sudo ./install.sh
+
+clean:
+	rm $(LIBEBPHOBJ)

@@ -19,7 +19,6 @@ import argparse
 import struct
 import subprocess
 from functools import wraps
-from copy import deepcopy
 
 import config
 config.init()
@@ -94,7 +93,7 @@ def parse_args(args=[]):
     parser = argparse.ArgumentParser(description=DESCRIPTION, prog="ebph-admin", epilog=EPILOG,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='command')
+    commands = parser.add_subparsers(title="possible commands", dest="command", required=1, metavar='COMMAND')
     start = commands.add_parser('start',
             help="Start the ebpH daemon.")
 
@@ -180,27 +179,21 @@ if __name__ == "__main__":
         """
         Start monitoring the system.
         """
-        if res['message']:
-            print(f"System is already being monitored.")
-        else:
-            print(f"System monitoring resumed.")
+        print(res['message'], file=sys.stderr)
 
     @command('off', ebph_func='stop_monitoring')
     def off(res=None):
         """
         Stop monitoring the system.
         """
-        if res['message']:
-            print(f"System is not being monitored.")
-        else:
-            print(f"System monitoring paused.")
+        print(res['message'], file=sys.stderr)
 
     @command('save', ebph_func='save_profiles')
     def save_profiles(res=None):
         """
         Force save profiles to disk.
         """
-        print(res['message'])
+        print(res['message'], file=sys.stderr)
 
     @command('status')
     def status(res=None):
@@ -225,14 +218,14 @@ if __name__ == "__main__":
 
     @command('inspect', command_args, ebph_func='inspect_profile')
     def inspect(res=None):
-        pass
+        print(res['message'], file=sys.stderr)
 
     @command('normalize', command_args, ebph_func='normalize')
     def normalize(res=None):
         """
         Normalize profile attached to process <tid>.
         """
-        print(res['message'])
+        print(res['message'], file=sys.stderr)
 
 
     #@command('reset', command_args, ebph_func='reset_profile')

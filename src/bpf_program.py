@@ -260,11 +260,13 @@ class BPFProgram:
         Return 0 on success, 1 if system is already being monitored.
         """
         if self.monitoring:
-            logger.info('System is already being monitored')
-            return 1
+            msg = 'System is already being monitored'
+            logger.info(msg)
+            return msg
         self.bpf["__is_monitoring"][ct.c_int(0)] = ct.c_int(1)
-        logger.info('Started monitoring the system')
-        return 0
+        msg = 'Started monitoring the system'
+        logger.info()
+        return msg
 
     @locks(monitoring_lock)
     def stop_monitoring(self):
@@ -273,11 +275,13 @@ class BPFProgram:
         Return 0 on success, 1 if system is already not being monitored.
         """
         if not self.monitoring:
-            logger.info('System is not being monitored')
-            return 1
+            msg = 'System is not being monitored'
+            logger.info(msg)
+            return msg
         self.bpf["__is_monitoring"][ct.c_int(0)] = ct.c_int(0)
-        logger.info('Stopped monitoring the system')
-        return 0
+        msg ='Stopped monitoring the system'
+        logger.info(msg)
+        return msg
 
     @locks(profiles_lock)
     def save_profiles(self):
