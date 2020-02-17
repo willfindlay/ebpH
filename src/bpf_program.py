@@ -333,28 +333,6 @@ class BPFProgram:
         logger.info(msg)
         return msg
 
-    @locks(profiles_lock)
-    def reset_profile(self, key):
-        """
-        Reset a profile.
-        """
-        key = int(key)
-        self.stop_monitoring()
-        profile = self.bpf['profiles'][ct.c_uint64(key)]
-        profile.normal = 0
-        profile.frozen = 0
-        ct.memset(ct.addressof(profile.train), 0, ct.sizeof(profile.train))
-        ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
-        self.bpf['profiles'][ct.c_uint64(key)] = profile
-        self.start_monitoring()
-
-    @locks(profiles_lock)
-    def normalize(self, tid):
-        """
-        Start normal mode on a profile attached to process with <tid>.
-        """
-        return self.libebph.cmd_normalize(ct.c_uint32(tid))
-
     def is_monitoring(self):
         """
         Return true if we are monitoring, else false.
@@ -428,11 +406,28 @@ class BPFProgram:
                 pass
         return processes
 
+   # @locks(profiles_lock)
+   # def reset_profile(self, key):
+   #     # TODO: redo this
+   #     """
+   #     Reset a profile.
+   #     """
+   #     key = int(key)
+   #     self.stop_monitoring()
+   #     profile = self.bpf['profiles'][ct.c_uint64(key)]
+   #     profile.normal = 0
+   #     profile.frozen = 0
+   #     ct.memset(ct.addressof(profile.train), 0, ct.sizeof(profile.train))
+   #     ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
+   #     self.bpf['profiles'][ct.c_uint64(key)] = profile
+   #     self.start_monitoring()
+
+    @locks(profiles_lock)
     def normalize(self, tid):
         """
         Start normal mode on a profile attached to process with <tid>.
         """
-        return self.normalize(int(tid))
+        return self.libebph.cmd_normalize(ct.c_uint32(tid))
 
     #def reset_profile(self, key):
     #    """

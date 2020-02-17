@@ -42,7 +42,7 @@ class EBPHDaemon(Daemon):
 
         # Request dispatcher for server
         self.request_dispatcher = EBPHRequestDispatcher(self)
-        # TODO: register commands with dispatcher here
+        # Register commands with dispatcher
         self.request_dispatcher.register(self.bpf_program.start_monitoring)
         self.request_dispatcher.register(self.bpf_program.stop_monitoring)
         self.request_dispatcher.register(self.bpf_program.is_monitoring)
@@ -53,6 +53,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.bpf_program.fetch_process)
         self.request_dispatcher.register(self.bpf_program.fetch_processes)
         self.request_dispatcher.register(self.bpf_program.normalize)
+        # TODO: the following:
         #self.request_dispatcher.register(self.reset_profile)
         #self.request_dispatcher.register(self.inspect_profile)
 
