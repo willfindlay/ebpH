@@ -83,3 +83,5 @@ def init():
     pidfile = os.path.join(socketdir, 'ebph.pid')
     global logfile
     logfile = os.path.join(logdir, 'ebph.log')
+    global newseq_logfile
+    newseq_logfile = os.path.join(logdir, 'newseq.log')
