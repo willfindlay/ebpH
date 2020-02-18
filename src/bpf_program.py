@@ -142,13 +142,13 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.warning(f"Anomalies detected in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key})\nSeq: {', '.join(sequence)}")
-            logger.debug(f"Stack count: {process.stack.top}")
+            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}) ({', '.join(sequence)})")
+            logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         def on_new_sequence(cpu, data, size):
             """
-            Invoked every time a new sequences is detected by the BPF program
+            Invoked every time a new sequence is detected by the BPF program
             and we have set logging_new_sequences to 1.
             Events are submitted in ebpH_train.
             """
@@ -167,8 +167,8 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            new_seqlogger.info(f"New sequence detected in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key})\nSeq: {', '.join(sequence)}")
-            new_seqlogger.debug(f"Stack count: {process.stack.top}")
+            new_seqlogger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}) ({', '.join(sequence)})")
+            new_seqlogger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_new_sequence"].open_perf_buffer(on_new_sequence, lost_cb=lost_cb("on_new_sequence"), page_cnt=2**8)
 
         def ebpH_error(cpu, data, size):
