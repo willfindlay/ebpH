@@ -118,48 +118,6 @@ static void stats_decrement(u8 key)
     (void) __sync_fetch_and_sub(leaf, 1);
 }
 
-static int ebpH_is_logging_new_sequences()
-{
-    int *param;
-    int zero = 0;
-
-    param = __is_logging_new_sequences.lookup(&zero);
-    if (!param)
-    {
-        return 0;
-    }
-
-    return *param;
-}
-
-static int ebpH_is_saving()
-{
-    int *param;
-    int zero = 0;
-
-    param = __is_saving.lookup(&zero);
-    if (!param)
-    {
-        return 0;
-    }
-
-    return *param;
-}
-
-static int ebpH_is_monitoring()
-{
-    int *param;
-    int zero = 0;
-
-    param = __is_monitoring.lookup(&zero);
-    if (!param)
-    {
-        return 0;
-    }
-
-    return *param;
-}
-
 static u64 ebpH_epoch_time_ns()
 {
     return (u64) bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
@@ -398,7 +356,6 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         /* check for mismatch */
         if ((*entry & (1 << (i-1))) == 0)
         {
-            // TODO: optionally submit mismatch event based on runtime parameter
             mismatches++;
         }
     }
@@ -417,7 +374,9 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         ebpH_add_seq(profile, process, ctx);
         profile->train.last_mod_count = 0;
 
-        if (ebpH_is_logging_new_sequences())
+        int zero = 0;
+        int *logging_new_sequences = __is_logging_new_sequences.lookup(&zero);
+        if (logging_new_sequences && *logging_new_sequences)
         {
             on_new_sequence.perf_submit(ctx, process, sizeof(*process));
         }
@@ -593,6 +552,7 @@ static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_proc
 static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
+    int *monitoring, *saving;
     int zero = 0;
     int lfc = 0;
 
@@ -614,7 +574,22 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
         return -1;
     }
 
-    if (!(ebpH_is_monitoring()) || ebpH_is_saving())
+    monitoring = __is_monitoring.lookup(&zero);
+    saving = __is_saving.lookup(&zero);
+
+    if (!monitoring)
+    {
+        EBPH_ERROR("ebpH_process_syscall: Could not determine value for \"monitoring\"", ctx);
+        return -1;
+    }
+
+    if (!saving)
+    {
+        EBPH_ERROR("ebpH_process_syscall: Could not determine value for \"saving\"", ctx);
+        return -1;
+    }
+
+    if (!(*monitoring) || (*saving))
     {
         return 0;
     }
@@ -823,8 +798,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     struct ebpH_process *process;
 
     int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!(ebpH_is_monitoring()))
+    if (!monitoring)
+    {
+        EBPH_ERROR("raw_syscalls:sys_enter: Could not determine value for \"monitoring\"", (struct pt_regs *)args);
+        return -1;
+    }
+
+    if (!(*monitoring))
     {
         return 0;
     }
@@ -878,8 +860,15 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     struct ebpH_process *parent_process;
 
     int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!(ebpH_is_monitoring()))
+    if (!monitoring)
+    {
+        EBPH_ERROR("raw_syscalls:sys_exit: Could not determine value for \"monitoring\"", (struct pt_regs *)args);
+        return -1;
+    }
+
+    if (!(*monitoring))
     {
         return 0;
     }
@@ -1019,8 +1008,15 @@ int kretprobe__do_open_execat(struct pt_regs *ctx)
     struct ebpH_profile *profile = NULL;
 
     int zero = 0;
+    int *monitoring = __is_monitoring.lookup(&zero);
 
-    if (!(ebpH_is_monitoring()))
+    if (!monitoring)
+    {
+        EBPH_ERROR("kretprobe__do_open_execat: Could not determine value for \"monitoring\"", ctx);
+        return -1;
+    }
+
+    if (!(*monitoring))
     {
         return 0;
     }
