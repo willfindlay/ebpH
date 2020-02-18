@@ -370,10 +370,13 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     if (ebpH_test(&(profile->train), process, ctx))
     {
         if (profile->frozen)
+        {
             profile->frozen = 0;
+        }
         ebpH_add_seq(profile, process, ctx);
         profile->train.last_mod_count = 0;
 
+        /* Log new sequence if configured to do so */
         int zero = 0;
         int *logging_new_sequences = __is_logging_new_sequences.lookup(&zero);
         if (logging_new_sequences && *logging_new_sequences)
@@ -386,8 +389,12 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
         lock_xadd(&profile->train.last_mod_count, 1);
 
         if (profile->frozen)
+        {
             return 0;
+        }
 
+        /* TODO: get rid of normal_count in profiles in final release, move to local variable...
+         * for now, removing it would be more trouble than it's worth */
         profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
         if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
@@ -620,8 +627,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
     seq->seq[0] = *syscall;
     seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
-
-    // TODO: add optional support for logging all sequences here
 
     /* TODO: take profile lock here */
 
