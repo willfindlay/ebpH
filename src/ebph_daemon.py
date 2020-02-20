@@ -52,6 +52,7 @@ class EBPHDaemon(Daemon):
         self.request_dispatcher.register(self.bpf_program.fetch_process)
         self.request_dispatcher.register(self.bpf_program.fetch_processes)
         self.request_dispatcher.register(self.bpf_program.normalize)
+        self.request_dispatcher.register(self.bpf_program.set_logging_new_sequences)
         # TODO: the following:
         #self.request_dispatcher.register(self.reset_profile)
         #self.request_dispatcher.register(self.inspect_profile)

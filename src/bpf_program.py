@@ -27,8 +27,6 @@ import config
 logger = logging.getLogger('ebph')
 new_seqlogger = logging.getLogger('newseq')
 
-new_seqlogger.info('HELLO!')
-
 # Register signal handlers
 def handle_sigterm(x, y):
     logger.debug("Caught SIGTERM")
@@ -115,7 +113,7 @@ class BPFProgram:
         def on_executable_processed(cpu, data, size):
             """
             Invoked every time an executable is processed in the BPF program.
-            Events are submitted in kretprobe__do_open_execat.
+            Events are submitted in kretprobe___on_startdo_open_execat.
             """
             event = self.bpf["on_executable_processed"].event(data)
             s = f"Constructed profile for {event.comm.decode('utf-8')} ({event.key})"
@@ -142,7 +140,7 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}: {', '.join(sequence)}")
+            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
             logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
@@ -249,8 +247,9 @@ class BPFProgram:
 
         self.load_profiles()
         self.start_monitoring()
-        # FIXME: delete this, for testing purposes
-        self.start_logging_new_sequences()
+
+        if config.log_new_sequences_on_start:
+            self.start_logging_new_sequences()
 
         logger.info('BPF program initialized')
 
@@ -281,6 +280,15 @@ class BPFProgram:
             self.trace_print()
 
 # Commands below this line ----------------------------------------------
+
+    def set_logging_new_sequences(self, should_log):
+        """
+        Start or stop logging new sequences.
+        """
+        if should_log:
+            return self.start_logging_new_sequences()
+        else:
+            return self.stop_logging_new_sequences()
 
     def start_logging_new_sequences(self):
         """

@@ -721,18 +721,20 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     struct ebpH_profile *profile = NULL;
 
     if (in_execve)
-        return 1;
+    {
+        return 0;
+    }
 
     if (!key)
     {
         EBPH_ERROR("ebpH_create_profile: Null key", ctx);
-        return 1;
+        return -1;
     }
 
     if (!comm)
     {
         EBPH_ERROR("ebpH_create_profile: Null comm", ctx);
-        return 1;
+        return -1;
     }
 
     /* If the profile for this key already exists, move on */
@@ -748,7 +750,7 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     if (!profile)
     {
         EBPH_ERROR("ebpH_create_profile: Could not fetch init template for profile", ctx);
-        return 1;
+        return -1;
     }
 
     /* Copy memory over */
@@ -756,7 +758,10 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     if (!profile)
     {
         EBPH_ERROR("ebpH_create_profile: Unable to add profile to map", ctx);
-        return 1;
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("Unable to add profile to map, tid=%lu, comm=%s, key=%llu\n", ebpH_get_tid(), comm, *key);
+        #endif
+        return -1;
     }
 
     profile->key = *key;

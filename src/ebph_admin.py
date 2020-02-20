@@ -133,6 +133,11 @@ def parse_args(args=[]):
     normalize.add_argument('tid', type=int,
             help='Thread ID of the process to normalize. Can also be a PID.')
 
+    log_sequences = commands.add_parser('log-sequences',
+            help='Should ebpH log new sequences?')
+    log_sequences.add_argument('should_log', type=int, choices=[1,0],
+            help=' Specify 1 for yes, 0 for no.')
+
     #reset_profile = commands.add_parser('reset',
     #        help="Reset a profile.")
     #reset_profile.add_argument('key',
@@ -224,6 +229,13 @@ if __name__ == "__main__":
     def normalize(res=None):
         """
         Normalize profile attached to process <tid>.
+        """
+        print(res['message'], file=sys.stderr)
+
+    @command('log-sequences', command_args, ebph_func='set_logging_new_sequences')
+    def normalize(res=None):
+        """
+        Set logging new sequences to 1 or 0.
         """
         print(res['message'], file=sys.stderr)
 
