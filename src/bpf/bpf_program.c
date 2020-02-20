@@ -759,7 +759,7 @@ static int ebpH_create_profile(u64 *key, char *comm, u8 in_execve, struct pt_reg
     {
         EBPH_ERROR("ebpH_create_profile: Unable to add profile to map", ctx);
         #ifdef EBPH_DEBUG
-        bpf_trace_printk("Unable to add profile to map, key=%llu, comm=%s", *key, comm);
+        bpf_trace_printk("Unable to add profile to map, tid=%lu, comm=%s, key=%llu\n", ebpH_get_tid(), comm, *key);
         #endif
         return -1;
     }
