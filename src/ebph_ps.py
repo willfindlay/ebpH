@@ -51,7 +51,7 @@ def print_profile_information(profile, header=0):
 def print_process_information(process, header=0, show_threads=0):
     profile = process["profile"]
     comm = format_comm(profile["comm"])
-    status = 'Frozen' if profile["frozen"] else 'Normal' if profile["normal"] else 'Training'
+    status = 'Normal' if profile["normal"] else 'Frozen' if profile["frozen"] else 'Training'
 
     if header and show_threads:
         print(f"{'PID':<8} {'TID':<8} {'COMM':<16} {'STATUS':<12} {'TRAIN_COUNT':<12} {'LAST_MOD':<12} {'ANOMALIES':<12} {'NORMAL TIME':<16}")

@@ -30,6 +30,7 @@ BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
+BPF_PERF_OUTPUT(on_new_sequence);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx)
@@ -63,6 +64,7 @@ BPF_ARRAY(__process_init, struct ebpH_process, 1);
 /* Store program state */
 BPF_ARRAY(__is_saving, int, 1);
 BPF_ARRAY(__is_monitoring, int, 1);
+BPF_ARRAY(__is_logging_new_sequences, int, 1);
 
 /* Function definitions below this line --------------------- */
 
@@ -354,7 +356,6 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         /* check for mismatch */
         if ((*entry & (1 << (i-1))) == 0)
         {
-            // TODO: optionally submit mismatch event based on runtime parameter
             mismatches++;
         }
     }
@@ -369,20 +370,31 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
     if (ebpH_test(&(profile->train), process, ctx))
     {
         if (profile->frozen)
+        {
             profile->frozen = 0;
+        }
         ebpH_add_seq(profile, process, ctx);
         profile->train.last_mod_count = 0;
 
-        // TODO: optionally display log sequence based on runtime parameter
-        //       this could overlap with the same idea in the ebpH_test, not sure which one is better
+        /* Log new sequence if configured to do so */
+        int zero = 0;
+        int *logging_new_sequences = __is_logging_new_sequences.lookup(&zero);
+        if (logging_new_sequences && *logging_new_sequences)
+        {
+            on_new_sequence.perf_submit(ctx, process, sizeof(*process));
+        }
     }
     else
     {
         lock_xadd(&profile->train.last_mod_count, 1);
 
         if (profile->frozen)
+        {
             return 0;
+        }
 
+        /* TODO: get rid of normal_count in profiles in final release, move to local variable...
+         * for now, removing it would be more trouble than it's worth */
         profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
 
         if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
@@ -615,8 +627,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     }
     seq->seq[0] = *syscall;
     seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
-
-    // TODO: add optional support for logging all sequences here
 
     /* TODO: take profile lock here */
 

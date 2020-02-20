@@ -86,6 +86,14 @@ struct ebpH_process
 static inline void __ebpH_log_error(char *m, int size, struct pt_regs *ctx);
 static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx);
 
+static void stats_increment(u8 key);
+static void stats_decrement(u8 key);
+
+/* Access runtime parameters */
+static int ebpH_is_monitoring();
+static int ebpH_is_saving();
+static int ebpH_is_logging_new_sequences();
+
 static u32 ebpH_get_parent_tid();
 static u32 ebpH_get_group_leader_tid();
 

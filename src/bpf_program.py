@@ -24,7 +24,10 @@ from structs import EBPHProfile, EBPHProcess
 from utils import locks, syscall_name
 import config
 
-logger = logging.getLogger('ebpH')
+logger = logging.getLogger('ebph')
+new_seqlogger = logging.getLogger('newseq')
+
+new_seqlogger.info('HELLO!')
 
 # Register signal handlers
 def handle_sigterm(x, y):
@@ -62,15 +65,6 @@ class BPFProgram:
         # BPF program should be None until it is loaded
         self.bpf = None
 
-    def load_libebph(self):
-        try:
-            self.libebph = ct.CDLL(config.libebph)
-        except:
-            raise(f"Could not load {config.libebph}. Have you run make?")
-        # Function definitions
-        self.libebph.cmd_normalize.argtypes = [ct.c_uint32]
-        logger.info('Loaded libebph')
-
     def cleanup(self):
         """
         Cleanup hook for BPF program.
@@ -82,6 +76,15 @@ class BPFProgram:
         self.save_profiles()
         self.bpf = None
         logger.info('BPF program unloaded')
+
+    def load_libebph(self):
+        try:
+            self.libebph = ct.CDLL(config.libebph)
+        except:
+            raise(f"Could not load {config.libebph}. Have you run make?")
+        # Function definitions
+        self.libebph.cmd_normalize.argtypes = [ct.c_uint32]
+        logger.info('Loaded libebph')
 
     def register_exit_hooks(self):
         """
@@ -139,10 +142,34 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.warning(f"Anomalies detected in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key})")
-            logger.debug(f"Stack count: {process.stack.top}")
-            logger.warning(f"Seq: {', '.join(sequence)}")
+            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}: {', '.join(sequence)}")
+            logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
+
+        def on_new_sequence(cpu, data, size):
+            """
+            Invoked every time a new sequence is detected by the BPF program
+            and we have set logging_new_sequences to 1.
+            Events are submitted in ebpH_train.
+            """
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.profile_key
+                profile.comm = b'UNKNOWN'
+
+            # Get sequence array from correct stack frame
+            sequence = process.stack.seq[process.stack.top].seq
+            # 9999 is empty
+            sequence = [syscall_name(syscall) for syscall in sequence if syscall != 9999]
+            # Sequences are actually reversed
+            sequence = reversed(sequence)
+
+            new_seqlogger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
+            new_seqlogger.debug(f"Stack top: {process.stack.top}")
+        self.bpf["on_new_sequence"].open_perf_buffer(on_new_sequence, lost_cb=lost_cb("on_new_sequence"), page_cnt=2**8)
 
         def ebpH_error(cpu, data, size):
             """
@@ -222,6 +249,8 @@ class BPFProgram:
 
         self.load_profiles()
         self.start_monitoring()
+        # FIXME: delete this, for testing purposes
+        self.start_logging_new_sequences()
 
         logger.info('BPF program initialized')
 
@@ -253,11 +282,36 @@ class BPFProgram:
 
 # Commands below this line ----------------------------------------------
 
+    def start_logging_new_sequences(self):
+        """
+        Start logging new sequences.
+        """
+        if self.logging_new_sequences:
+            msg = 'New sequences are already being logged'
+            logger.info(msg)
+            return msg
+        self.bpf["__is_logging_new_sequences"][ct.c_int(0)] = ct.c_int(1)
+        msg = f'Started logging new sequences to {config.newseq_logfile}'
+        logger.info(msg)
+        return msg
+
+    def stop_logging_new_sequences(self):
+        """
+        Stop logging new sequences.
+        """
+        if not self.logging_new_sequences:
+            msg = 'New sequences are not currently being logged'
+            logger.info(msg)
+            return msg
+        self.bpf["__is_logging_new_sequences"][ct.c_int(0)] = ct.c_int(0)
+        msg = f'Stopped logging new sequences'
+        logger.info(msg)
+        return msg
+
     @locks(monitoring_lock)
     def start_monitoring(self):
         """
         Start monitoring the system.
-        Return 0 on success, 1 if system is already being monitored.
         """
         if self.monitoring:
             msg = 'System is already being monitored'
@@ -272,7 +326,6 @@ class BPFProgram:
     def stop_monitoring(self):
         """
         Stop monitoring the system.
-        Return 0 on success, 1 if system is already not being monitored.
         """
         if not self.monitoring:
             msg = 'System is not being monitored'
@@ -482,6 +535,11 @@ class BPFProgram:
         elif attr == 'monitoring':
             try:
                 return bool(self.bpf["__is_monitoring"][0].value)
+            except TypeError:
+                return False
+        elif attr == 'logging_new_sequences':
+            try:
+                return bool(self.bpf["__is_logging_new_sequences"][0].value)
             except TypeError:
                 return False
         return super().__getattribute__(attr)
