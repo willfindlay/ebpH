@@ -76,7 +76,7 @@ struct ebpH_process
 {
     struct ebpH_locality alf;
     struct ebpH_sequence_stack stack;
-    u32 pid; /* Kernel pid */
+    u32 pid; /* Kernel tgid */
     u32 tid; /* Kernel pid */
     u64 profile_key;
     u8 in_execve;
