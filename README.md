@@ -32,7 +32,8 @@ This product comes with no warranty, and is built as a research system. It shoul
 
 1. Install the prerequisites (see above).
 1. Clone the development branch from the repo: `git clone https://github.com/willfindlay/ebpH`
-1. Run `$ sudo make install`.
+1. Run `$ make install`. You will be prompted for your password.
+1. For automatic startup with systemd, run `$ make systemd`. You will be prompted for your password.
 
 ## Running
 
