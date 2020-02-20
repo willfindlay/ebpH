@@ -133,6 +133,10 @@ def parse_args(args=[]):
     normalize.add_argument('tid', type=int,
             help='Thread ID of the process to normalize. Can also be a PID.')
 
+    # TODO finish this
+    #log_sequences = commands.add_parser('log-sequences',
+    #        help='')
+
     #reset_profile = commands.add_parser('reset',
     #        help="Reset a profile.")
     #reset_profile.add_argument('key',

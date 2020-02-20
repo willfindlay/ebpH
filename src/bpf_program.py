@@ -27,8 +27,6 @@ import config
 logger = logging.getLogger('ebph')
 new_seqlogger = logging.getLogger('newseq')
 
-new_seqlogger.info('HELLO!')
-
 # Register signal handlers
 def handle_sigterm(x, y):
     logger.debug("Caught SIGTERM")
@@ -142,7 +140,7 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}: {', '.join(sequence)}")
+            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
             logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
