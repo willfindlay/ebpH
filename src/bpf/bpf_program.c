@@ -30,6 +30,7 @@ BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
+BPF_PERF_OUTPUT(on_start_normal);
 BPF_PERF_OUTPUT(on_new_sequence);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
@@ -374,6 +375,7 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
             profile->frozen = 0;
         }
         ebpH_add_seq(profile, process, ctx);
+        lock_xadd(&profile->train.sequences, 1);
         profile->train.last_mod_count = 0;
 
         /* Log new sequence if configured to do so */
@@ -393,12 +395,10 @@ static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process
             return 0;
         }
 
-        /* TODO: get rid of normal_count in profiles in final release, move to local variable...
-         * for now, removing it would be more trouble than it's worth */
-        profile->train.normal_count = profile->train.train_count - profile->train.last_mod_count;
+        u64 normal_count = profile->train.train_count - profile->train.last_mod_count;
 
-        if ((profile->train.normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
-                    profile->train.normal_count * EBPH_NORMAL_FACTOR))
+        if ((normal_count > 0) && (profile->train.train_count * EBPH_NORMAL_FACTOR_DEN >
+                    normal_count * EBPH_NORMAL_FACTOR))
         {
             profile->frozen = 1;
             ebpH_set_normal_time(profile, ctx);
@@ -419,6 +419,8 @@ static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *
     profile->train.train_count = 0;
 
     ebpH_reset_ALF(process, ctx);
+
+    on_start_normal.perf_submit(ctx, process, sizeof(*process));
 
     return 0;
 }
@@ -600,6 +602,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     {
         return 0;
     }
+
+    stats_increment(STATS_SYSCALLS);
 
     profile = profiles.lookup(&(process->profile_key));
 
@@ -828,8 +832,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         return 0;
     }
-
-    stats_increment(STATS_SYSCALLS);
 
     /* Pop if we are flagged for popping
      * See below */

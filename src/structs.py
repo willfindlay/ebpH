@@ -40,7 +40,7 @@ class EBPHProfileData(ct.Structure):
             ('flags', (ct.c_uint8 * EBPH_NUM_SYSCALLS) * EBPH_NUM_SYSCALLS),
             ('last_mod_count', ct.c_uint64),
             ('train_count', ct.c_uint64),
-            ('normal_count', ct.c_uint64),
+            ('sequences', ct.c_uint64),
             ]
 
 class EBPHProfile(ct.Structure):

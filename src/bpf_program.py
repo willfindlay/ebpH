@@ -144,6 +144,22 @@ class BPFProgram:
             logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
+        def on_start_normal(cpu, data, size):
+            """
+            Invoked every time a profile is made normal.
+            Events are submitted in ebpH_start_normal.
+            """
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.profile_key
+                profile.comm = b'UNKNOWN'
+
+            logger.info(f"Starting normal monitoring in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}) with {profile.train.sequences} sequences.")
+        self.bpf["on_start_normal"].open_perf_buffer(on_start_normal, lost_cb=lost_cb("on_start_normal"))
+
         def on_new_sequence(cpu, data, size):
             """
             Invoked every time a new sequence is detected by the BPF program
@@ -428,9 +444,9 @@ class BPFProgram:
                 'frozen': profile.frozen,
                 'normal': profile.normal,
                 'normal_time': profile.normal_time,
-                'normal_count': profile.train.normal_count,
                 'last_mod_count': profile.train.last_mod_count,
                 'train_count': profile.train.train_count,
+                'sequences': profile.train.sequences,
                 'anomalies': profile.anomalies,
                 }
         return attrs

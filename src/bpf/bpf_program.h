@@ -36,7 +36,7 @@ struct ebpH_profile_data
     struct ebpH_lookahead_row rows[EBPH_NUM_SYSCALLS];
     u64 last_mod_count;
     u64 train_count;
-    u64 normal_count;
+    u64 sequences;
 };
 
 struct ebpH_profile
