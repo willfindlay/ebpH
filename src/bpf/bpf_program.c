@@ -30,6 +30,8 @@ BPF_PERF_OUTPUT(ebpH_warning);
 BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
+BPF_PERF_OUTPUT(on_anomaly_limit);
+BPF_PERF_OUTPUT(on_tolerize_limit);
 BPF_PERF_OUTPUT(on_start_normal);
 BPF_PERF_OUTPUT(on_new_sequence);
 
@@ -280,22 +282,13 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
         anomalies = ebpH_test(&(profile->test), process, ctx);
         if (anomalies)
         {
-            struct ebpH_sequence *seq = ebpH_curr_seq(process);
-            if (!seq)
-            {
-                #ifdef EBPH_DEBUG
-                bpf_trace_printk("ebpH_process_normal: Null sequence, cannot submit anomaly event\n");
-                #endif
-                // TODO: call EBPH_ERROR here
-                goto out;
-            }
-
             on_anomaly.perf_submit(ctx, process, sizeof(*process));
             // TODO: check for successful submission here
 
             if (profile->anomalies > EBPH_ANOMALY_LIMIT)
             {
                 ebpH_stop_normal(profile, process, ctx);
+                on_anomaly_limit.perf_submit(ctx, process, sizeof(*process));
             }
         }
     }
@@ -637,7 +630,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     ebpH_train(profile, process, ctx);
 
     /* Update normal status if we are frozen and have reached normal_time */
-    if (ebpH_check_normal_time(profile, ctx))
+    if (ebpH_check_normal_time(profile, ctx) && !profile->normal)
     {
         ebpH_start_normal(profile, process, ctx);
     }
@@ -648,7 +641,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
     if (lfc > EBPH_TOLERIZE_LIMIT)
     {
         ebpH_reset_profile_data(&(profile->train), ctx);
-        // TODO: notify user here
+        profile->anomalies = 0;
+        on_tolerize_limit.perf_submit(ctx, process, sizeof(*process));
     }
 
     /* TODO: release profile lock here */

@@ -75,12 +75,11 @@ def setup(args):
 
     # Handle nolog argument
     if args.nolog:
-        logger = logging.getLogger('ebph')
-
         # create and configure a handler for stderr
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(config.verbosity)
         logger.addHandler(stream_handler)
+        newseq_logger.addHandler(stream_handler)
 
         # set formatter
         formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
@@ -89,6 +88,7 @@ def setup(args):
 
         # disable file handlers
         logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
+        newseq_logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
