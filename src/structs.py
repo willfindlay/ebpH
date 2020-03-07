@@ -27,6 +27,7 @@ EBPH_SEQLEN = 9
 EBPH_SEQSTACK_SIZE = 6
 EBPH_LOCALITY_WIN = 128
 EBPH_FILENAME_LEN = 128
+TASK_COMM_LEN = 16
 
 # Profiles below this line ----------------------------------------------------------
 
@@ -40,7 +41,7 @@ class EBPHProfileData(ct.Structure):
             ('flags', (ct.c_uint8 * EBPH_NUM_SYSCALLS) * EBPH_NUM_SYSCALLS),
             ('last_mod_count', ct.c_uint64),
             ('train_count', ct.c_uint64),
-            ('normal_count', ct.c_uint64),
+            ('sequences', ct.c_uint64),
             ]
 
 class EBPHProfile(ct.Structure):
@@ -110,5 +111,4 @@ class EBPHProcess(ct.Structure):
             ('pid', ct.c_uint32),
             ('tid', ct.c_uint32),
             ('profile_key', ct.c_uint64),
-            ('in_execve', ct.c_uint8),
             ]

@@ -14,8 +14,6 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#include <uapi/asm/unistd_64.h>
-
 /* This is the default size for BPF tables (hashmaps, etc.) */
 #define EBPH_DEFAULT_TABLE_SIZE 10240
 /* This is the maxmimum number of PIDs on the system */

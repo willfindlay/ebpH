@@ -144,6 +144,55 @@ class BPFProgram:
             logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
+        def on_anomaly_limit(cpu, data, size):
+            """
+            Invoked every time a profile exceeds its anomaly limit.
+            Events are submitted in ebpH_process_normal.
+            """
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.profile_key
+                profile.comm = b'UNKNOWN'
+
+            logger.warning(f"Anomaly limit exceeded in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}), stopping normal monitoring")
+        self.bpf["on_anomaly_limit"].open_perf_buffer(on_anomaly_limit, lost_cb=lost_cb("on_anomaly_limit"))
+
+        def on_tolerize_limit(cpu, data, size):
+            """
+            Invoked every time a process exceeds its tolerize limit.
+            Events are submitted in ebpH_process_normal.
+            """
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.profile_key
+                profile.comm = b'UNKNOWN'
+
+            logger.warning(f"Tolerize limit exceeded in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}), resetting training data")
+        self.bpf["on_tolerize_limit"].open_perf_buffer(on_tolerize_limit, lost_cb=lost_cb("on_tolerize_limit"))
+
+        def on_start_normal(cpu, data, size):
+            """
+            Invoked every time a profile is made normal.
+            Events are submitted in ebpH_start_normal.
+            """
+            process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = process.profile_key
+                profile.comm = b'UNKNOWN'
+
+            logger.info(f"{profile.comm.decode('utf-8')} ({profile.key}) now has {profile.test.train_count} training calls and {profile.test.last_mod_count} since last change")
+            logger.info(f"Starting normal monitoring in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}) with {profile.train.sequences} sequences")
+        self.bpf["on_start_normal"].open_perf_buffer(on_start_normal, lost_cb=lost_cb("on_start_normal"))
+
         def on_new_sequence(cpu, data, size):
             """
             Invoked every time a new sequence is detected by the BPF program
@@ -422,15 +471,17 @@ class BPFProgram:
         Return a dictionary of basic profile info excluding things like lookahead pairs.
         """
         profile = self.bpf['profiles'][ct.c_uint64(key)]
+        #data = profile.test if profile.normal else profile.train
+        data = profile.train
         attrs = {
                 'comm': profile.comm.decode('utf-8'),
                 'key': profile.key,
                 'frozen': profile.frozen,
                 'normal': profile.normal,
                 'normal_time': profile.normal_time,
-                'normal_count': profile.train.normal_count,
-                'last_mod_count': profile.train.last_mod_count,
-                'train_count': profile.train.train_count,
+                'last_mod_count': data.last_mod_count,
+                'train_count': data.train_count,
+                'sequences': data.sequences,
                 'anomalies': profile.anomalies,
                 }
         return attrs
