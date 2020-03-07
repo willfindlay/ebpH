@@ -48,7 +48,8 @@ socket_buff_size = 3
 socket_sentinel = b"\x00"
 
 # Default to logging new sequences?
-log_new_sequences_on_start = 0
+#log_new_sequences_on_start = 0
+log_new_sequences_on_start = 1
 
 # BPFProgram constants dictionary
 bpf_params = {
