@@ -1,4 +1,4 @@
-# ebpH v0.5.3
+# ebpH v0.6.0
 
 ## Description
 
