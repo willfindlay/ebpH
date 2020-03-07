@@ -95,23 +95,26 @@ static int ebpH_is_logging_new_sequences();
 
 static u8 *ebpH_lookahead(struct ebpH_profile_data *data, u32 curr, u32 prev);
 
-static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_copy_train_to_test(struct ebpH_profile *profile);
-static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
-static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+
 static int ebpH_set_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *ctx);
+
+static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx);
+
+static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, struct pt_regs *ctx);
+static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
+static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 
 static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process);
 static int ebpH_push_seq(struct ebpH_process *process);
 static int ebpH_pop_seq(struct ebpH_process *process);
 
-static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
-static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
-static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, struct pt_regs *ctx);
 static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_create_process(u32 *pid, struct task_struct *task, struct pt_regs *ctx);
 static int ebpH_create_profile(u64 *key, const char *comm, struct pt_regs *ctx);
