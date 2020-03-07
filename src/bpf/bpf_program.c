@@ -12,10 +12,11 @@
 #include <linux/sched.h>
 #include <linux/binfmts.h>
 #include <linux/fdtable.h>
-#include <uapi/linux/ptrace.h>
 #include <linux/fs.h>
 #include <linux/path.h>
 #include <linux/timekeeping.h>
+#include <uapi/linux/ptrace.h>
+#include <uapi/asm/unistd_64.h>
 
 #include "bpf/defs.h"
 #include "bpf/bpf_program.h"
