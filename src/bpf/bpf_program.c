@@ -50,7 +50,7 @@ static inline void __ebpH_log_warning(char *m, int size, struct pt_regs *ctx)
 
 /* BPF tables below this line --------------------- */
 
-/* tid to ebpH_process */
+/* pid (kernel pid) to ebpH_process */
 BPF_F_TABLE("hash", u32, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, BPF_F_NO_PREALLOC);
 //BPF_F_TABLE("lru_hash", u64, struct ebpH_process, processes, EBPH_PROCESSES_TABLE_SIZE, 0);
 
@@ -139,7 +139,7 @@ static inline u32 ebpH_get_tgid()
     return tgid;
 }
 
-static u8 *ebpH_lookahead(struct ebpH_profile_data *data, long curr, long prev)
+static u8 *ebpH_lookahead(struct ebpH_profile_data *data, u32 curr, u32 prev)
 {
     /* Null profile data */
     if (!data)
@@ -248,19 +248,15 @@ static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process)
         return NULL;
     }
 
-    // FIXME: this is broken, verifier doesn't like it
-    //        signal stack is broken until this is fixed
-    /* Check for invalid access */
-    //if (process->stack.top < 0 || process->stack.top >= EBPH_SEQSTACK_SIZE)
-    //{
-    //    #ifdef EBPH_DEBUG
-    //    bpf_trace_printk("ebpH_curr_seq: Invalid stack access, top is %d\n", process->stack.top);
-    //    #endif
-    //    return NULL;
-    //}
+    /* Verifier is annoying */
+    #pragma unroll
+    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    {
+        if (process->stack.top == i)
+            return &process->stack.seq[i];
+    }
 
-    //return &process->stack.seq[process->stack.top];
-    return &process->stack.seq[0];
+    return NULL;
 }
 
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
@@ -321,8 +317,8 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
     /* Check every (curr, prev) pair for current syscall */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long curr = seq->seq[0];
-        long prev = seq->seq[i];
+        u32 curr = seq->seq[0];
+        u32 prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -483,8 +479,8 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     /* Set every (curr, prev) pair for current syscall */
     for (int i = 1; i < EBPH_SEQLEN; i++)
     {
-        long curr = seq->seq[0];
-        long prev = seq->seq[i];
+        u32 curr = seq->seq[0];
+        u32 prev = seq->seq[i];
         if (prev == EBPH_EMPTY)
             break;
 
@@ -541,7 +537,7 @@ static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_proc
     return 0;
 }
 
-static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, struct pt_regs *ctx)
+static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, struct pt_regs *ctx)
 {
     struct ebpH_profile *profile;
     int *monitoring, *saving;
@@ -643,7 +639,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, long *syscall, str
 }
 
 /* Create a process struct for the given pid if it doesn't exist */
-static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
+static int ebpH_create_process(u32 *pid, struct task_struct *task, struct pt_regs *ctx)
 {
     int zero = 0;
     struct ebpH_process *process;
@@ -671,8 +667,9 @@ static int ebpH_create_process(u32 *pid, struct pt_regs *ctx)
         return -1;
     }
 
-    process->pid = ebpH_get_tgid();
-    process->tid = ebpH_get_pid();
+    /* User pid and tid (kernel tgid and pid respectively) */
+    process->pid = task->tgid;
+    process->tid = task->pid;
 
     for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
@@ -787,8 +784,6 @@ static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_reg
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
-    u32 pid = ebpH_get_pid();
-    long syscall = args->id;
     struct ebpH_process *process;
 
     int zero = 0;
@@ -804,6 +799,14 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
     {
         return 0;
     }
+
+    if (args->id < 0)
+    {
+        return 0;
+    }
+
+    u32 syscall = args->id;
+    u32 pid = ebpH_get_pid();
 
     process = processes.lookup(&pid);
 
@@ -843,8 +846,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
 TRACEPOINT_PROBE(raw_syscalls, sys_exit)
 {
-    long syscall = args->id;
-    u32 pid = ebpH_get_pid();
     struct ebpH_profile *profile;
     struct ebpH_process *process;
 
@@ -862,11 +863,13 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         return 0;
     }
 
-    // TODO: figure out why some numbers are negative (likely for system calls that don't return)
     if (args->id < 0)
     {
         return 0;
     }
+
+    u32 syscall = args->id;
+    u32 pid = ebpH_get_pid();
 
     process = processes.lookup(&pid);
     if (!process)
@@ -886,13 +889,6 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
     {
         ebpH_process_syscall(process, &syscall, (struct pt_regs *)args);
     }
-    else
-    {
-        // TODO: consider removing this print completely
-        //#ifdef EBPH_DEBUG
-        //bpf_trace_printk("raw_syscalls:sys_exit: Refusing to process syscall %d since it will be restarted.\n", syscall);
-        //#endif
-    }
 
     return 0;
 }
@@ -910,7 +906,7 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
     u32 cpid = c->pid;
 
     /* Create the process */
-    ebpH_create_process(&cpid, (struct pt_regs *)ctx);
+    ebpH_create_process(&cpid, c, (struct pt_regs *)ctx);
     process = processes.lookup(&cpid);
     if (!process)
     {
@@ -968,14 +964,13 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     u64 profile_key = (u64)bprm->file->f_path.dentry->d_inode->i_ino | ((u64)bprm->file->f_path.dentry->d_inode->i_rdev << 32);
 
     /* Create profile if necessary */
-    ebpH_create_profile(&profile_key, bprm->filename, (struct pt_regs *)ctx);
-    bpf_trace_printk("created profile %llu\n", profile_key);
+    ebpH_create_profile(&profile_key, bprm->file->f_path.dentry->d_name.name, (struct pt_regs *)ctx);
 
     /* Look up profile */
     struct ebpH_profile *profile = profiles.lookup(&profile_key);
     if (!profile)
     {
-        EBPH_ERROR("kretprobe__do_open_execat: Unable to lookup profile", (struct pt_regs *)ctx);
+        EBPH_ERROR("sched_process_exec: Unable to lookup profile", (struct pt_regs *)ctx);
         return 0;
     }
 
@@ -1005,11 +1000,17 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
 }
 
 /* Entry hook for kernel signal handler implementation */
-int kprobe__do_signal(struct pt_regs *ctx)
+int kretprobe__get_signal(struct pt_regs *ctx)
 {
-    u32 pid = ebpH_get_pid();
-    struct ebpH_process *process = processes.lookup(&pid);
+    /* Nothing to handle */
+    if (!PT_REGS_RC(ctx))
+    {
+        return 0;
+    }
 
+    u32 pid = ebpH_get_pid();
+
+    struct ebpH_process *process = processes.lookup(&pid);
     if (!process)
     {
         /* Process is not being traced */
@@ -1018,7 +1019,7 @@ int kprobe__do_signal(struct pt_regs *ctx)
 
     if (ebpH_push_seq(process))
     {
-        EBPH_ERROR("kprobe__do_signal: Failed to push sequence onto stack", ctx);
+        EBPH_ERROR("kretprobe__get_signal: Failed to push sequence onto stack", ctx);
         return -1;
     }
 
@@ -1041,10 +1042,34 @@ int cmd_normalize(struct pt_regs *ctx)
     if (!profile)
     {
         EBPH_ERROR("cmd_start_normal: No such profile", ctx);
-        return -1;
+        return -2;
     }
 
     ebpH_start_normal(profile, process, ctx);
+
+    return 0;
+}
+
+/* Tolerize command */
+int cmd_tolerize(struct pt_regs *ctx)
+{
+    u32 pid = (u32)PT_REGS_PARM1(ctx);
+
+    struct ebpH_process *process = processes.lookup(&pid);
+    if (!process)
+    {
+        EBPH_ERROR("cmd_start_normal: No such process", ctx);
+        return -1;
+    }
+
+    struct ebpH_profile *profile = profiles.lookup(&process->profile_key);
+    if (!profile)
+    {
+        EBPH_ERROR("cmd_start_normal: No such profile", ctx);
+        return -2;
+    }
+
+    // TODO: implement
 
     return 0;
 }
