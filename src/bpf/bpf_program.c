@@ -206,7 +206,7 @@ static int ebpH_push_seq(struct ebpH_process *process)
 
     /* Reinitialize the sequence */
     seq->count = 0;
-    for (int i = 0; i < EBPH_SEQLEN; i++)
+    for (u32 i = 0; i < EBPH_SEQLEN; i++)
         seq->seq[i] = EBPH_EMPTY;
 
     return 0;
@@ -251,7 +251,7 @@ static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process)
 
     /* Verifier is annoying */
     #pragma unroll
-    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
         if (process->stack.top == i)
             return &process->stack.seq[i];
@@ -316,7 +316,7 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
     }
 
     /* Check every (curr, prev) pair for current syscall */
-    for (int i = 1; i < EBPH_SEQLEN; i++)
+    for (u32 i = 1; i < EBPH_SEQLEN; i++)
     {
         u32 curr = seq->seq[0];
         u32 prev = seq->seq[i];
@@ -435,7 +435,7 @@ static int ebpH_check_normal_time(struct ebpH_profile *profile, struct pt_regs *
 
 static int ebpH_reset_ALF(struct ebpH_process *process, struct pt_regs *ctx)
 {
-    for (int i=0; i < EBPH_LOCALITY_WIN; i++)
+    for (u32 i=0; i < EBPH_LOCALITY_WIN; i++)
     {
         process->alf.win[i] = 0;
     }
@@ -478,7 +478,7 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
     }
 
     /* Set every (curr, prev) pair for current syscall */
-    for (int i = 1; i < EBPH_SEQLEN; i++)
+    for (u32 i = 1; i < EBPH_SEQLEN; i++)
     {
         u32 curr = seq->seq[0];
         u32 prev = seq->seq[i];
@@ -605,7 +605,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, stru
     }
 
     /* Add syscall to process sequence */
-    for (int i = EBPH_SEQLEN - 1; i > 0; i--)
+    for (u32 i = EBPH_SEQLEN - 1; i > 0; i--)
     {
         seq->seq[i] = seq->seq[i-1];
     }
@@ -672,9 +672,9 @@ static int ebpH_create_process(u32 *pid, struct task_struct *task, struct pt_reg
     process->pid = task->tgid;
     process->tid = task->pid;
 
-    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
-        for (int j = 0; j < EBPH_SEQLEN; j++)
+        for (u32 j = 0; j < EBPH_SEQLEN; j++)
             process->stack.seq[i].seq[j] = EBPH_EMPTY;
     }
 
@@ -924,10 +924,10 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
 
     /* Copy parent process' sequences to child
      * and reset process' sequence stack */
-    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
         process->stack.seq[i].count = parent_process->stack.seq[i].count;
-        for (int j = 0; j < EBPH_SEQLEN; j++)
+        for (u32 j = 0; j < EBPH_SEQLEN; j++)
         {
             process->stack.seq[i].seq[j] = parent_process->stack.seq[i].seq[j];
         }
@@ -976,10 +976,10 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     }
 
     /* Reset process' sequence stack */
-    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
         process->stack.seq[i].count = 0;
-        for (int j = 0; j < EBPH_SEQLEN; j++)
+        for (u32 j = 0; j < EBPH_SEQLEN; j++)
         {
             process->stack.seq[i].seq[j] = EBPH_EMPTY;
         }
