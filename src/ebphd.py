@@ -15,8 +15,7 @@
 import os, sys
 import argparse
 import signal
-import logging
-import logging.handlers
+from logger import setup_logger
 import pwd
 import grp
 import stat
@@ -25,70 +24,6 @@ from ebph_daemon import EBPHDaemon
 from utils import setup_dir
 import config
 config.init()
-
-def setup(args):
-    # Get UID and GID of root
-    uid = pwd.getpwnam("root").pw_uid
-    gid = grp.getgrnam("root").gr_gid
-
-    # Setup logdir
-    setup_dir(config.logdir)
-
-    # Setup logfile
-    try:
-        os.chown(config.logfile, uid, gid)
-    except FileNotFoundError:
-        pass
-
-    # Setup data dir and make sure permissions are correct
-    setup_dir(config.ebph_data_dir)
-    os.chown(config.ebph_data_dir, uid, gid)
-    os.chmod(config.ebph_data_dir, 0o700 | stat.S_ISVTX)
-
-    # Setup profiles dir and make sure permissions are correct
-    setup_dir(config.profiles_dir)
-    os.chown(config.profiles_dir, uid, gid)
-    os.chmod(config.profiles_dir, 0o700)
-
-    # Configure logging
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
-
-    if args.debug:
-        config.verbosity = logging.DEBUG
-    logger = logging.getLogger('ebph')
-    logger.setLevel(config.verbosity)
-
-    handler = logging.handlers.WatchedFileHandler(config.logfile)
-    handler.setLevel(config.verbosity)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    # Configure newseq logging
-    newseq_logger = logging.getLogger('newseq')
-    newseq_logger.setLevel(config.verbosity)
-
-    new_seq_handler = logging.handlers.WatchedFileHandler(config.newseq_logfile)
-    new_seq_handler.setLevel(config.verbosity)
-    new_seq_handler.setFormatter(formatter)
-    newseq_logger.addHandler(new_seq_handler)
-
-    # Handle nolog argument
-    if args.nolog:
-        # create and configure a handler for stderr
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(config.verbosity)
-        logger.addHandler(stream_handler)
-        newseq_logger.addHandler(stream_handler)
-
-        # set formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-        formatter.datefmt = '%Y-%m-%d %H:%M:%S'
-        stream_handler.setFormatter(formatter)
-
-        # disable file handlers
-        logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
-        newseq_logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
@@ -140,7 +75,7 @@ if __name__ == "__main__":
         return args
 
     args = parse_args(sys.argv[1:])
-    setup(args)
+    setup_logger(args)
 
     e = EBPHDaemon(args)
 
