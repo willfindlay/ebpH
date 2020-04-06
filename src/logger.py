@@ -97,9 +97,9 @@ def setup_logger(args):
     handler = EBPHRotatingFileHandler(
         config.logfile,
         maxBytes=(1024**3),
-        backupCount=5,
-        when='d',
-        interval=21
+        backupCount=12,
+        when='w0',
+        interval=4
     )
     handler.setLevel(config.verbosity)
     handler.setFormatter(formatter)
