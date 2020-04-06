@@ -117,6 +117,17 @@ def send_message(sock, data):
     """
     sock.send(b"".join([data, config.socket_sentinel]))
 
+def read_chunks(f, size=1024):
+    """
+    Read a file in chunks.
+    Default chunk size is 1024.
+    """
+    while 1:
+        data = f.read(size)
+        if not data:
+            break
+        yield data
+
 class LoggerWriter:
     """
     LoggerWriter

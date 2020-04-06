@@ -30,7 +30,6 @@ BPF_PERF_OUTPUT(ebpH_warning);
 
 /* Main syscall event buffer */
 BPF_PERF_OUTPUT(on_executable_processed);
-BPF_PERF_OUTPUT(on_pid_assoc);
 BPF_PERF_OUTPUT(on_anomaly);
 BPF_PERF_OUTPUT(on_anomaly_limit);
 BPF_PERF_OUTPUT(on_tolerize_limit);
