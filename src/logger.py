@@ -8,20 +8,35 @@ import logging
 from logging import handlers as handlers
 
 import config
-from utils import setup_dir
+from utils import setup_dir, read_chunks
 
-class SizedTimedRotatingFileHandler(handlers.TimedRotatingFileHandler):
+class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
+    """
+    Rotates log files either when they have reached the specified
+    time or when they have reached the specified size. Keeps
+    backupCount many backups.
+
+    This class uses camel casing because that's what the logging module uses.
+    """
     def __init__(self, filename, maxBytes=0, backupCount=0, encoding=None,
             delay=0, when='h', interval=1, utc=False):
-        super().__init__(filename, when, interval, backupCount, encoding, delay, utc)
+        handlers.TimedRotatingFileHandler.__init__(self, filename, when,
+                interval, backupCount, encoding, delay, utc)
         self.maxBytes = maxBytes
+        self.suffix = "%Y-%m-%d_%H-%M-%S"
 
         def rotator(source, dest):
-            with open(source, 'r') as sf, gzip.open(f'{dest}.gz' ,'wb') as df:
-                df.write(sf.read().encode('utf-8'))
+            dest = f'{dest}.gz'
+            try:
+                os.unlink(dest)
+            except FileNotFoundError:
+                pass
+            with open(source, 'r') as sf, gzip.open(dest ,'ab') as df:
+                for chunk in read_chunks(sf):
+                    df.write(chunk.encode('utf-8'))
             try:
                 os.unlink(source)
-            except:
+            except FileNotFoundError:
                 pass
 
         self.rotator=rotator
@@ -77,10 +92,11 @@ def setup_logger(args):
     logger = logging.getLogger('ebph')
     logger.setLevel(config.verbosity)
 
-    handler = SizedTimedRotatingFileHandler(
+    # Create and add handler
+    # TODO: change this to allow configurable sizes, times, backup counts
+    handler = EBPHRotatingFileHandler(
         config.logfile,
-        #maxBytes=(1024**3),
-        maxBytes=(1000),
+        maxBytes=(1024**3),
         backupCount=5,
         when='d',
         interval=21
@@ -112,7 +128,7 @@ def setup_logger(args):
         stream_handler.setFormatter(formatter)
 
         # disable file handlers
-        logger.handlers = [h for h in logger.handlers if not isinstance(h, SizedTimedRotatingFileHandler)]
+        logger.handlers = [h for h in logger.handlers if not isinstance(h, EBPHRotatingFileHandler)]
         #newseq_logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
 
 def get_logger(name='ebph'):
