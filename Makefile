@@ -15,7 +15,7 @@ $(LIBEBPHOBJ): $(LIBEBPHSRC)
 package:
 	pip3 install -e .
 
-install: $(LIBEBPHOBJ) package
+install: $(LIBEBPHOBJ)
 	cd $(SCRIPTSDIR) && sudo ./install.sh
 
 systemd:

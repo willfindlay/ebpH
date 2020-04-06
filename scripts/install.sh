@@ -15,6 +15,8 @@ setup_install_dir()
     cp -r "$PROJECTDIR" "$INSTALLDIR"
     # Make sure root owns /opt/ebpH and its children
     chown -R root:root "$INSTALLDIR"
+    # Install python  package
+	pip3 install -e "$INSTALLDIR"
 )
 
 install()
