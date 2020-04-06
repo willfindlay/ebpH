@@ -17,10 +17,10 @@ import time
 import datetime
 import signal
 
-from structs import EBPHProfile
-from utils import syscall_name, connect_to_socket, from_json_bytes, to_json_bytes, send_message, receive_message
+from ebpH.structs import EBPHProfile
+from ebpH.utils import syscall_name, connect_to_socket, from_json_bytes, to_json_bytes, send_message, receive_message
 
-import config
+from ebpH import config
 config.init()
 
 signal.signal(signal.SIGPIPE, lambda x, y: sys.exit(0))

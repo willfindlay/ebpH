@@ -6,8 +6,8 @@ import struct
 import json
 from http import HTTPStatus as Status
 
-import config
-from utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from ebpH import config
 
 logger = logging.getLogger('ebpH')
 

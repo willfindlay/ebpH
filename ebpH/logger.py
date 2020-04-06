@@ -7,8 +7,8 @@ import gzip
 import logging
 from logging import handlers as handlers
 
-import config
-from utils import setup_dir, read_chunks
+from ebpH.utils import setup_dir, read_chunks
+from ebpH import config
 
 class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """

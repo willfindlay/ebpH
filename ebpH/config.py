@@ -11,7 +11,7 @@
 import os, sys
 import logging
 
-import utils
+from ebpH import utils
 
 # Location where socket and pidfile should be stored
 socketdir = '/run'
@@ -75,10 +75,10 @@ def init():
 
     # BPF C file location
     global bpf_program
-    bpf_program = utils.path('src/bpf/bpf_program.c')
+    bpf_program = utils.path('ebpH/bpf/bpf_program.c')
 
     global libebph
-    libebph = utils.path('src/libebph/libebph.so')
+    libebph = utils.path('ebpH/libebph/libebph.so')
 
     # Configure file locations
     global socket

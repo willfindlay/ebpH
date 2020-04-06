@@ -20,9 +20,9 @@ import subprocess
 
 from bcc import BPF, lib
 
-from structs import EBPHProfile, EBPHProcess
-from utils import locks, syscall_name
-import config
+from ebpH.structs import EBPHProfile, EBPHProcess
+from ebpH.utils import locks, syscall_name
+from ebpH import config
 
 logger = logging.getLogger('ebph')
 new_seqlogger = logging.getLogger('newseq')
@@ -276,7 +276,7 @@ class BPFProgram:
             logger.info(f"Using {k}={v}...")
             flags.append(f"-D{k}={v}")
         # Include project src
-        flags.append(f"-I{config.project_path}/src")
+        flags.append(f"-I{config.project_path}/ebpH")
         # Estimate epoch boot time.
         # This is used to establish normal times within the BPF program
         # since eBPF only provides times since system boot.

@@ -16,7 +16,7 @@ from functools import wraps
 
 import bcc.syscall
 
-import config
+from ebpH import config
 
 def syscall_name(num: int):
     """
@@ -43,7 +43,7 @@ def path(f):
     Return the path of a file relative to the root dir of this project (parent directory of "src").
     """
     curr_dir = os.path.realpath(os.path.dirname(__file__))
-    project_dir = os.path.realpath(os.path.join(curr_dir,".."))
+    project_dir = os.path.realpath(os.path.join(curr_dir, ".."))
     path = os.path.realpath(os.path.join(project_dir, f))
     return path
 

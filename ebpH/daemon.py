@@ -18,9 +18,8 @@ import signal
 import time
 import logging
 
-from utils import LoggerWriter
-
-import config
+from ebpH.utils import LoggerWriter
+from ebpH import config
 
 class Daemon:
     def __init__(self, pidfile, socket):

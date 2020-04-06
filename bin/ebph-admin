@@ -18,12 +18,12 @@ import socket
 import argparse
 import struct
 import subprocess
+import json
 from functools import wraps
 
-import config
+from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from ebpH import config
 config.init()
-import json
-from utils import to_json_bytes, from_json_bytes, receive_message, send_message
 
 DESCRIPTION = """
 Issue commands to ebpH and make queries about system state.

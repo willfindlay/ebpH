@@ -15,14 +15,16 @@
 import os, sys
 import argparse
 import signal
-from logger import setup_logger
 import pwd
 import grp
 import stat
 
-from ebph_daemon import EBPHDaemon
-from utils import setup_dir
-import config
+sys.path.append(os.path.abspath('../src'))
+
+from ebpH.logger import setup_logger
+from ebpH.ebph_daemon import EBPHDaemon
+from ebpH.utils import setup_dir
+from ebpH import config
 config.init()
 
 if __name__ == "__main__":

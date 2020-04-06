@@ -8,11 +8,11 @@ import logging
 import logging.handlers
 import struct
 
-from daemon import Daemon
-from bpf_program import BPFProgram
-from server import EBPHUnixStreamServer, EBPHRequestDispatcher
-from utils import locks, to_json_bytes, from_json_bytes
-import config
+from ebpH.daemon import Daemon
+from ebpH.bpf_program import BPFProgram
+from ebpH.server import EBPHUnixStreamServer, EBPHRequestDispatcher
+from ebpH.utils import locks, to_json_bytes, from_json_bytes
+from ebpH import config
 
 logger = logging.getLogger('ebph')
 
