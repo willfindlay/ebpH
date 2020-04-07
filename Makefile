@@ -13,7 +13,7 @@ $(LIBEBPHOBJ): $(LIBEBPHSRC)
 	cc -fPIC -shared -o $(LIBEBPHOBJ) $(LIBEBPHSRC)
 
 package:
-	pip3 install -e .
+	pip3 install -e . -r requirements.txt
 
 install: $(LIBEBPHOBJ)
 	cd $(SCRIPTSDIR) && sudo ./install.sh

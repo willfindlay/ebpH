@@ -10,8 +10,14 @@
 
 import os, sys
 import logging
+import yaml
 
 from ebpH import utils
+
+config_locations = [
+        '/etc/ebpH/config.yml',
+        utils.path()
+        ]
 
 # Location where socket and pidfile should be stored
 socketdir = '/run'
