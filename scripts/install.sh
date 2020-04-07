@@ -1,5 +1,6 @@
 #! /usr/bin/env sh
 
+CONFIGDIR=/etc/ebpH
 INSTALLDIR=/opt/ebpH
 BINDIR=/usr/bin
 
@@ -21,12 +22,19 @@ setup_install_dir()
 
 install()
 (
+    # Copy things into $INSTALLDIR
     setup_install_dir
     # Create symlinks
     for filename in $INSTALLDIR/bin/*; do
         [ -f "$filename" ] || continue
         ln -vsnf "$filename" "$BINDIR/$(basename $filename)"
     done
+    # Make config file if necessary
+    if [ ! -f "$CONFIGDIR/ebpH.cfg" ];
+    then
+        mkdir -p "$CONFIGDIR"
+        cp "$INSTALLDIR/config/defaults.cfg" "$CONFIGDIR/ebpH.cfg"
+    fi
 )
 
 install

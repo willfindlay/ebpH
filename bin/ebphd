@@ -19,20 +19,17 @@ import pwd
 import grp
 import stat
 
-sys.path.append(os.path.abspath('../src'))
-
 from ebpH.logger import setup_logger
 from ebpH.ebph_daemon import EBPHDaemon
 from ebpH.utils import setup_dir
-from ebpH import config
-config.init()
+from ebpH import defs
 
 if __name__ == "__main__":
     OPERATIONS = ["start", "stop", "restart"]
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Daemon script for ebpH.",
-                prog="ebphd", epilog="Configuration file is located in config.py",
+                prog="ebphd", epilog="Condiguration file can be found at /etc/ebpH/ebpH.cfg",
                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
         parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(),

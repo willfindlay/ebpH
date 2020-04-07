@@ -22,8 +22,7 @@ import json
 from functools import wraps
 
 from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message
-from ebpH import config
-config.init()
+from ebpH import defs
 
 DESCRIPTION = """
 Issue commands to ebpH and make queries about system state.
@@ -37,8 +36,8 @@ Example usage:
     sudo ebph-admin status # Check system status
 """
 
-EBPHD_PATH = os.path.join(config.project_path, 'ebphd')
-EBPH_PS_PATH = os.path.join(config.project_path, 'ebph-ps')
+EBPHD_PATH = os.path.join(defs.project_path, 'ebphd')
+EBPH_PS_PATH = os.path.join(defs.project_path, 'ebph-ps')
 
 commands = {}
 
@@ -62,7 +61,7 @@ def command(operation, command_arguments={}, ebph_func=None, use_socket=1):
                 try:
                     # Connect to socket
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    sock.connect(config.socket)
+                    sock.connect(defs.socket)
                     # Form request
                     request = {'func': ebph_func, 'kwargs': command_arguments}
                     # Send request
@@ -76,7 +75,7 @@ def command(operation, command_arguments={}, ebph_func=None, use_socket=1):
                         sys.exit(-1)
                     return func(res)
                 except ConnectionRefusedError:
-                    print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+                    print(f"Unable to connect to {defs.socket}... Is ebphd running?", file=sys.stderr)
                 finally:
                     sock.close()
             else:

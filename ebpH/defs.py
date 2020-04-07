@@ -1,0 +1,65 @@
+import logging
+import os, sys
+
+from ebpH.utils import path
+from ebpH.config import config, parse_time
+
+# Configurable values below this line ---------------------------------------------
+
+# Verbosity level for logging
+# Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
+#                  logging.INFO,     logging.DEBUG
+verbosity = config['Logging'].get('log_level')
+verbosity = logging.INFO if verbosity == 'info' else logging.DEBUG if verbosity == 'debug' \
+        else logging.ERROR if verbosity == 'quiet' else logging.INFO
+
+# How long ebpH should sleep between ticks in seconds?
+# Lower values imply higher CPU usage
+# Recommended value is around 1 second
+ticksleep = config['Daemon'].getfloat('tick_sleep', 0.1)
+
+# How many ticks between automatic saves
+saveinterval = config['Daemon'].getint('save_interval')
+
+# When attempting to stop the daemon, how long do we wait before giving up?
+killtimeout = parse_time(config['Misc'].get('killtimeout', '20s'))
+
+# Default to logging new sequences?
+log_new_sequences = config['Logging'].getboolean('log_new_sequences', False)
+
+# BPFProgram constants dictionary
+bpf_params = {
+        'EBPH_NORMAL_FACTOR': config['BPF'].getint('normal_factor', 128),
+        'EBPH_NORMAL_FACTOR_DEN': config['BPF'].getint('normal_factor_den', 32),
+        'EBPH_NORMAL_WAIT': int(parse_time(config['BPF'].get('normal_wait', '1w')) * 1e9),
+        'EBPH_ANOMALY_LIMIT': config['BPF'].getint('anomaly_limit', 30),
+        'EBPH_TOLERIZE_LIMIT': config['BPF'].getint('tolerize_limit', 12),
+        'EBPH_PROFILES_TABLE_SIZE': config['BPF'].getint('profiles_table_size', 10240),
+        'EBPH_PROCESSES_TABLE_SIZE': config['BPF'].getint('processes_table_size', 4194304),
+        'EBPH_NUM_SYSCALLS': config['BPF'].getint('num_syscalls', 450),
+        'EBPH_LOCALITY_WIN': config['BPF'].getint('locality_win', 128),
+        }
+
+# Non-configurable values below this line -----------------------------------------
+
+# Location where socket and pidfile should be stored
+socketdir = '/run'
+# Location where log files should be saved
+logdir = '/var/log/ebpH'
+# ebpH data directory
+ebph_data_dir =  '/var/lib/ebpH'
+
+# Size of socket messages
+socket_buff_size = 3
+
+# Sentinel value for ending socket messages
+socket_sentinel = b"\x00"
+
+project_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+profiles_dir = os.path.join(ebph_data_dir, 'profiles')
+bpf_program = path('ebpH/bpf/bpf_program.c')
+libebph = path('ebpH/libebph/libebph.so')
+socket = os.path.join(socketdir, 'ebph.sock')
+pidfile = os.path.join(socketdir, 'ebph.pid')
+logfile = os.path.join(logdir, 'ebph.log')
+newseq_logfile = os.path.join(logdir, 'newseq.log')

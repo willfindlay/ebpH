@@ -20,10 +20,9 @@
 
 import ctypes as ct
 
-from ebpH import config
-config.init()
+from ebpH import defs
 
-EBPH_NUM_SYSCALLS = config.bpf_params['EBPH_NUM_SYSCALLS']
+EBPH_NUM_SYSCALLS = defs.bpf_params['EBPH_NUM_SYSCALLS']
 EBPH_SEQLEN = 9
 EBPH_SEQSTACK_SIZE = 6
 EBPH_LOCALITY_WIN = 128

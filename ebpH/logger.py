@@ -8,7 +8,7 @@ import logging
 from logging import handlers as handlers
 
 from ebpH.utils import setup_dir, read_chunks
-from ebpH import config
+from ebpH import defs
 
 class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
@@ -65,52 +65,52 @@ def setup_logger(args):
     gid = grp.getgrnam("root").gr_gid
 
     # Setup logdir
-    setup_dir(config.logdir)
+    setup_dir(defs.logdir)
 
     # Setup logfile
     try:
-        os.chown(config.logfile, uid, gid)
+        os.chown(defs.logfile, uid, gid)
     except FileNotFoundError:
         pass
 
     # Setup data dir and make sure permissions are correct
-    setup_dir(config.ebph_data_dir)
-    os.chown(config.ebph_data_dir, uid, gid)
-    os.chmod(config.ebph_data_dir, 0o700 | stat.S_ISVTX)
+    setup_dir(defs.ebph_data_dir)
+    os.chown(defs.ebph_data_dir, uid, gid)
+    os.chmod(defs.ebph_data_dir, 0o700 | stat.S_ISVTX)
 
     # Setup profiles dir and make sure permissions are correct
-    setup_dir(config.profiles_dir)
-    os.chown(config.profiles_dir, uid, gid)
-    os.chmod(config.profiles_dir, 0o700)
+    setup_dir(defs.profiles_dir)
+    os.chown(defs.profiles_dir, uid, gid)
+    os.chmod(defs.profiles_dir, 0o700)
 
     # Configure logging
     formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
     formatter.datefmt = '%Y-%m-%d %H:%M:%S'
 
     if args.debug:
-        config.verbosity = logging.DEBUG
+        defs.verbosity = logging.DEBUG
     logger = logging.getLogger('ebph')
-    logger.setLevel(config.verbosity)
+    logger.setLevel(defs.verbosity)
 
     # Create and add handler
     # TODO: change this to allow configurable sizes, times, backup counts
     handler = EBPHRotatingFileHandler(
-        config.logfile,
+        defs.logfile,
         maxBytes=(1024**3),
         backupCount=12,
         when='w0',
         interval=4
     )
-    handler.setLevel(config.verbosity)
+    handler.setLevel(defs.verbosity)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     # Configure newseq logging
     #newseq_logger = logging.getLogger('newseq')
-    #newseq_logger.setLevel(config.verbosity)
+    #newseq_logger.setLevel(defs.verbosity)
 
-    #new_seq_handler = logging.handlers.WatchedFileHandler(config.newseq_logfile)
-    #new_seq_handler.setLevel(config.verbosity)
+    #new_seq_handler = logging.handlers.WatchedFileHandler(defs.newseq_logfile)
+    #new_seq_handler.setLevel(defs.verbosity)
     #new_seq_handler.setFormatter(formatter)
     #newseq_logger.addHandler(new_seq_handler)
 
@@ -118,7 +118,7 @@ def setup_logger(args):
     if args.nolog:
         # create and configure a handler for stderr
         stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(config.verbosity)
+        stream_handler.setLevel(defs.verbosity)
         logger.addHandler(stream_handler)
         #newseq_logger.addHandler(stream_handler)
 

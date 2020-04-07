@@ -18,8 +18,7 @@ import datetime
 import json
 
 from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message, connect_to_socket
-from ebpH import config
-config.init()
+from ebpH import defs
 
 DESCRIPTION = """
 List processes/profiles being traced by ebpH.
@@ -98,7 +97,6 @@ def parse_args(args=[]):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    config.init()
 
     # Connect to socket
     sock = connect_to_socket()

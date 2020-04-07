@@ -19,7 +19,7 @@ import time
 import logging
 
 from ebpH.utils import LoggerWriter
-from ebpH import config
+from ebpH import defs
 
 class Daemon:
     def __init__(self, pidfile, socket):
@@ -83,7 +83,7 @@ class Daemon:
             pid = None
 
         if pid:
-            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {config.pidfile}.\n")
+            sys.stderr.write(f"ebpH daemon is already running. If you believe you are seeing this by mistake, delete {defs.pidfile}.\n")
             sys.exit(-1)
 
         print("Starting ebpH daemon...")
@@ -110,7 +110,7 @@ class Daemon:
             while os.path.exists(self.pidfile):
                 timeout = timeout + 1
                 time.sleep(1)
-                if timeout >= config.killtimeout:
+                if timeout >= defs.killtimeout:
                     sys.stderr.write(f"Timeout reached. You may want to delete {self.pidfile} and kill the daemon manually.\n")
                     sys.exit(-1)
             print("Killed ebpH daemon successfully!")

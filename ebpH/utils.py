@@ -16,7 +16,17 @@ from functools import wraps
 
 import bcc.syscall
 
-from ebpH import config
+def path(f):
+    """
+    Return the path of a file relative to the root dir of this project (parent directory of "src").
+    """
+    curr_dir = os.path.realpath(os.path.dirname(__file__))
+    project_dir = os.path.realpath(os.path.join(curr_dir, ".."))
+    path = os.path.realpath(os.path.join(project_dir, f))
+    return path
+
+# Config cannot be imported earlier than this
+from ebpH import defs
 
 def syscall_name(num: int):
     """
@@ -37,15 +47,6 @@ def setup_dir(d):
     """
     if not os.path.exists(d):
         os.makedirs(d)
-
-def path(f):
-    """
-    Return the path of a file relative to the root dir of this project (parent directory of "src").
-    """
-    curr_dir = os.path.realpath(os.path.dirname(__file__))
-    project_dir = os.path.realpath(os.path.join(curr_dir, ".."))
-    path = os.path.realpath(os.path.join(project_dir, f))
-    return path
 
 def locks(lock):
     """
@@ -84,25 +85,25 @@ def connect_to_socket():
     """
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(config.socket)
+        sock.connect(defs.socket)
         return sock
     except ConnectionRefusedError:
-        print(f"Unable to connect to {config.socket}... Is ebphd running?", file=sys.stderr)
+        print(f"Unable to connect to {defs.socket}... Is ebphd running?", file=sys.stderr)
         sys.exit(-1)
 
 def receive_message(sock):
     """
     Receive a message of arbitrary length over a stream socket.
-    Stop when we see config.sentinel or the connection closes (whichever happens first).
+    Stop when we see defs.sentinel or the connection closes (whichever happens first).
     """
     total_data = []
     sentinel = False
 
     while True:
-        msg = sock.recv(config.socket_buff_size)
+        msg = sock.recv(defs.socket_buff_size)
         if not msg.strip():
             break
-        if bytes([msg[-1]]) == config.socket_sentinel:
+        if bytes([msg[-1]]) == defs.socket_sentinel:
             msg = msg[:-1]  # Remove sentinel from message
             sentinel = True # Mark that we have seen it
         total_data.append(msg)
@@ -113,9 +114,9 @@ def receive_message(sock):
 
 def send_message(sock, data):
     """
-    Send a message over a stream socket, terminating automatically with config.sentinel.
+    Send a message over a stream socket, terminating automatically with defs.sentinel.
     """
-    sock.send(b"".join([data, config.socket_sentinel]))
+    sock.send(b"".join([data, defs.socket_sentinel]))
 
 def read_chunks(f, size=1024):
     """

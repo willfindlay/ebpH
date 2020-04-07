@@ -12,7 +12,7 @@ from ebpH.daemon import Daemon
 from ebpH.bpf_program import BPFProgram
 from ebpH.server import EBPHUnixStreamServer, EBPHRequestDispatcher
 from ebpH.utils import locks, to_json_bytes, from_json_bytes
-from ebpH import config
+from ebpH import defs
 
 logger = logging.getLogger('ebph')
 
@@ -28,7 +28,7 @@ class EBPHDaemon(Daemon):
     """
     def __init__(self, args):
         # Init Daemon superclass
-        super().__init__(config.pidfile, config.socket)
+        super().__init__(defs.pidfile, defs.socket)
 
         # BPF Program
         self.bpf_program = BPFProgram(args)
@@ -73,7 +73,7 @@ class EBPHDaemon(Daemon):
         """
         self.tick_count += 1
 
-        if self.tick_count % config.saveinterval == 0:
+        if self.tick_count % defs.saveinterval == 0:
             self.bpf_program.save_profiles()
 
         self.bpf_program.on_tick()
@@ -93,7 +93,7 @@ class EBPHDaemon(Daemon):
         # Event loop
         while True:
             self.tick()
-            time.sleep(config.ticksleep)
+            time.sleep(defs.ticksleep)
 
     def stop(self):
         """
