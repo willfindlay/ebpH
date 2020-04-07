@@ -1,27 +1,40 @@
-#! /usr/bin/env bash
+#! /usr/bin/env sh
 
-PROJECTDIR=$(dirname $(readlink -f $0))/..
+CONFIGDIR=/etc/ebpH
 INSTALLDIR=/opt/ebpH
+BINDIR=/usr/bin
 
-cd $PROJECTDIR
+# Find root of project
+PROJECTDIR=$(dirname $(readlink -f $0))/..
 
-# unlink and create /opt/ebpH
-rm -rf $INSTALLDIR
-mkdir -p $INSTALLDIR
+setup_install_dir()
+(
+    # Remove and remake $INSTALLDIR
+    rm -rf "$INSTALLDIR"
+    mkdir -p "$INSTALLDIR"
+    # Copy everything into /opt/ebpH
+    cp -r "$PROJECTDIR" "$INSTALLDIR"
+    # Make sure root owns /opt/ebpH and its children
+    chown -R root:root "$INSTALLDIR"
+    # Install python  package
+	pip3 install -e "$INSTALLDIR" -r "$INSTALLDIR/requirements.txt"
+)
 
-# make sure root owns /opt/ebpH
-chown root:root $INSTALLDIR
-# copy everything into /opt/ebpH
-cp -r ./* $INSTALLDIR
+install()
+(
+    # Copy things into $INSTALLDIR
+    setup_install_dir
+    # Create symlinks
+    for filename in $INSTALLDIR/bin/*; do
+        [ -f "$filename" ] || continue
+        ln -vsnf "$filename" "$BINDIR/$(basename $filename)"
+    done
+    # Make config file if necessary
+    if [ ! -f "$CONFIGDIR/ebpH.cfg" ];
+    then
+        mkdir -p "$CONFIGDIR"
+        cp "$INSTALLDIR/config/defaults.cfg" "$CONFIGDIR/ebpH.cfg"
+    fi
+)
 
-# copy systemd unit file
-# cp ./systemd/ebphd.service /etc/systemd/system/ebphd.service
-
-# navigate to /opt/ebpH
-cd $INSTALLDIR
-
-# create the symbolic link for ebphd, ebph-ps, ebph-admin
-ln -vsnf $(readlink -f ./ebphd) /bin/ebphd
-ln -vsnf $(readlink -f ./ebph-ps) /bin/ebph-ps
-ln -vsnf $(readlink -f ./ebph-admin) /bin/ebph-admin
-ln -vsnf $(readlink -f ./ebph-inspect) /bin/ebph-inspect
+install

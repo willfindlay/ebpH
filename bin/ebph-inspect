@@ -17,11 +17,10 @@ import time
 import datetime
 import signal
 
-from structs import EBPHProfile
-from utils import syscall_name, connect_to_socket, from_json_bytes, to_json_bytes, send_message, receive_message
+from ebpH.structs import EBPHProfile
+from ebpH.utils import syscall_name, connect_to_socket, from_json_bytes, to_json_bytes, send_message, receive_message
 
-import config
-config.init()
+from ebpH import defs
 
 signal.signal(signal.SIGPIPE, lambda x, y: sys.exit(0))
 
@@ -125,11 +124,11 @@ def print_profile(profile: EBPHProfile, show_empty: bool):
 
 def __profile_key_type(s):
     """
-    Wrapper for argparse.FileType that prepends config.profiles_dir to the provided string.
+    Wrapper for argparse.FileType that prepends defs.profiles_dir to the provided string.
 
     To be used as an argparse type.
     """
-    path = os.path.join(config.profiles_dir, s)
+    path = os.path.join(defs.profiles_dir, s)
     return argparse.FileType(mode='rb')(path)
 
 def parse_args(args=sys.argv[1:]):
@@ -145,7 +144,7 @@ def parse_args(args=sys.argv[1:]):
     options.add_argument('-p', '--path', type=argparse.FileType(mode='rb'), dest='profile',
             help=f"Inspect the profile located at <PATH>.")
     options.add_argument('-l', '--list', action='store_true',
-            help=f"List all profiles in {config.profiles_dir}.")
+            help=f"List all profiles in {defs.profiles_dir}.")
 
     parser.add_argument('-e', '--empty', action='store_true',
             help='Show empty lookahead pairs instead of hiding.')
@@ -164,8 +163,8 @@ if __name__ == "__main__":
     # List all profiles and exit
     if args.list:
         summary = []
-        for fn in os.listdir(config.profiles_dir):
-            with open(os.path.join(config.profiles_dir, fn), 'rb') as f:
+        for fn in os.listdir(defs.profiles_dir):
+            with open(os.path.join(defs.profiles_dir, fn), 'rb') as f:
                 name = parse_profile(f).comm.decode('utf-8')
             summary.append((name, fn))
         for entry in sorted(summary, key=lambda item: (item[0].lower(), item[1])):

@@ -6,8 +6,8 @@ import struct
 import json
 from http import HTTPStatus as Status
 
-import config
-from utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message
+from ebpH import defs
 
 logger = logging.getLogger('ebpH')
 
@@ -59,7 +59,7 @@ class EBPHRequestDispatcher:
 
 class EBPHUnixStreamServer(socketserver.ThreadingUnixStreamServer):
     def __init__(self, request_dispatcher):
-        super().__init__(server_address=config.socket, RequestHandlerClass=EBPHStreamRequestHandler)
+        super().__init__(server_address=defs.socket, RequestHandlerClass=EBPHStreamRequestHandler)
         self.daemon_threads = True
         self.request_dispatcher = request_dispatcher
 

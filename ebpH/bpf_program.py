@@ -20,9 +20,9 @@ import subprocess
 
 from bcc import BPF, lib
 
-from structs import EBPHProfile, EBPHProcess
-from utils import locks, syscall_name
-import config
+from ebpH.structs import EBPHProfile, EBPHProcess
+from ebpH.utils import locks, syscall_name
+from ebpH import defs
 
 logger = logging.getLogger('ebph')
 new_seqlogger = logging.getLogger('newseq')
@@ -77,9 +77,9 @@ class BPFProgram:
 
     def load_libebph(self):
         try:
-            self.libebph = ct.CDLL(config.libebph)
+            self.libebph = ct.CDLL(defs.libebph)
         except:
-            raise(f"Could not load {config.libebph}. Have you run make?")
+            raise(f"Could not load {defs.libebph}. Have you run make?")
         # Function definitions
         self.libebph.cmd_normalize.argtypes = [ct.c_uint32]
         logger.info('Loaded libebph')
@@ -243,7 +243,7 @@ class BPFProgram:
         logger.info(f'Registered perf buffers')
 
     def register_uprobes(self):
-        self.bpf.attach_uprobe(name=config.libebph, sym='cmd_normalize', pid=os.getpid(), fn_name='cmd_normalize')
+        self.bpf.attach_uprobe(name=defs.libebph, sym='cmd_normalize', pid=os.getpid(), fn_name='cmd_normalize')
         logger.info('Registered uprobes')
 
     def load_bpf(self):
@@ -269,14 +269,14 @@ class BPFProgram:
             flags.append("-DEBPH_DEBUG")
         if self.args.ludikris:
             flags.append("-DLUDIKRIS")
-        for k, v in config.bpf_params.items():
+        for k, v in defs.bpf_params.items():
             # Correctly handle string arguments
             if type(v) == str:
                 v = f"\"{v}\""
             logger.info(f"Using {k}={v}...")
             flags.append(f"-D{k}={v}")
         # Include project src
-        flags.append(f"-I{config.project_path}/src")
+        flags.append(f"-I{defs.project_path}/ebpH")
         # Estimate epoch boot time.
         # This is used to establish normal times within the BPF program
         # since eBPF only provides times since system boot.
@@ -285,7 +285,7 @@ class BPFProgram:
         flags.append(f"-DEBPH_BOOT_EPOCH=(u64){boot_epoch}")
 
         # Compile and load eBPF program
-        with open(config.bpf_program, "r") as f:
+        with open(defs.bpf_program, "r") as f:
             text = f.read()
             self.bpf = BPF(text=text, cflags=flags)
 
@@ -297,7 +297,7 @@ class BPFProgram:
         self.load_profiles()
         self.start_monitoring()
 
-        if config.log_new_sequences_on_start:
+        if defs.log_new_sequences:
             self.start_logging_new_sequences()
 
         logger.info('BPF program initialized')
@@ -348,7 +348,7 @@ class BPFProgram:
             logger.info(msg)
             return msg
         self.bpf["__is_logging_new_sequences"][ct.c_int(0)] = ct.c_int(1)
-        msg = f'Started logging new sequences to {config.newseq_logfile}'
+        msg = f'Started logging new sequences to {defs.newseq_logfile}'
         logger.info(msg)
         return msg
 
@@ -409,7 +409,7 @@ class BPFProgram:
             pass
         # Must be itervalues, not values
         for profile in self.bpf["profiles"].itervalues():
-            path = os.path.join(config.profiles_dir, str(profile.key))
+            path = os.path.join(defs.profiles_dir, str(profile.key))
             # Make sure that the files are only readable and writable by root
             with open(os.open(path, os.O_CREAT | os.O_WRONLY, 0o600), 'wb') as f:
                 f.write(profile)
@@ -433,9 +433,9 @@ class BPFProgram:
             msg = 'should_load is false, refusing to load profiles!'
             logger.warning(msg)
             return msg
-        for filename in os.listdir(config.profiles_dir):
+        for filename in os.listdir(defs.profiles_dir):
             # Read bytes from profile file
-            path = os.path.join(config.profiles_dir, filename)
+            path = os.path.join(defs.profiles_dir, filename)
             profile = EBPHProfile()
             with open(path, 'rb') as f:
                 f.readinto(profile)

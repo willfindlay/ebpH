@@ -1,16 +1,19 @@
 DIR=$(shell pwd)
 SCRIPTSDIR=$(DIR)/scripts
 
-LIBEBPHDIR=$(DIR)/src/libebph
+LIBEBPHDIR=$(DIR)/ebpH/libebph
 LIBEBPHSRC=$(LIBEBPHDIR)/libebph.c
 LIBEBPHOBJ=$(LIBEBPHSRC:.c=.so)
 
-.PHONY: all, install, clean, systemd
+.PHONY: all, install, clean, systemd, package
 
-all: $(LIBEBPHOBJ)
+all: $(LIBEBPHOBJ) package
 
 $(LIBEBPHOBJ): $(LIBEBPHSRC)
 	cc -fPIC -shared -o $(LIBEBPHOBJ) $(LIBEBPHSRC)
+
+package:
+	pip3 install -e . -r requirements.txt
 
 install: $(LIBEBPHOBJ)
 	cd $(SCRIPTSDIR) && sudo ./install.sh
