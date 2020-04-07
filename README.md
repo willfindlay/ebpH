@@ -12,7 +12,7 @@ This product comes with no warranty, and is built as a research system. It shoul
 
 ### ebpH
 
-- [My thesis proposal](https://williamfindlay.com/written/thesis-proposal.pdf)
+- [My thesis](https://williamfindlay.com/written/thesis.pdf)
 
 ### pH
 
