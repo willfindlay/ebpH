@@ -5,7 +5,12 @@ LIBEBPHDIR=$(DIR)/ebpH/libebph
 LIBEBPHSRC=$(LIBEBPHDIR)/libebph.c
 LIBEBPHOBJ=$(LIBEBPHSRC:.c=.so)
 
-.PHONY: all, install, clean, systemd, package
+.PHONY=
+.PHONY+= all
+.PHONY+= install
+.PHONY+= clean
+.PHONY+= package
+.PHONY+= unit
 
 all: $(LIBEBPHOBJ) package
 
@@ -18,7 +23,7 @@ package:
 install: $(LIBEBPHOBJ)
 	cd $(SCRIPTSDIR) && sudo ./install.sh
 
-systemd:
+unit:
 	sudo cp systemd/ebphd.service /etc/systemd/system/ebphd.service
 	sudo systemctl enable ebphd.service
 

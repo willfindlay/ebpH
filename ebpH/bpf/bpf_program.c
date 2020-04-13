@@ -961,7 +961,7 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
 
     /* Calculate profile_key
      * Take inode number and filesystem device number together */
-    u64 profile_key = (u64)bprm->file->f_path.dentry->d_inode->i_ino | ((u64)bprm->file->f_path.dentry->d_inode->i_rdev << 32);
+    u64 profile_key = (u64)bprm->file->f_path.dentry->d_inode->i_ino | ((u64)bprm->file->f_path.dentry->d_inode->i_sb->s_dev << 32);
 
     /* Create profile if necessary */
     ebpH_create_profile(&profile_key, bprm->file->f_path.dentry->d_name.name, (struct pt_regs *)ctx);
