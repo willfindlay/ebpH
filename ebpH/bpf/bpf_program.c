@@ -10,6 +10,7 @@
  * Licensed under GPL v2 License */
 
 #include <linux/sched.h>
+#include <linux/kdev_t.h>
 #include <linux/binfmts.h>
 #include <linux/fdtable.h>
 #include <linux/fs.h>
@@ -961,7 +962,7 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
 
     /* Calculate profile_key
      * Take inode number and filesystem device number together */
-    u64 profile_key = (u64)bprm->file->f_path.dentry->d_inode->i_ino | ((u64)bprm->file->f_path.dentry->d_inode->i_sb->s_dev << 32);
+    u64 profile_key = (u64)bprm->file->f_path.dentry->d_inode->i_ino | ((u64)new_encode_dev(bprm->file->f_path.dentry->d_inode->i_sb->s_dev) << 32);
 
     /* Create profile if necessary */
     ebpH_create_profile(&profile_key, bprm->file->f_path.dentry->d_name.name, (struct pt_regs *)ctx);
