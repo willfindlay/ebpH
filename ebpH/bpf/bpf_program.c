@@ -10,6 +10,7 @@
  * Licensed under GPL v2 License */
 
 #include <linux/sched.h>
+#include <linux/kdev_t.h>
 #include <linux/binfmts.h>
 #include <linux/fdtable.h>
 #include <linux/fs.h>
