@@ -1,14 +1,33 @@
 import os, sys
 import stat
-import pwd
-import grp
 import time
 import gzip
 import logging
 from logging import handlers as handlers
 
-from ebpH.utils import setup_dir, read_chunks
+from ebpH.utils import read_chunks
 from ebpH import defs
+
+class EBPHLoggerClass(logging.getLoggerClass()):
+    """
+    Custom logger class that allows for the logging of policy messages.
+    """
+    POLICY = logging.WARN - 5
+
+    def __init__(self, name, level=logging.NOTSET):
+        super().__init__(name, level)
+
+        logging.addLevelName(EBPHLoggerClass.POLICY, "POLICY")
+
+    def policy(self, msg, *args, **kwargs):
+        """
+        Write a policy message to logs.
+        This should be used to inform the user about policy decisions/enforcement.
+        """
+        if self.isEnabledFor(EBPHLoggerClass.POLICY):
+            self._log(EBPHLoggerClass.POLICY, msg, args, **kwargs)
+
+logging.setLoggerClass(EBPHLoggerClass)
 
 class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
     """
@@ -60,76 +79,38 @@ class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
         return 0
 
 def setup_logger(args):
-    # Get UID and GID of root
-    uid = pwd.getpwnam("root").pw_uid
-    gid = grp.getgrnam("root").gr_gid
-
-    # Setup logdir
-    setup_dir(defs.logdir)
-
-    # Setup logfile
-    try:
-        os.chown(defs.logfile, uid, gid)
-    except FileNotFoundError:
-        pass
-
-    # Setup data dir and make sure permissions are correct
-    setup_dir(defs.ebph_data_dir)
-    os.chown(defs.ebph_data_dir, uid, gid)
-    os.chmod(defs.ebph_data_dir, 0o700 | stat.S_ISVTX)
-
-    # Setup profiles dir and make sure permissions are correct
-    setup_dir(defs.profiles_dir)
-    os.chown(defs.profiles_dir, uid, gid)
-    os.chmod(defs.profiles_dir, 0o700)
+    # Make logfile parent directory
+    os.makedirs(os.path.dirname(defs.logfile), exist_ok=True)
 
     # Configure logging
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
     formatter.datefmt = '%Y-%m-%d %H:%M:%S'
 
+    logger = get_logger()
     if args.debug:
-        defs.verbosity = logging.DEBUG
-    logger = logging.getLogger('ebph')
-    logger.setLevel(defs.verbosity)
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     # Create and add handler
-    # TODO: change this to allow configurable sizes, times, backup counts
-    handler = EBPHRotatingFileHandler(
-        defs.logfile,
-        maxBytes=(1024**3),
-        backupCount=12,
-        when='w0',
-        interval=4
-    )
-    handler.setLevel(defs.verbosity)
+    if args.nolog:
+        # Stream handler if we are writing to stdout
+        handler = logging.StreamHandler()
+    else:
+        # Rotating handler if we are writing to log files
+        # TODO: change this to allow configurable sizes, times, backup counts
+        handler = EBPHRotatingFileHandler(
+            defs.logfile,
+            maxBytes=(1024**3),
+            backupCount=12,
+            when='w0',
+            interval=4
+        )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    # Configure newseq logging
-    #newseq_logger = logging.getLogger('newseq')
-    #newseq_logger.setLevel(defs.verbosity)
-
-    #new_seq_handler = logging.handlers.WatchedFileHandler(defs.newseq_logfile)
-    #new_seq_handler.setLevel(defs.verbosity)
-    #new_seq_handler.setFormatter(formatter)
-    #newseq_logger.addHandler(new_seq_handler)
-
-    # Handle nolog argument
-    if args.nolog:
-        # create and configure a handler for stderr
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(defs.verbosity)
-        logger.addHandler(stream_handler)
-        #newseq_logger.addHandler(stream_handler)
-
-        # set formatter
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-        formatter.datefmt = '%Y-%m-%d %H:%M:%S'
-        stream_handler.setFormatter(formatter)
-
-        # disable file handlers
-        logger.handlers = [h for h in logger.handlers if not isinstance(h, EBPHRotatingFileHandler)]
-        #newseq_logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.handlers.WatchedFileHandler)]
+    # A little debug message to tell us the logger has started
+    logger.debug('Logging initialized.')
 
 def get_logger(name='ebph'):
     return logging.getLogger(name)

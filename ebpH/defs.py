@@ -1,5 +1,8 @@
 import logging
 import os, sys
+import pwd
+import grp
+import stat
 
 from ebpH.utils import path
 from ebpH.config import config, parse_time
@@ -63,3 +66,35 @@ socket = os.path.join(socketdir, 'ebph.sock')
 pidfile = os.path.join(socketdir, 'ebph.pid')
 logfile = os.path.join(logdir, 'ebph.log')
 newseq_logfile = os.path.join(logdir, 'newseq.log')
+
+def init():
+    """
+    Perform first time setup for some of the values here.
+    This is especially important to set up important directories.
+    """
+    from ebpH.utils import setup_dir
+
+    # Get UID and GID of root
+    uid = pwd.getpwnam("root").pw_uid
+    gid = grp.getgrnam("root").gr_gid
+
+    # Setup data dir and make sure permissions are correct
+    setup_dir(ebph_data_dir)
+    os.chown(ebph_data_dir, uid, gid)
+    os.chmod(ebph_data_dir, 0o700 | stat.S_ISVTX)
+
+    # Setup profiles dir and make sure permissions are correct
+    setup_dir(profiles_dir)
+    os.chown(profiles_dir, uid, gid)
+    os.chmod(profiles_dir, 0o700)
+
+    # Setup logdir
+    setup_dir(defs.logdir)
+
+    # Setup logfile
+    try:
+        os.chown(defs.logfile, uid, gid)
+    except FileNotFoundError:
+        pass
+
+

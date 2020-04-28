@@ -20,7 +20,7 @@ import grp
 import stat
 
 from ebpH.logger import setup_logger
-from ebpH.ebph_daemon import EBPHDaemon
+from ebpH.ebphd import EBPHDaemon
 from ebpH.utils import setup_dir
 from ebpH import defs
 
