@@ -499,7 +499,7 @@ class BPFProgram:
                 }
         return attrs
 
-    def fetch_profiles(self):
+    def get_profiles(self):
         """
         Return profile info for all profiles.
         """
