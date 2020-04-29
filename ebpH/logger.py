@@ -8,6 +8,34 @@ from logging import handlers as handlers
 from ebpH.utils import read_chunks
 from ebpH import defs
 
+class LoggerWriter:
+    """
+    LoggerWriter
+
+    A helper class for redirecting stdout and stderr to loggers.
+    """
+    def __init__(self, level):
+        self.level = level
+        self.message = ""
+
+    def write(self, message):
+        """
+        Write each line of the message to the log.
+        """
+        self.message = ''.join([self.message, message])
+        if message.endswith('\n'):
+            self.flush()
+
+    def flush(self):
+        """
+        Provide a dummy flush method.
+        """
+        for line in self.message.split('\n'):
+            if not line.strip():
+                continue
+            self.level(line)
+        self.message = ""
+
 class EBPHLoggerClass(logging.getLoggerClass()):
     """
     Custom logger class that allows for the logging of policy messages.
@@ -108,6 +136,10 @@ def setup_logger(args):
         )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    # Redirect stdout and stderr to logger
+    sys.stdout = LoggerWriter(logger.debug)
+    sys.stderr = LoggerWriter(logger.error)
 
     # A little debug message to tell us the logger has started
     logger.debug('Logging initialized.')

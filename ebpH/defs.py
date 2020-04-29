@@ -89,11 +89,11 @@ def init():
     os.chmod(profiles_dir, 0o700)
 
     # Setup logdir
-    setup_dir(defs.logdir)
+    setup_dir(logdir)
 
     # Setup logfile
     try:
-        os.chown(defs.logfile, uid, gid)
+        os.chown(logfile, uid, gid)
     except FileNotFoundError:
         pass
 

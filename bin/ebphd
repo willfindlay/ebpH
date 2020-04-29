@@ -74,15 +74,16 @@ if __name__ == "__main__":
         return args
 
     args = parse_args(sys.argv[1:])
+    defs.init()
     setup_logger(args)
 
     e = EBPHDaemon(args)
 
     if args.operation == "start":
-        e.start()
+        e.start_daemon()
     elif args.operation == "stop":
-        e.stop()
+        e.stop_daemon()
     elif args.operation == "restart":
-        e.restart()
+        e.restart_daemon()
     elif args.nodaemon:
-        e.main()
+        e.loop_forever()

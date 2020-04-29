@@ -8,7 +8,7 @@ import logging
 import logging.handlers
 import struct
 
-from ebpH.daemon import Daemon
+from ebpH.daemon_mixin import DaemonMixin
 from ebpH.bpf_program import BPFProgram
 from ebpH.server import EBPHUnixStreamServer, EBPHRequestDispatcher
 from ebpH.utils import locks, to_json_bytes, from_json_bytes
@@ -16,7 +16,7 @@ from ebpH import defs
 
 logger = logging.getLogger('ebph')
 
-class EBPHDaemon(Daemon):
+class EBPHDaemon(DaemonMixin):
     """
     EBPHDaemon
 
@@ -27,9 +27,6 @@ class EBPHDaemon(Daemon):
     future this might become inheritance. Not sure what the best approach is here.
     """
     def __init__(self, args):
-        # Init Daemon superclass
-        super().__init__(defs.pidfile, defs.socket)
-
         # BPF Program
         self.bpf_program = BPFProgram(args)
 
@@ -78,7 +75,7 @@ class EBPHDaemon(Daemon):
 
         self.bpf_program.on_tick()
 
-    def main(self):
+    def loop_forever(self):
         """
         Main daemon setup + event loop.
         """
@@ -95,10 +92,10 @@ class EBPHDaemon(Daemon):
             self.tick()
             time.sleep(defs.ticksleep)
 
-    def stop(self):
+    def stop_daemon(self):
         """
         Stop the daemon. Overloaded from base daemon class to print log info.
         """
         logger.info("Stopping ebpH daemon...")
-        super().stop()
+        super().stop_daemon()
 
