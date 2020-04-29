@@ -21,6 +21,7 @@ def register_uprobes(bpf):
     for item in commands:
         command = item[0]
         argtypes = item[1]
+        logger.info(command)
         getattr(libebph, command).argtypes = argtypes
         bpf.attach_uprobe(name=defs.libebph, sym=command, pid=os.getpid(), fn_name=command)
         logger.debug(f'Registered uprobe for {command}')

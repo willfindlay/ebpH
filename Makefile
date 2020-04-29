@@ -1,13 +1,13 @@
 DIR=$(shell pwd)
 SCRIPTSDIR=$(DIR)/scripts
 
-LIBEBPHDIR=$(DIR)/ebpH/libebph
+LIBEBPHDIR=$(DIR)/libebph
 LIBEBPHSRC=$(LIBEBPHDIR)/libebph.c
 LIBEBPHOBJ=$(LIBEBPHSRC:.c=.so)
 
 
 .PHONY: all
-all: $(LIBEBPHOBJ) package
+all: $(LIBEBPHOBJ)
 
 $(LIBEBPHOBJ): $(LIBEBPHSRC)
 	cc -fPIC -shared -o $(LIBEBPHOBJ) $(LIBEBPHSRC)

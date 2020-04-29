@@ -23,7 +23,7 @@ from bcc import BPF, lib
 from ebpH.structs import EBPHProfile, EBPHProcess
 from ebpH.utils import locks, syscall_name
 from ebpH import defs
-from ebpH.libebph import libebph
+from ebpH import libebph
 
 logger = logging.getLogger('ebph')
 newseq_logger = logging.getLogger('newseq')
@@ -517,7 +517,7 @@ class BPFProgram:
         """
         Start normal mode on a profile attached to process with <tid>.
         """
-        return self.libebph.cmd_normalize(ct.c_uint32(tid))
+        return libebph.libebph.cmd_normalize(ct.c_uint32(tid))
 
     def reset_profile(self, key):
         """

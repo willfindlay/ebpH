@@ -1123,7 +1123,7 @@ int cmd_reset_profile(struct pt_regs *ctx)
 {
     u64 key = (u64)PT_REGS_PARM1(ctx);
 
-    struct ebpH_profile *profile = profiles.lookup(&process->profile_key);
+    struct ebpH_profile *profile = profiles.lookup(&key);
     if (!profile)
     {
         EBPH_ERROR("cmd_reset_profile: No such profile", ctx);
