@@ -8,9 +8,11 @@ import logging
 import logging.handlers
 import struct
 
+from flask import Flask
+from flask_restful import
+
 from ebpH.daemon_mixin import DaemonMixin
 from ebpH.bpf_program import BPFProgram
-from ebpH.server import EBPHUnixStreamServer, EBPHRequestDispatcher
 from ebpH.utils import locks, to_json_bytes, from_json_bytes
 from ebpH import defs
 
@@ -37,19 +39,19 @@ class EBPHDaemon(DaemonMixin):
         self.tick_count = 0
 
         # Request dispatcher for server
-        self.request_dispatcher = EBPHRequestDispatcher(self)
+        #self.request_dispatcher = EBPHRequestDispatcher(self)
         # Register commands with dispatcher
-        self.request_dispatcher.register(self.bpf_program.start_monitoring)
-        self.request_dispatcher.register(self.bpf_program.stop_monitoring)
-        self.request_dispatcher.register(self.bpf_program.is_monitoring)
-        self.request_dispatcher.register(self.bpf_program.status)
-        self.request_dispatcher.register(self.bpf_program.save_profiles)
-        self.request_dispatcher.register(self.bpf_program.fetch_profile)
-        self.request_dispatcher.register(self.bpf_program.fetch_profiles)
-        self.request_dispatcher.register(self.bpf_program.fetch_process)
-        self.request_dispatcher.register(self.bpf_program.fetch_processes)
-        self.request_dispatcher.register(self.bpf_program.normalize)
-        self.request_dispatcher.register(self.bpf_program.set_logging_new_sequences)
+        #self.request_dispatcher.register(self.bpf_program.start_monitoring)
+        #self.request_dispatcher.register(self.bpf_program.stop_monitoring)
+        #self.request_dispatcher.register(self.bpf_program.is_monitoring)
+        #self.request_dispatcher.register(self.bpf_program.status)
+        #self.request_dispatcher.register(self.bpf_program.save_profiles)
+        #self.request_dispatcher.register(self.bpf_program.fetch_profile)
+        #self.request_dispatcher.register(self.bpf_program.fetch_profiles)
+        #self.request_dispatcher.register(self.bpf_program.fetch_process)
+        #self.request_dispatcher.register(self.bpf_program.fetch_processes)
+        #self.request_dispatcher.register(self.bpf_program.normalize)
+        #self.request_dispatcher.register(self.bpf_program.set_logging_new_sequences)
         # TODO: the following:
         #self.request_dispatcher.register(self.reset_profile)
         #self.request_dispatcher.register(self.inspect_profile)
@@ -60,9 +62,9 @@ class EBPHDaemon(DaemonMixin):
         Called by the connection handler thread to listen for incoming socket connections.
         """
         logger.info("Starting ebpH server...")
-        self.server = EBPHUnixStreamServer(self.request_dispatcher)
-        logger.info(f"Server listening for connections on {self.server.server_address}")
-        self.server.serve_forever()
+        #self.server = EBPHUnixStreamServer(self.request_dispatcher)
+        #logger.info(f"Server listening for connections on {self.server.server_address}")
+        #self.server.serve_forever()
 
     def tick(self):
         """
