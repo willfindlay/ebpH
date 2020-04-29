@@ -31,7 +31,7 @@ class EBPHDaemon(DaemonMixin):
     This class provides the logic for the daemon and exposes methods for interacting with the
     underlying BPFProgram class.
 
-    Right now, the relationship bewteen the Daemon and BPFProgram is "has-a", but in the
+    Right now, the relationship bewteen the Daemon and BPFProgram is composition, but in the
     future this might become inheritance. Not sure what the best approach is here.
     """
     def __init__(self, args):
@@ -85,7 +85,6 @@ class EBPHDaemon(DaemonMixin):
         logger.info("Starting ebpH daemon...")
         self.bpf_program.load_bpf()
 
-        # Spawn connection listener here
         work_loop = threading.Thread(target=self.bpf_work_loop)
         work_loop.daemon = True
         work_loop.start()
@@ -99,4 +98,6 @@ class EBPHDaemon(DaemonMixin):
         """
         logger.info("Stopping ebpH daemon...")
         super().stop_daemon()
+
+    # Routes below this line -----------------------------------------
 
