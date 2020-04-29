@@ -9,7 +9,8 @@ import logging.handlers
 import struct
 
 from flask import Flask
-from flask_restful import
+from flask.logging import default_handler
+#from flask_restful import Resource
 
 from ebpH.daemon_mixin import DaemonMixin
 from ebpH.bpf_program import BPFProgram
@@ -17,6 +18,11 @@ from ebpH.utils import locks, to_json_bytes, from_json_bytes
 from ebpH import defs
 
 logger = logging.getLogger('ebph')
+
+server = Flask(__name__)
+wzlog = logging.getLogger('werkzeug')
+wzlog.disabled = True
+server.logger.disabled = True
 
 class EBPHDaemon(DaemonMixin):
     """
@@ -56,16 +62,6 @@ class EBPHDaemon(DaemonMixin):
         #self.request_dispatcher.register(self.reset_profile)
         #self.request_dispatcher.register(self.inspect_profile)
 
-    # Listen for incoming socket connections and dispatch to connection handler thread
-    def listen_for_connections(self):
-        """
-        Called by the connection handler thread to listen for incoming socket connections.
-        """
-        logger.info("Starting ebpH server...")
-        #self.server = EBPHUnixStreamServer(self.request_dispatcher)
-        #logger.info(f"Server listening for connections on {self.server.server_address}")
-        #self.server.serve_forever()
-
     def tick(self):
         """
         Invoked on every tick in the main event loop.
@@ -77,6 +73,11 @@ class EBPHDaemon(DaemonMixin):
 
         self.bpf_program.on_tick()
 
+    def bpf_work_loop(self):
+        while True:
+            self.tick()
+            time.sleep(defs.ticksleep)
+
     def loop_forever(self):
         """
         Main daemon setup + event loop.
@@ -85,14 +86,12 @@ class EBPHDaemon(DaemonMixin):
         self.bpf_program.load_bpf()
 
         # Spawn connection listener here
-        self.connection_listener = threading.Thread(target=self.listen_for_connections)
-        self.connection_listener.daemon = True
-        self.connection_listener.start()
+        work_loop = threading.Thread(target=self.bpf_work_loop)
+        work_loop.daemon = True
+        work_loop.start()
 
-        # Event loop
-        while True:
-            self.tick()
-            time.sleep(defs.ticksleep)
+        logger.info("Starting ebpH server...")
+        server.run(debug=True)
 
     def stop_daemon(self):
         """
