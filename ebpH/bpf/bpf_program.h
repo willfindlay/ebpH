@@ -45,10 +45,11 @@ struct ebpH_profile
     u8 normal;
     u64 normal_time;
     u64 anomalies;
+    u64 count;
     struct ebpH_profile_data train;
     struct ebpH_profile_data test;
-    u64 key;
     char comm[EBPH_FILENAME_LEN];
+    u64 key;
 };
 
 struct ebpH_locality

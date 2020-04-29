@@ -35,24 +35,6 @@ class EBPHDaemon(DaemonMixin):
         # Number of elapsed ticks
         self.tick_count = 0
 
-        # Request dispatcher for server
-        #self.request_dispatcher = EBPHRequestDispatcher(self)
-        # Register commands with dispatcher
-        #self.request_dispatcher.register(self.bpf_program.start_monitoring)
-        #self.request_dispatcher.register(self.bpf_program.stop_monitoring)
-        #self.request_dispatcher.register(self.bpf_program.is_monitoring)
-        #self.request_dispatcher.register(self.bpf_program.status)
-        #self.request_dispatcher.register(self.bpf_program.save_profiles)
-        #self.request_dispatcher.register(self.bpf_program.fetch_profile)
-        #self.request_dispatcher.register(self.bpf_program.fetch_profiles)
-        #self.request_dispatcher.register(self.bpf_program.fetch_process)
-        #self.request_dispatcher.register(self.bpf_program.fetch_processes)
-        #self.request_dispatcher.register(self.bpf_program.normalize)
-        #self.request_dispatcher.register(self.bpf_program.set_logging_new_sequences)
-        # TODO: the following:
-        #self.request_dispatcher.register(self.reset_profile)
-        #self.request_dispatcher.register(self.inspect_profile)
-
     def tick(self):
         """
         Invoked on every tick in the main event loop.
@@ -73,6 +55,7 @@ class EBPHDaemon(DaemonMixin):
         """
         Main daemon setup + event loop.
         """
+        print('HELLO!')
         logger.info("Starting ebpH daemon...")
         self.bpf_program.load_bpf()
 
@@ -82,7 +65,7 @@ class EBPHDaemon(DaemonMixin):
 
         from ebpH.api import app
         logger.info("Starting ebpH server...")
-        app.run(debug=self.args.debug, port=1000)
+        app.run(debug=self.args.debug, port=1000, use_reloader=False)
 
     def stop_daemon(self):
         """

@@ -2,7 +2,7 @@
  * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
  * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
  * ===============================================================
- * Keep in sync with libebph/libebph.py
+ * Keep in sync with ebpH/libebph.py
  * ===============================================================
  * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
  * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING

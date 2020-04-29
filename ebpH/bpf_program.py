@@ -460,8 +460,10 @@ class BPFProgram:
         """
         Return a dictionary of basic profile info excluding things like lookahead pairs.
         """
-        profile = self.bpf['profiles'][ct.c_uint64(key)]
-        #data = profile.test if profile.normal else profile.train
+        try:
+            profile = self.bpf['profiles'][ct.c_uint64(key)]
+        except KeyError:
+            return None
         data = profile.train
         attrs = {
                 'comm': profile.comm.decode('utf-8'),
@@ -471,6 +473,7 @@ class BPFProgram:
                 'normal_time': profile.normal_time,
                 'last_mod_count': data.last_mod_count,
                 'train_count': data.train_count,
+                'count': data.count,
                 'sequences': data.sequences,
                 'anomalies': profile.anomalies,
                 }
@@ -481,7 +484,10 @@ class BPFProgram:
         """
         Return a dictionary of basic process info, including the accompanying profile.
         """
-        process = self.bpf['processes'][ct.c_uint64(key)]
+        try:
+            process = self.bpf['processes'][ct.c_uint64(key)]
+        except KeyError:
+            return None
         attrs = {
                 'pid': process.pid,
                 'tid': process.tid,
@@ -494,7 +500,7 @@ class BPFProgram:
         Return profile info for all profiles.
         """
         profiles = {}
-        for k, v in self.bpf["profiles"].iteritems():
+        for k in self.bpf["profiles"].iterkeys():
             k = k.value
             profiles[k] = self.get_profile(k)
         return profiles
@@ -504,7 +510,7 @@ class BPFProgram:
         Return process info for all processes.
         """
         processes = {}
-        for k, v in self.bpf["processes"].iteritems():
+        for k in self.bpf["processes"].iterkeys():
             k = k.value
             try:
                 processes[k] = self.get_process(k)
@@ -513,17 +519,19 @@ class BPFProgram:
         return processes
 
     @locks(profiles_lock)
-    def normalize(self, tid):
+    def normalize_process(self, tid):
         """
         Start normal mode on a profile attached to process with <tid>.
         """
-        return libebph.libebph.cmd_normalize(ct.c_uint32(tid))
+        return libebph.libebph.cmd_normalize_process(ct.c_uint32(tid))
 
+    @locks(profiles_lock)
     def reset_profile(self, key):
         """
         Reset a profile. WARNING: not yet working 100%
         """
-        logger.debug('reset_profile called! Not yet implemented')
+        # TODO: implement this in bpf program
+        return libebph.libebph.cmd_reset_profile(ct.c_uint64(key))
 
     #def get_full_profile(self, key):
     #    """

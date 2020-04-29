@@ -55,10 +55,11 @@ class EBPHProfile(ct.Structure):
             ('normal', ct.c_uint8),
             ('normal_time', ct.c_uint64),
             ('anomalies', ct.c_uint64),
+            ('count', ct.c_uint64),
             ('train', EBPHProfileData),
             ('test', EBPHProfileData),
-            ('key', ct.c_uint64),
             ('comm', ct.c_char * EBPH_FILENAME_LEN),
+            ('key', ct.c_uint64),
             ]
 
 # Processes below this line ----------------------------------------------------------

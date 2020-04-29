@@ -65,8 +65,5 @@ class DaemonMixin:
         """
         Restart the daemon.
         """
-        try:
-            self.stop_daemon()
-        except DaemonNotRunningError:
-            pass
+        self.stop_daemon()
         self.start_daemon()

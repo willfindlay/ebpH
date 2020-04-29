@@ -605,6 +605,8 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, stru
         return -1;
     }
 
+    lock_xadd(&profile->count, 1);
+
     struct ebpH_sequence *seq = ebpH_curr_seq(process);
 
     if (!seq)
@@ -786,6 +788,10 @@ static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_reg
 {
     u8 zero = 0;
     bpf_probe_read(data->rows, sizeof(data->rows), &zero);
+
+    data->last_mod_count = 0;
+    data->train_count = 0;
+    data->sequences = 0;
 
     return 0;
 }
@@ -1130,7 +1136,10 @@ int cmd_reset_profile(struct pt_regs *ctx)
         return -2;
     }
 
-    // TODO: implement
+    ebpH_reset_profile_data(&profile->train, ctx);
+    ebpH_reset_profile_data(&profile->test, ctx);
+    ebpH_stop_normal(profile, NULL, ctx);
+    ebpH_set_normal_time(profile, ctx);
 
     return 0;
 }
