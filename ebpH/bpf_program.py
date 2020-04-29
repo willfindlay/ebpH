@@ -23,6 +23,7 @@ from bcc import BPF, lib
 from ebpH.structs import EBPHProfile, EBPHProcess
 from ebpH.utils import locks, syscall_name
 from ebpH import defs
+from ebpH.libebph import libebph
 
 logger = logging.getLogger('ebph')
 newseq_logger = logging.getLogger('newseq')
@@ -58,8 +59,6 @@ class BPFProgram:
         self.should_save = not self.args.nosave
         self.should_load = not self.args.noload
 
-        self.load_libebph()
-
         # BPF program should be None until it is loaded
         self.bpf = None
 
@@ -74,15 +73,6 @@ class BPFProgram:
         self.save_profiles()
         self.bpf = None
         logger.info('BPF program unloaded')
-
-    def load_libebph(self):
-        try:
-            self.libebph = ct.CDLL(defs.libebph)
-        except:
-            raise(f"Could not load {defs.libebph}. Have you run make?")
-        # Function definitions
-        self.libebph.cmd_normalize.argtypes = [ct.c_uint32]
-        logger.info('Loaded libebph')
 
     def register_exit_hooks(self):
         """
@@ -243,7 +233,7 @@ class BPFProgram:
         logger.info(f'Registered perf buffers')
 
     def register_uprobes(self):
-        self.bpf.attach_uprobe(name=defs.libebph, sym='cmd_normalize', pid=os.getpid(), fn_name='cmd_normalize')
+        libebph.register_uprobes(self.bpf)
         logger.info('Registered uprobes')
 
     def load_bpf(self):
@@ -466,7 +456,7 @@ class BPFProgram:
         return status
 
     @locks(profiles_lock)
-    def fetch_profile(self, key):
+    def get_profile(self, key):
         """
         Return a dictionary of basic profile info excluding things like lookahead pairs.
         """
@@ -487,7 +477,7 @@ class BPFProgram:
         return attrs
 
     @locks(processes_lock)
-    def fetch_process(self, key):
+    def get_process(self, key):
         """
         Return a dictionary of basic process info, including the accompanying profile.
         """
@@ -495,7 +485,7 @@ class BPFProgram:
         attrs = {
                 'pid': process.pid,
                 'tid': process.tid,
-                'profile': self.fetch_profile(process.profile_key),
+                'profile': self.get_profile(process.profile_key),
                 }
         return attrs
 
@@ -506,10 +496,10 @@ class BPFProgram:
         profiles = {}
         for k, v in self.bpf["profiles"].iteritems():
             k = k.value
-            profiles[k] = self.fetch_profile(k)
+            profiles[k] = self.get_profile(k)
         return profiles
 
-    def fetch_processes(self):
+    def get_processes(self):
         """
         Return process info for all processes.
         """
@@ -517,26 +507,10 @@ class BPFProgram:
         for k, v in self.bpf["processes"].iteritems():
             k = k.value
             try:
-                processes[k] = self.fetch_process(k)
+                processes[k] = self.get_process(k)
             except KeyError:
                 pass
         return processes
-
-   # @locks(profiles_lock)
-   # def reset_profile(self, key):
-   #     # TODO: redo this
-   #     """
-   #     Reset a profile.
-   #     """
-   #     key = int(key)
-   #     self.stop_monitoring()
-   #     profile = self.bpf['profiles'][ct.c_uint64(key)]
-   #     profile.normal = 0
-   #     profile.frozen = 0
-   #     ct.memset(ct.addressof(profile.train), 0, ct.sizeof(profile.train))
-   #     ct.memset(ct.addressof(profile.test), 0, ct.sizeof(profile.test))
-   #     self.bpf['profiles'][ct.c_uint64(key)] = profile
-   #     self.start_monitoring()
 
     @locks(profiles_lock)
     def normalize(self, tid):
@@ -545,18 +519,18 @@ class BPFProgram:
         """
         return self.libebph.cmd_normalize(ct.c_uint32(tid))
 
-    #def reset_profile(self, key):
-    #    """
-    #    Reset a profile. WARNING: not yet working 100%
-    #    """
-    #    return self.bpf_program.reset_profile(key)
+    def reset_profile(self, key):
+        """
+        Reset a profile. WARNING: not yet working 100%
+        """
+        logger.debug('reset_profile called! Not yet implemented')
 
-    #def inspect_profile(self, key):
+    #def get_full_profile(self, key):
     #    """
     #    Return a dictionary of ALL profile info, including things like lookahead pairs.
     #    """
     #    key = int(key)
-    #    profile = self.fetch_profile(key)
+    #    profile = self.get_profile(key)
     #    data = profile.test if profile.normal else profile.train
     #    lookahead_pairs = list(data.flags)
     #    print(lookahead_pairs)

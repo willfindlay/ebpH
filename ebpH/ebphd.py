@@ -15,8 +15,6 @@ from ebpH.utils import locks, to_json_bytes, from_json_bytes
 from ebpH import defs
 from ebpH.logger import setup_logger, get_logger
 
-logger = get_logger()
-
 class EBPHDaemon(DaemonMixin):
     """
     EBPHDaemon
@@ -84,7 +82,7 @@ class EBPHDaemon(DaemonMixin):
 
         from ebpH.api import app
         logger.info("Starting ebpH server...")
-        app.run(debug=True, port=1000)
+        app.run(debug=self.args.debug, port=1000)
 
     def stop_daemon(self):
         """
@@ -145,6 +143,9 @@ def main():
     args = parse_args(sys.argv[1:])
     defs.init()
     setup_logger(args)
+
+    global logger
+    logger = get_logger()
 
     global ebphd
     ebphd = EBPHDaemon(args)

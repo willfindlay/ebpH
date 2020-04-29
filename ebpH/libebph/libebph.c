@@ -1,3 +1,20 @@
+/* ===============================================================
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * ===============================================================
+ * Keep in sync with libebph/libebph.py
+ * ===============================================================
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * =============================================================== */
+
 #include <stdint.h>
 
-void cmd_normalize(uint32_t tid) { }
+/* Process commands */
+void cmd_normalize_process(uint32_t tid) { }
+void cmd_tolerize_process(uint32_t tid) { }
+
+/* Profile commands */
+void cmd_normalize_profile(uint64_t key) { }
+void cmd_tolerize_profile(uint64_t key) { }
+void cmd_reset_profile(uint64_t key) { }

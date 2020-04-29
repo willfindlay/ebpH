@@ -398,9 +398,15 @@ static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *
     profile->train.last_mod_count = 0;
     profile->train.train_count = 0;
 
-    ebpH_reset_ALF(process, ctx);
-
-    on_start_normal.perf_submit(ctx, process, sizeof(*process));
+    if (process)
+    {
+        ebpH_reset_ALF(process, ctx);
+        on_start_normal.perf_submit(ctx, process, sizeof(*process));
+    }
+    else
+    {
+        on_start_normal.perf_submit(ctx, profile, sizeof(*profile));
+    }
 
     return 0;
 }
@@ -409,7 +415,10 @@ static int ebpH_stop_normal(struct ebpH_profile *profile, struct ebpH_process *p
 {
     profile->normal = 0;
 
-    ebpH_reset_ALF(process, ctx);
+    if (process)
+    {
+        ebpH_reset_ALF(process, ctx);
+    }
 
     return 0;
 }
@@ -1027,22 +1036,22 @@ int kretprobe__get_signal(struct pt_regs *ctx)
     return 0;
 }
 
-/* Normalize command */
-int cmd_normalize(struct pt_regs *ctx)
+/* Normalize process command */
+int cmd_normalize_process(struct pt_regs *ctx)
 {
     u32 pid = (u32)PT_REGS_PARM1(ctx);
 
     struct ebpH_process *process = processes.lookup(&pid);
     if (!process)
     {
-        EBPH_ERROR("cmd_start_normal: No such process", ctx);
+        EBPH_ERROR("cmd_normalize_process: No such process", ctx);
         return -1;
     }
 
     struct ebpH_profile *profile = profiles.lookup(&process->profile_key);
     if (!profile)
     {
-        EBPH_ERROR("cmd_start_normal: No such profile", ctx);
+        EBPH_ERROR("cmd_normalize_process: No such profile", ctx);
         return -2;
     }
 
@@ -1051,22 +1060,73 @@ int cmd_normalize(struct pt_regs *ctx)
     return 0;
 }
 
-/* Tolerize command */
-int cmd_tolerize(struct pt_regs *ctx)
+/* Tolerize process process command */
+int cmd_tolerize_process(struct pt_regs *ctx)
 {
     u32 pid = (u32)PT_REGS_PARM1(ctx);
 
     struct ebpH_process *process = processes.lookup(&pid);
     if (!process)
     {
-        EBPH_ERROR("cmd_start_normal: No such process", ctx);
+        EBPH_ERROR("cmd_tolerize_process: No such process", ctx);
         return -1;
     }
 
     struct ebpH_profile *profile = profiles.lookup(&process->profile_key);
     if (!profile)
     {
-        EBPH_ERROR("cmd_start_normal: No such profile", ctx);
+        EBPH_ERROR("cmd_tolerize_process: No such profile", ctx);
+        return -2;
+    }
+
+    // TODO: implement
+
+    return 0;
+}
+
+/* Normalize profile command */
+int cmd_normalize_profile(struct pt_regs *ctx)
+{
+    u64 key = (u64)PT_REGS_PARM1(ctx);
+
+    struct ebpH_profile *profile = profiles.lookup(&key);
+    if (!profile)
+    {
+        EBPH_ERROR("cmd_normalize_profile: No such profile", ctx);
+        return -2;
+    }
+
+    ebpH_start_normal(profile, NULL, ctx);
+
+    return 0;
+}
+
+/* Tolerize profile profile command */
+int cmd_tolerize_profile(struct pt_regs *ctx)
+{
+    u64 key = (u64)PT_REGS_PARM1(ctx);
+
+    struct ebpH_profile *profile = profiles.lookup(&key);
+    if (!profile)
+    {
+        EBPH_ERROR("cmd_tolerize_profile: No such profile", ctx);
+        return -2;
+    }
+
+    // TODO: implement
+
+    return 0;
+}
+
+/* Reset command */
+int cmd_reset_profile(struct pt_regs *ctx)
+{
+    u64 key = (u64)PT_REGS_PARM1(ctx);
+
+    struct ebpH_profile *profile = profiles.lookup(&process->profile_key);
+    if (!profile)
+    {
+        EBPH_ERROR("cmd_reset_profile: No such profile", ctx);
         return -2;
     }
 
