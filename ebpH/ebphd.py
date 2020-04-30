@@ -67,7 +67,7 @@ class EBPHDaemon(DaemonMixin):
 
         from ebpH.api import app
         logger.info("Starting ebpH server...")
-        app.run(debug=self.args.debug, port=1000, use_reloader=False)
+        app.run(debug=self.args.debug, port=defs.port, use_reloader=False)
 
     def stop_daemon(self):
         """

@@ -66,18 +66,6 @@ def locks(lock):
         return inner
     return decorator
 
-def to_json_bytes(x, encoding='utf-8'):
-    """
-    Serialize json.
-    """
-    return json.dumps(x).encode(encoding)
-
-def from_json_bytes(x, encoding='utf-8'):
-    """
-    Unserialize json.
-    """
-    return json.loads(x.decode(encoding))
-
 def read_chunks(f, size=1024):
     """
     Read a file in chunks.

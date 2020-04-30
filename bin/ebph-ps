@@ -11,13 +11,11 @@
 # Licensed under GPL v2 License
 
 import os, sys
-import socket
 import argparse
 import struct
 import datetime
-import json
+import requests
 
-from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message, connect_to_socket
 from ebpH import defs
 
 DESCRIPTION = """
@@ -97,19 +95,6 @@ def parse_args(args=[]):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-
-    # Connect to socket
-    sock = connect_to_socket()
-
-    # Form request
-    request = {'func': 'fetch_profiles' if args.profiles else 'fetch_processes'}
-
-    # Send request
-    send_message(sock, to_json_bytes(request))
-
-    # Handle response
-    res = receive_message(sock)
-    res = from_json_bytes(res)
 
     items = sorted(res['message'].items(), key=sort_key(args))
 

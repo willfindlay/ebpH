@@ -43,6 +43,9 @@ bpf_params = {
         'EBPH_LOCALITY_WIN': config['BPF'].getint('locality_win', 128),
         }
 
+# Port to run the flask server on
+port = config['Daemon'].getint('port', 1000)
+
 # Non-configurable values below this line -----------------------------------------
 
 # Location where pidfile should be stored
