@@ -14,14 +14,9 @@
 # Licensed under GPL v2 License
 
 import os, sys
-import socket
 import argparse
-import struct
 import subprocess
-import json
-from functools import wraps
 
-from ebpH.utils import to_json_bytes, from_json_bytes, receive_message, send_message
 from ebpH import defs
 
 DESCRIPTION = """
@@ -36,56 +31,19 @@ Example usage:
     sudo ebph-admin status # Check system status
 """
 
-EBPHD_PATH = os.path.join(defs.project_path, 'ebphd')
-EBPH_PS_PATH = os.path.join(defs.project_path, 'ebph-ps')
+EBPHD_PATH = os.path.join(defs.project_path, 'bin/ebphd')
+EBPH_PS_PATH = os.path.join(defs.project_path, 'bin/ebph-ps')
 
 commands = {}
 
-def command(operation, command_arguments={}, ebph_func=None, use_socket=1):
+def command(operation):
     """
-    Register a command that can be sent to ebpH.
-    Commands that use sockets should accept a res argument that defaults to None.
-
-    args:
-        operation -> name of the command (should correspond to the command defined in argparse)
-        command_arguments -> arguments that will be sent to the ebpH function that corresponds to the command
-        ebph_func -> function that the daemon will be requested to run
-        use_socket -> if set to 0, do something besides sending a command to the daemon
+    Register a command that can be invoked via args.
     """
-    if not ebph_func:
-        ebph_func = operation
     def decorator(func):
-        @wraps(func)
-        def inner():
-            if use_socket:
-                try:
-                    # Connect to socket
-                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    sock.connect(defs.socket)
-                    # Form request
-                    request = {'func': ebph_func, 'kwargs': command_arguments}
-                    # Send request
-                    send_message(sock, to_json_bytes(request))
-                    # Handle response
-                    res = receive_message(sock)
-                    res = from_json_bytes(res)
-                    # Server error
-                    if res['code'] != 200:
-                        print(f"Could not complete command \"{operation}\". System replied with code: {res['code']}.", file=sys.stderr)
-                        sys.exit(-1)
-                    return func(res)
-                except ConnectionRefusedError:
-                    print(f"Unable to connect to {defs.socket}... Is ebphd running?", file=sys.stderr)
-                finally:
-                    sock.close()
-            else:
-                return func()
-        # Append to commands list
         global commands
-        commands[operation] = inner
-
-        # Return the inner func
-        return inner
+        commands[operation] = func
+        return func
     return decorator
 
 def parse_args(args=[]):
@@ -158,57 +116,56 @@ def parse_args(args=[]):
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
 
-    command_args = {k: v for k, v in vars(args).items() if k != 'command'}
-
-    @command('start', use_socket=0)
+    @command('start')
     def start():
         """
         Start the daemon.
         """
         subprocess.run([EBPHD_PATH, 'start'])
 
-    @command('restart', use_socket=0)
+    @command('restart')
     def restart():
         subprocess.run([EBPHD_PATH, 'restart'])
 
-    @command('stop', use_socket=0)
+    @command('stop')
     def stop():
         """
         Stop the daemon.
         """
         subprocess.run([EBPHD_PATH, 'stop'])
 
-    @command('on', ebph_func='start_monitoring')
+    @command('on')
     def on(res=None):
         """
         Start monitoring the system.
         """
-        print(res['message'], file=sys.stderr)
+        print('not implemented')
 
-    @command('off', ebph_func='stop_monitoring')
+    @command('off')
     def off(res=None):
         """
         Stop monitoring the system.
         """
-        print(res['message'], file=sys.stderr)
+        print('not implemented')
 
-    @command('save', ebph_func='save_profiles')
+    @command('save')
     def save_profiles(res=None):
         """
         Force save profiles to disk.
         """
-        print(res['message'], file=sys.stderr)
+        print('not implemented')
 
     @command('status')
     def status(res=None):
         """
         Print ebphd status to the console.
         """
-        print(f"{'ITEM':<16s} {'STATUS'}")
-        for k, v in res['message'].items():
-            print(f"{k:<16s} {v}")
+        print('not implemented')
+        #print(f"{'ITEM':<16s} {'STATUS'}")
+        #for k, v in res['message'].items():
+        #    print(f"{k:<16s} {v}")
 
-    @command('ps', use_socket=0)
+    @command('ps')
     def ps(res=None):
         """
         Invoke ebph-ps with the desired arguments.
@@ -220,28 +177,23 @@ if __name__ == "__main__":
             flags.append('-t')
         subprocess.run([EBPH_PS_PATH, *flags])
 
-    @command('inspect', command_args, ebph_func='inspect_profile')
+    @command('inspect')
     def inspect(res=None):
-        print(res['message'], file=sys.stderr)
+        print('not implemented')
 
-    @command('normalize', command_args, ebph_func='normalize')
+    @command('normalize')
     def normalize(res=None):
         """
         Normalize profile attached to process <tid>.
         """
-        print(res['message'], file=sys.stderr)
+        print('not implemented')
 
-    @command('log-sequences', command_args, ebph_func='set_logging_new_sequences')
-    def normalize(res=None):
+    @command('log-sequences')
+    def log_sequences(res=None):
         """
         Set logging new sequences to 1 or 0.
         """
-        print(res['message'], file=sys.stderr)
-
-
-    #@command('reset', command_args, ebph_func='reset_profile')
-    #def reset(res=None):
-    #    pass
+        print('not implemented')
 
     # Handle command
     commands[args.command]()
