@@ -7,7 +7,7 @@ import stat
 from ebpH.utils import path
 from ebpH.config import config, parse_time
 
-# Configurable values below this line ---------------------------------------------
+# Configurable values below this line =============================================
 
 # Verbosity level for logging
 # Possible values: logging.CRITICAL, logging.ERROR, logging.WARNING,
@@ -46,7 +46,7 @@ bpf_params = {
 # Port to run the flask server on
 port = config['Daemon'].getint('port', 1000)
 
-# Non-configurable values below this line -----------------------------------------
+# Non-configurable values below this line =========================================
 
 # Location where pidfile should be stored
 rundir = '/run'
@@ -61,6 +61,7 @@ bpf_program = path('ebpH/bpf/bpf_program.c')
 libebph = path('ebpH/libebph/__libebph.so')
 pidfile = os.path.join(rundir, 'ebph.pid')
 logfile = os.path.join(logdir, 'ebph.log')
+# TODO: maybe delete this??
 newseq_logfile = os.path.join(logdir, 'newseq.log')
 
 def init():

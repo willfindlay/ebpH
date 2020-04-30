@@ -455,6 +455,12 @@ class BPFProgram:
                 }
         return status
 
+    # TODO: Move all of the following json logic into either:
+    # The the routes in api.py
+    # Or new serialize methods in structs.py
+    # Not sure which approach is best, implicit conversion when reading maps will be
+    # annoying for the structs.py option
+
     @locks(profiles_lock)
     def get_profile(self, key):
         """
@@ -491,6 +497,7 @@ class BPFProgram:
         attrs = {
                 'pid': process.pid,
                 'tid': process.tid,
+                'profile_key': process.profile_key,
                 'profile': self.get_profile(process.profile_key),
                 }
         return attrs
@@ -500,7 +507,7 @@ class BPFProgram:
         Return profile info for all profiles.
         """
         profiles = {}
-        for k in self.bpf["profiles"].iterkeys():
+        for k in self.bpf["profiles"].keys():
             k = k.value
             profiles[k] = self.get_profile(k)
         return profiles
@@ -510,7 +517,7 @@ class BPFProgram:
         Return process info for all processes.
         """
         processes = {}
-        for k in self.bpf["processes"].iterkeys():
+        for k in self.bpf["processes"].keys():
             k = k.value
             try:
                 processes[k] = self.get_process(k)
