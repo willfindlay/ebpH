@@ -11,7 +11,6 @@
 import os, sys
 import json
 import time
-import socket
 from functools import wraps
 
 import bcc.syscall
@@ -78,45 +77,6 @@ def from_json_bytes(x, encoding='utf-8'):
     Unserialize json.
     """
     return json.loads(x.decode(encoding))
-
-def connect_to_socket():
-    """
-    Connect to ebpH's socket and return the corresponding socket object.
-    """
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(defs.socket)
-        return sock
-    except ConnectionRefusedError:
-        print(f"Unable to connect to {defs.socket}... Is ebphd running?", file=sys.stderr)
-        sys.exit(-1)
-
-def receive_message(sock):
-    """
-    Receive a message of arbitrary length over a stream socket.
-    Stop when we see defs.sentinel or the connection closes (whichever happens first).
-    """
-    total_data = []
-    sentinel = False
-
-    while True:
-        msg = sock.recv(defs.socket_buff_size)
-        if not msg.strip():
-            break
-        if bytes([msg[-1]]) == defs.socket_sentinel:
-            msg = msg[:-1]  # Remove sentinel from message
-            sentinel = True # Mark that we have seen it
-        total_data.append(msg)
-        if sentinel:
-            break
-
-    return b"".join(total_data)
-
-def send_message(sock, data):
-    """
-    Send a message over a stream socket, terminating automatically with defs.sentinel.
-    """
-    sock.send(b"".join([data, defs.socket_sentinel]))
 
 def read_chunks(f, size=1024):
     """

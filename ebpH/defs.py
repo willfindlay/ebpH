@@ -45,25 +45,18 @@ bpf_params = {
 
 # Non-configurable values below this line -----------------------------------------
 
-# Location where socket and pidfile should be stored
-socketdir = '/run'
+# Location where pidfile should be stored
+rundir = '/run'
 # Location where log files should be saved
 logdir = '/var/log/ebpH'
 # ebpH data directory
 ebph_data_dir =  '/var/lib/ebpH'
 
-# Size of socket messages
-socket_buff_size = 3
-
-# Sentinel value for ending socket messages
-socket_sentinel = b"\x00"
-
 project_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 profiles_dir = os.path.join(ebph_data_dir, 'profiles')
 bpf_program = path('ebpH/bpf/bpf_program.c')
 libebph = path('ebpH/libebph/__libebph.so')
-socket = os.path.join(socketdir, 'ebph.sock')
-pidfile = os.path.join(socketdir, 'ebph.pid')
+pidfile = os.path.join(rundir, 'ebph.pid')
 logfile = os.path.join(logdir, 'ebph.log')
 newseq_logfile = os.path.join(logdir, 'newseq.log')
 

@@ -1,6 +1,5 @@
 import os, sys
 import atexit
-import socket
 import signal
 import time
 import threading
@@ -11,7 +10,7 @@ import argparse
 
 from ebpH.daemon_mixin import DaemonMixin
 from ebpH.bpf_program import BPFProgram
-from ebpH.utils import locks, to_json_bytes, from_json_bytes
+from ebpH.utils import locks, path
 from ebpH import defs
 from ebpH.logger import setup_logger, get_logger, LoggerWriter
 
@@ -135,6 +134,8 @@ def main():
 
     global ebphd
     ebphd = EBPHDaemon(args)
+
+    logger.debug(f"ebphd.py path: {path(__file__)}")
 
     if args.operation == "start":
         ebphd.start_daemon()
