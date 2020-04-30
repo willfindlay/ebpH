@@ -3,8 +3,8 @@ Description=ebpH Daemon Service
 StartLimitIntervalSec=0
 
 [Service]
-Type=forking
-PIDFile=/run/ebph.pid
+Type=simple
+#PIDFile=/run/ebph.pid
 Restart=always
 RestartSec=1
 User=root

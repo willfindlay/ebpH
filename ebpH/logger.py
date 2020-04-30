@@ -137,10 +137,6 @@ def setup_logger(args):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    # Redirect stdout and stderr to logger
-    sys.stdout = LoggerWriter(logger.debug)
-    sys.stderr = LoggerWriter(logger.error)
-
     # A little debug message to tell us the logger has started
     logger.debug('Logging initialized.')
 

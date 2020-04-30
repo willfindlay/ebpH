@@ -119,6 +119,7 @@ static int ebpH_pop_seq(struct ebpH_process *process);
 static int ebpH_start_tracing(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_create_process(u32 *pid, struct task_struct *task, struct pt_regs *ctx);
 static int ebpH_create_profile(u64 *key, const char *comm, struct pt_regs *ctx);
+static int ebpH_reset_profile(struct ebpH_profile *profile, struct pt_regs *ctx);
 static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_regs *ctx);
 
 #endif

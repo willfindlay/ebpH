@@ -13,7 +13,7 @@ from ebpH.daemon_mixin import DaemonMixin
 from ebpH.bpf_program import BPFProgram
 from ebpH.utils import locks, to_json_bytes, from_json_bytes
 from ebpH import defs
-from ebpH.logger import setup_logger, get_logger
+from ebpH.logger import setup_logger, get_logger, LoggerWriter
 
 class EBPHDaemon(DaemonMixin):
     """
@@ -55,7 +55,10 @@ class EBPHDaemon(DaemonMixin):
         """
         Main daemon setup + event loop.
         """
-        print('HELLO!')
+        # Redirect stdout and stderr to logger
+        sys.stdout = LoggerWriter(logger.debug)
+        sys.stderr = LoggerWriter(logger.error)
+
         logger.info("Starting ebpH daemon...")
         self.bpf_program.load_bpf()
 

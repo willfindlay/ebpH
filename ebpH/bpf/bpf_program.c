@@ -796,6 +796,22 @@ static int ebpH_reset_profile_data(struct ebpH_profile_data *data, struct pt_reg
     return 0;
 }
 
+static int ebpH_reset_profile(struct ebpH_profile *profile, struct pt_regs *ctx)
+{
+    ebpH_reset_profile_data(&profile->train, ctx);
+    ebpH_reset_profile_data(&profile->test, ctx);
+
+    profile->anomalies = 0;
+    profile->normal = 0;
+    profile->frozen = 0;
+    profile->normal_time = 0;
+    profile->count = 0;
+
+    ebpH_set_normal_time(profile, ctx);
+
+    return 0;
+}
+
 /* Tracepoints and kprobes below this line --------------------- */
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
@@ -1136,10 +1152,5 @@ int cmd_reset_profile(struct pt_regs *ctx)
         return -2;
     }
 
-    ebpH_reset_profile_data(&profile->train, ctx);
-    ebpH_reset_profile_data(&profile->test, ctx);
-    ebpH_stop_normal(profile, NULL, ctx);
-    ebpH_set_normal_time(profile, ctx);
-
-    return 0;
+    return ebpH_reset_profile(profile, ctx);
 }

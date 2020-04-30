@@ -1,9 +1,9 @@
 DIR=$(shell pwd)
 SCRIPTSDIR=$(DIR)/scripts
 
-LIBEBPHDIR=$(DIR)/libebph
+LIBEBPHDIR=$(DIR)/ebpH/libebph
 LIBEBPHSRC=$(LIBEBPHDIR)/libebph.c
-LIBEBPHOBJ=$(LIBEBPHSRC:.c=.so)
+LIBEBPHOBJ=$(LIBEBPHDIR)/__libebph.so
 
 
 .PHONY: all
@@ -14,7 +14,7 @@ $(LIBEBPHOBJ): $(LIBEBPHSRC)
 
 .PHONY: install
 install: $(LIBEBPHOBJ)
-	cd $(SCRIPTSDIR) && sudo ./install.sh
+	cd $(SCRIPTSDIR) && sudo -H ./install.sh
 
 .PHONY: unit
 unit:

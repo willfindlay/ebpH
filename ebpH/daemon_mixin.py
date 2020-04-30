@@ -17,7 +17,7 @@ import signal
 from daemon import DaemonContext, pidfile
 
 from ebpH import defs
-from ebpH.logger import get_logger, LoggerWriter
+from ebpH.logger import get_logger
 
 logger = get_logger()
 
@@ -56,9 +56,6 @@ class DaemonMixin:
                 # Necessary to preserve logging
                 files_preserve=[handler.stream for handler in logger.handlers]
                 ):
-            # Redirect stdout and stderr to logger
-            sys.stdout = LoggerWriter(logger.debug)
-            sys.stderr = LoggerWriter(logger.error)
             self.loop_forever()
 
     def restart_daemon(self):

@@ -23,7 +23,7 @@ from bcc import BPF, lib
 from ebpH.structs import EBPHProfile, EBPHProcess
 from ebpH.utils import locks, syscall_name
 from ebpH import defs
-from ebpH import libebph
+from ebpH.libebph import libebph
 
 logger = logging.getLogger('ebph')
 newseq_logger = logging.getLogger('newseq')
@@ -473,7 +473,7 @@ class BPFProgram:
                 'normal_time': profile.normal_time,
                 'last_mod_count': data.last_mod_count,
                 'train_count': data.train_count,
-                'count': data.count,
+                'count': profile.count,
                 'sequences': data.sequences,
                 'anomalies': profile.anomalies,
                 }
