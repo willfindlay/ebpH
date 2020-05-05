@@ -86,10 +86,6 @@ def parse_args(args=[]):
 
     args = parser.parse_args(args)
 
-    # check for root
-    if not (os.geteuid() == 0):
-        parser.error("This script must be run with root privileges! Exiting.")
-
     return args
 
 
