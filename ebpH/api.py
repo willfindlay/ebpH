@@ -57,3 +57,15 @@ def get_process(pid):
     if not process:
         return jsonify(process), HTTPStatus.BAD_REQUEST
     return jsonify(process), HTTPStatus.OK
+
+@app.route('/api/settings/log-sequences', methods=['PUT'])
+def log_sequences():
+    """
+    Return a specific process and associated profile.
+    """
+    try:
+        should_log = int(request.values['should_log'])
+    except:
+        return 'Unable to parse value for should_log', HTTPStatus.BAD_REQUEST
+    res = ebphd.bpf_program.set_logging_new_sequences(should_log)
+    return jsonify(res)

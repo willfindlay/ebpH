@@ -28,8 +28,8 @@ saveinterval = config['Daemon'].getint('save_interval')
 killtimeout = parse_time(config['Misc'].get('killtimeout', '20s'))
 
 # Default to logging new sequences?
-#log_new_sequences = config['Logging'].getboolean('log_new_sequences', False)
-log_new_sequences = True
+log_new_sequences = config['Logging'].getboolean('log_new_sequences', False)
+#log_new_sequences = True
 
 # BPFProgram constants dictionary
 bpf_params = {
