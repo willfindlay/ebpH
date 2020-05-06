@@ -28,7 +28,8 @@ saveinterval = config['Daemon'].getint('save_interval')
 killtimeout = parse_time(config['Misc'].get('killtimeout', '20s'))
 
 # Default to logging new sequences?
-log_new_sequences = config['Logging'].getboolean('log_new_sequences', False)
+#log_new_sequences = config['Logging'].getboolean('log_new_sequences', False)
+log_new_sequences = True
 
 # BPFProgram constants dictionary
 bpf_params = {
@@ -61,8 +62,6 @@ bpf_program = path('ebpH/bpf/bpf_program.c')
 libebph = path('ebpH/libebph/__libebph.so')
 pidfile = os.path.join(rundir, 'ebph.pid')
 logfile = os.path.join(logdir, 'ebph.log')
-# TODO: maybe delete this??
-newseq_logfile = os.path.join(logdir, 'newseq.log')
 
 def init():
     """

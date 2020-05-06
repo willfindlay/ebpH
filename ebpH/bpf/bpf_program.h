@@ -26,14 +26,9 @@
 
 /* Struct definitions below this line ------------------- */
 
-struct ebpH_lookahead_row
-{
-    u8 flags[EBPH_NUM_SYSCALLS];
-};
-
 struct ebpH_profile_data
 {
-    struct ebpH_lookahead_row rows[EBPH_NUM_SYSCALLS];
+    u8 flags[EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS];
     u64 last_mod_count;
     u64 train_count;
     u64 sequences;
@@ -89,7 +84,7 @@ static int ebpH_is_monitoring();
 static int ebpH_is_saving();
 static int ebpH_is_logging_new_sequences();
 
-static u8 *ebpH_lookahead(struct ebpH_profile_data *data, u32 curr, u32 prev);
+static __always_inline u32 ebpH_lookahead_index(struct ebpH_profile_data *data, u32 curr, u32 prev);
 
 static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
@@ -107,7 +102,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 
-static struct ebpH_sequence *ebpH_curr_seq(struct ebpH_process *process);
+static __always_inline int ebpH_seq_index(struct ebpH_process *process);
 static int ebpH_push_seq(struct ebpH_process *process);
 static int ebpH_pop_seq(struct ebpH_process *process);
 

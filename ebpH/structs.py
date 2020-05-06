@@ -24,7 +24,7 @@ from ebpH import defs
 
 EBPH_NUM_SYSCALLS = defs.bpf_params['EBPH_NUM_SYSCALLS']
 EBPH_SEQLEN = 9
-EBPH_SEQSTACK_SIZE = 2
+EBPH_SEQSTACK_SIZE = 6
 EBPH_LOCALITY_WIN = 128
 EBPH_FILENAME_LEN = 128
 TASK_COMM_LEN = 16
@@ -38,7 +38,7 @@ class EBPHProfileData(ct.Structure):
     This class MUST be kept in sync with src/bpf/bpf_program.h
     """
     _fields_ = [
-            ('flags', (ct.c_uint8 * EBPH_NUM_SYSCALLS) * EBPH_NUM_SYSCALLS),
+            ('flags', (ct.c_uint8 * (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS))),
             ('last_mod_count', ct.c_uint64),
             ('train_count', ct.c_uint64),
             ('sequences', ct.c_uint64),
@@ -84,7 +84,7 @@ class EBPHSequence(ct.Structure):
     This class MUST be kept in sync with src/bpf/bpf_program.h
     """
     _fields_ = [
-            ('seq', ct.c_long * EBPH_SEQLEN * EBPH_SEQSTACK_SIZE),
+            ('seq', ct.c_long * (EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)),
             ('top', ct.c_uint8),
             ('should_pop', ct.c_uint8),
             ]

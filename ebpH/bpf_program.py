@@ -20,13 +20,12 @@ import subprocess
 
 from bcc import BPF, lib
 
-from ebpH.structs import EBPHProfile, EBPHProcess
+from ebpH.structs import EBPHProfile, EBPHProcess, EBPH_SEQLEN, EBPH_SEQSTACK_SIZE
 from ebpH.utils import locks, syscall_name
 from ebpH import defs
 from ebpH.libebph import libebph
 
 logger = logging.getLogger('ebph')
-newseq_logger = logging.getLogger('newseq')
 
 # Register signal handlers
 def handle_sigterm(x, y):
@@ -198,14 +197,15 @@ class BPFProgram:
                 profile.comm = b'UNKNOWN'
 
             # Get sequence array from correct stack frame
-            sequence = process.stack.seq[process.stack.top].seq
+            seq_index = process.seq.top * EBPH_SEQLEN
+            sequence = process.seq.seq[seq_index:seq_index + EBPH_SEQLEN]
             # 9999 is empty
             sequence = [syscall_name(syscall) for syscall in sequence if syscall != 9999]
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            newseq_logger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
-            newseq_logger.debug(f"Stack top: {process.stack.top}")
+            logger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
+            logger.debug(f"Stack top: {process.seq.top}")
         self.bpf["on_new_sequence"].open_perf_buffer(on_new_sequence, lost_cb=lost_cb("on_new_sequence"), page_cnt=2**8)
 
         def ebpH_error(cpu, data, size):
@@ -338,7 +338,7 @@ class BPFProgram:
             logger.info(msg)
             return msg
         self.bpf["__is_logging_new_sequences"][ct.c_int(0)] = ct.c_int(1)
-        msg = f'Started logging new sequences to {defs.newseq_logfile}'
+        msg = f'Started logging new sequences to {defs.logfile}'
         logger.info(msg)
         return msg
 
