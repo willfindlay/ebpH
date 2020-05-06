@@ -60,15 +60,10 @@ struct ebpH_locality
     u32 max;
 };
 
+/* Circular buffer representing a stack of sequences */
 struct ebpH_sequence
 {
-    long seq[EBPH_SEQLEN];
-    u8 count;
-};
-
-struct ebpH_sequence_stack
-{
-    struct ebpH_sequence seq[EBPH_SEQSTACK_SIZE];
+    long seq[EBPH_SEQLEN * EBPH_SEQSTACK_SIZE];
     u8 top;
     u8 should_pop;
 };
@@ -76,7 +71,7 @@ struct ebpH_sequence_stack
 struct ebpH_process
 {
     struct ebpH_locality alf;
-    struct ebpH_sequence_stack stack;
+    struct ebpH_sequence seq;
     u32 pid;
     u32 tid;
     u64 profile_key;

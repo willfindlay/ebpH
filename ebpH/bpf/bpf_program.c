@@ -205,7 +205,6 @@ static int ebpH_push_seq(struct ebpH_process *process)
     }
 
     /* Reinitialize the sequence */
-    seq->count = 0;
     for (u32 i = 0; i < EBPH_SEQLEN; i++)
         seq->seq[i] = EBPH_EMPTY;
 
@@ -306,12 +305,6 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         #ifdef EBPH_DEBUG
         bpf_trace_printk("ebpH_test: Null sequence\n");
         #endif
-        return 0;
-    }
-
-    /* Sequence is empty. Obviously not considered an error */
-    if (!seq->count)
-    {
         return 0;
     }
 
@@ -480,12 +473,6 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         return -2;
     }
 
-    /* Sequence is empty. Obviously not considered an error */
-    if (!seq->count)
-    {
-        return 0;
-    }
-
     /* Set every (curr, prev) pair for current syscall */
     for (u32 i = 1; i < EBPH_SEQLEN; i++)
     {
@@ -621,7 +608,6 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, stru
         seq->seq[i] = seq->seq[i-1];
     }
     seq->seq[0] = *syscall;
-    seq->count = seq->count < EBPH_SEQLEN ? seq->count + 1 : seq->count;
 
     /* TODO: take profile lock here */
 
@@ -957,7 +943,6 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
      * and reset process' sequence stack */
     for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
-        process->stack.seq[i].count = parent_process->stack.seq[i].count;
         for (u32 j = 0; j < EBPH_SEQLEN; j++)
         {
             process->stack.seq[i].seq[j] = parent_process->stack.seq[i].seq[j];
@@ -1009,7 +994,6 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     /* Reset process' sequence stack */
     for (u32 i = 0; i < EBPH_SEQSTACK_SIZE; i++)
     {
-        process->stack.seq[i].count = 0;
         for (u32 j = 0; j < EBPH_SEQLEN; j++)
         {
             process->stack.seq[i].seq[j] = EBPH_EMPTY;

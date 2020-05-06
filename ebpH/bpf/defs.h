@@ -28,7 +28,7 @@
 /* Length of a syscall sequence */
 #define EBPH_SEQLEN  9
 /* Size of ebpH seq stack */
-#define EBPH_SEQSTACK_SIZE 6
+#define EBPH_SEQSTACK_SIZE 2
 
 /* Window size for locality frames */
 #define EBPH_LOCALITY_WIN  128
