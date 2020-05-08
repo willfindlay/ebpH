@@ -204,7 +204,7 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
+            logger.info(f"New seq in PID {process.pid} TID {process.tid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
             logger.debug(f"Stack top: {process.seq.top}")
         self.bpf["on_new_sequence"].open_perf_buffer(on_new_sequence, lost_cb=lost_cb("on_new_sequence"), page_cnt=2**8)
 
