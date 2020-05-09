@@ -17,6 +17,8 @@ import os, sys
 import argparse
 import subprocess
 
+import requests
+
 from ebpH import defs
 
 DESCRIPTION = """
@@ -193,7 +195,8 @@ if __name__ == "__main__":
         """
         Set logging new sequences to 1 or 0.
         """
-        print('not implemented')
+        res = requests.put(f'http://localhost:{defs.port}/api/settings/log-sequences', data={'should_log': args.should_log})
+        print("Daemon responded:", res.text)
 
     # Handle command
     commands[args.command]()
