@@ -26,7 +26,6 @@ from ebpH import defs
 from ebpH.libebph import libebph
 
 logger = logging.getLogger('ebph')
-newseq_logger = logging.getLogger('newseq')
 
 # Register signal handlers
 def handle_sigterm(x, y):
@@ -204,8 +203,8 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            newseq_logger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
-            newseq_logger.debug(f"Stack top: {process.stack.top}")
+            logger.info(f"New seq in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
+            logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_new_sequence"].open_perf_buffer(on_new_sequence, lost_cb=lost_cb("on_new_sequence"), page_cnt=2**8)
 
         def ebpH_error(cpu, data, size):
