@@ -129,7 +129,7 @@ class BPFProgram:
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
-            logger.warning(f"Anomalies in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
+            logger.warning(f"Anomalies in PID {process.pid} TID {process.tid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
             logger.debug(f"Stack top: {process.stack.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
