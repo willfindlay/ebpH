@@ -213,6 +213,10 @@ static int ebpH_pop_seq(struct ebpH_process *process)
         return -2;
     }
 
+    #ifdef EBPH_DEBUG
+    bpf_trace_printk("popping sequence %d\n", process->stack.top);
+    #endif
+
     /* Decrement top */
     process->seq.top--;
 
@@ -935,26 +939,29 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
 }
 
 /* Entry hook for kernel signal handler implementation */
-int kretprobe__get_signal(struct pt_regs *ctx)
+TRACEPOINT_PROBE(signal, signal_deliver)
 {
-    /* Nothing to handle */
-    if (!PT_REGS_RC(ctx))
+    u32 pid = ebpH_get_pid();
+
+    struct ebpH_process *process = processes.lookup(&pid);
+    /* Process is not being traced */
+    if (!process)
     {
         return 0;
     }
 
-    u32 pid = ebpH_get_pid();
-
-    struct ebpH_process *process = processes.lookup(&pid);
-    if (!process)
+    /* Signal is ignored or not handled */
+    if (args->sa_handler == (long)SIG_IGN || args->sa_handler == (long)SIG_DFL)
     {
-        /* Process is not being traced */
+        #ifdef EBPH_DEBUG
+        bpf_trace_printk("refusing to push to signal stack since signal is ignored or not handled\n");
+        #endif
         return 0;
     }
 
     if (ebpH_push_seq(process))
     {
-        EBPH_ERROR("kretprobe__get_signal: Failed to push sequence onto stack", ctx);
+        EBPH_ERROR("kretprobe__get_signal: Failed to push sequence onto stack", (struct pt_regs *)args);
         return -1;
     }
 
