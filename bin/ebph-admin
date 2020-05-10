@@ -89,8 +89,11 @@ def parse_args(args=[]):
 
     normalize = commands.add_parser('normalize',
             help='Start normal mode on process with tid <tid>.')
-    normalize.add_argument('tid', type=int,
+    target = normalize.add_mutually_exclusive_group(required=1)
+    target.add_argument('-t', '--tid', type=int,
             help='Thread ID of the process to normalize. Can also be a PID.')
+    target.add_argument('-k', '--key', type=int,
+            help='Profile key to normalize.')
 
     log_sequences = commands.add_parser('log-sequences',
             help='Should ebpH log new sequences?')
@@ -186,9 +189,15 @@ if __name__ == "__main__":
     @command('normalize')
     def normalize(res=None):
         """
-        Normalize profile attached to process <tid>.
+        Normalize profile attached to process <tid> or profile with key <key>.
         """
-        print('not implemented')
+        assert args.key or args.tid
+        if args.key:
+            res = requests.put(f'http://localhost:{defs.port}/api/profiles/normalize/{args.key}')
+            print("Daemon responded:", res.text)
+        elif args.tid:
+            res = requests.put(f'http://localhost:{defs.port}/api/processes/normalize/{args.tid}')
+            print("Daemon responded:", res.text)
 
     @command('log-sequences')
     def log_sequences(res=None):

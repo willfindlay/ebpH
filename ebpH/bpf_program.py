@@ -123,14 +123,15 @@ class BPFProgram:
                 profile.comm = b'UNKNOWN'
 
             # Get sequence array from correct stack frame
-            sequence = process.stack.seq[process.stack.top].seq
+            seq_index = process.seq.top * EBPH_SEQLEN
+            sequence = process.seq.seq[seq_index:seq_index + EBPH_SEQLEN]
             # 9999 is empty
             sequence = [syscall_name(syscall) for syscall in sequence if syscall != 9999]
             # Sequences are actually reversed
             sequence = reversed(sequence)
 
             logger.warning(f"Anomalies in PID {process.pid} TID {process.tid} ({profile.comm.decode('utf-8')} {profile.key}): {', '.join(sequence)}")
-            logger.debug(f"Stack top: {process.stack.top}")
+            logger.debug(f"Stack top: {process.seq.top}")
         self.bpf["on_anomaly"].open_perf_buffer(on_anomaly, lost_cb=lost_cb("on_anomaly"))
 
         def on_anomaly_limit(cpu, data, size):
@@ -165,12 +166,13 @@ class BPFProgram:
             logger.warning(f"Tolerize limit exceeded in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}), resetting training data")
         self.bpf["on_tolerize_limit"].open_perf_buffer(on_tolerize_limit, lost_cb=lost_cb("on_tolerize_limit"))
 
-        def on_start_normal(cpu, data, size):
+        def on_start_normal_process(cpu, data, size):
             """
-            Invoked every time a profile is made normal.
+            Invoked every time a process' profile is made normal.
             Events are submitted in ebpH_start_normal.
             """
             process = ct.cast(data, ct.POINTER(EBPHProcess)).contents
+
             try:
                 profile = self.bpf["profiles"][ct.c_uint64(process.profile_key)]
             except KeyError:
@@ -180,7 +182,25 @@ class BPFProgram:
 
             logger.info(f"{profile.comm.decode('utf-8')} ({profile.key}) now has {profile.test.train_count} training calls and {profile.test.last_mod_count} since last change")
             logger.info(f"Starting normal monitoring in PID {process.pid} ({profile.comm.decode('utf-8')} {profile.key}) with {profile.train.sequences} sequences")
-        self.bpf["on_start_normal"].open_perf_buffer(on_start_normal, lost_cb=lost_cb("on_start_normal"))
+        self.bpf["on_start_normal_process"].open_perf_buffer(on_start_normal_process, lost_cb=lost_cb("on_start_normal_process"))
+
+        def on_start_normal_profile(cpu, data, size):
+            """
+            Invoked every time a profile is made normal.
+            Events are submitted in ebpH_start_normal.
+            """
+            profile_key = ct.cast(data, ct.POINTER(ct.c_uint64)).contents.value
+
+            try:
+                profile = self.bpf["profiles"][ct.c_uint64(profile_key)]
+            except KeyError:
+                profile = EBPHProfile()
+                profile.key = profile_key
+                profile.comm = b'UNKNOWN'
+
+            logger.info(f"{profile.comm.decode('utf-8')} ({profile.key}) now has {profile.test.train_count} training calls and {profile.test.last_mod_count} since last change")
+            logger.info(f"Starting normal monitoring for {profile.comm.decode('utf-8')} ({profile.key}) with {profile.train.sequences} sequences")
+        self.bpf["on_start_normal_profile"].open_perf_buffer(on_start_normal_profile, lost_cb=lost_cb("on_start_normal_profile"))
 
         def on_new_sequence(cpu, data, size):
             """
@@ -450,8 +470,8 @@ class BPFProgram:
         status = {
                 'Monitoring': self.monitoring,
                 'Profiles': self.profile_count,
-                'TasksMonitored': self.process_count,
-                'SyscallsCount': self.syscall_count,
+                'Tasks Monitored': self.process_count,
+                'Syscalls Count': self.syscall_count,
                 }
         return status
 
@@ -525,12 +545,20 @@ class BPFProgram:
                 pass
         return processes
 
+    @locks(processes_lock)
     @locks(profiles_lock)
     def normalize_process(self, tid):
         """
         Start normal mode on a profile attached to process with <tid>.
         """
         return libebph.libebph.cmd_normalize_process(ct.c_uint32(tid))
+
+    @locks(profiles_lock)
+    def normalize_profile(self, key):
+        """
+        Start normal mode on a profile with <key>.
+        """
+        return libebph.libebph.cmd_normalize_profile(ct.c_uint64(key))
 
     @locks(profiles_lock)
     def reset_profile(self, key):

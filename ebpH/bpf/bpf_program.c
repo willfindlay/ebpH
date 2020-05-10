@@ -34,7 +34,8 @@ BPF_PERF_OUTPUT(on_executable_processed);
 BPF_PERF_OUTPUT(on_anomaly);
 BPF_PERF_OUTPUT(on_anomaly_limit);
 BPF_PERF_OUTPUT(on_tolerize_limit);
-BPF_PERF_OUTPUT(on_start_normal);
+BPF_PERF_OUTPUT(on_start_normal_process);
+BPF_PERF_OUTPUT(on_start_normal_profile);
 BPF_PERF_OUTPUT(on_new_sequence);
 
 /* log an error -- this function should not be called, use macro EBPH_ERROR instead */
@@ -344,11 +345,11 @@ static int ebpH_start_normal(struct ebpH_profile *profile, struct ebpH_process *
     if (process)
     {
         ebpH_reset_ALF(process, ctx);
-        on_start_normal.perf_submit(ctx, process, sizeof(*process));
+        on_start_normal_process.perf_submit(ctx, process, sizeof(*process));
     }
-    else
+    else if (profile)
     {
-        on_start_normal.perf_submit(ctx, profile, sizeof(*profile));
+        on_start_normal_profile.perf_submit(ctx, &profile->key, sizeof(profile->key));
     }
 
     return 0;

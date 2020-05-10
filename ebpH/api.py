@@ -14,7 +14,7 @@ app.logger.disabled = True
 
 logger = get_logger()
 
-# Routes below this line -----------------------------------------
+# Profile queries below this line -----------------------------------------
 
 @app.route('/api/profiles', methods=['GET'])
 def get_profiles():
@@ -33,6 +33,8 @@ def get_profile(key):
         return jsonify(profile), HTTPStatus.BAD_REQUEST
     return jsonify(profile), HTTPStatus.OK
 
+# Profile operations below this line --------------------------------------
+
 @app.route('/api/profiles/reset/<key>', methods=['PUT'])
 def reset_profile(key):
     """
@@ -40,6 +42,16 @@ def reset_profile(key):
     """
     ebphd.bpf_program.reset_profile(int(key))
     return get_profile(key)
+
+@app.route('/api/profiles/normalize/<key>', methods=['PUT'])
+def normalize_profile(key):
+    """
+    Normalize a profile by key.
+    """
+    ebphd.bpf_program.normalize_profile(int(key))
+    return get_profile(key)
+
+# Process queries below this line -----------------------------------------
 
 @app.route('/api/processes', methods=['GET'])
 def get_processes():
@@ -57,6 +69,18 @@ def get_process(pid):
     if not process:
         return jsonify(process), HTTPStatus.BAD_REQUEST
     return jsonify(process), HTTPStatus.OK
+
+# Process operations below this line --------------------------------------
+
+@app.route('/api/processes/normalize/<tid>', methods=['PUT'])
+def normalize_process(tid):
+    """
+    Normalize a process' associated profile.
+    """
+    ebphd.bpf_program.normalize_process(int(tid))
+    return get_process(tid)
+
+# Settings below this line ------------------------------------------------
 
 @app.route('/api/settings/log-sequences', methods=['PUT'])
 def log_sequences():
