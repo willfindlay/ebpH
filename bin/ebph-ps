@@ -48,6 +48,8 @@ def print_profile_information(profile, header=0):
 
 def print_process_information(process, header=0, show_threads=0):
     profile = process["profile"]
+    if not profile:
+        return
     comm = format_comm(profile["comm"])
     status = 'Normal' if profile["normal"] else 'Frozen' if profile["frozen"] else 'Training'
 
