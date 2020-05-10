@@ -822,6 +822,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_exit)
         return 0;
     }
 
+    #ifdef EBPH_DEBUG
+    if (process->seq.top > 0)
+        bpf_trace_printk("%s made call %u with seq.top %d\n", profile->comm, syscall, process->seq.top);
+    #endif
+
     /* Process syscall if it won't be restarted */
     if (args->ret != -ERESTARTSYS && args->ret != -ERESTARTNOHAND
             && args->ret != -ERESTARTNOINTR && args->ret != -ERESTART_RESTARTBLOCK)
