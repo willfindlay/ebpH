@@ -140,37 +140,26 @@ static inline u32 ebpH_get_tgid()
     return tgid;
 }
 
-// FIXME: error logging here causes back edge, need to figure out why
-static __always_inline u32 ebpH_lookahead_index(struct ebpH_profile_data *data, u32 curr, u32 prev)
+static inline unsigned int ebpH_lookahead_index(struct ebpH_profile_data *data, unsigned long curr, unsigned long prev)
 {
-    /* Null profile data */
-    if (!data)
-    {
-        /* #ifdef EBPH_DEBUG */
-        /* bpf_trace_printk("ebpH_lookahead_index: Null profile data\n"); */
-        /* #endif */
-        return 0;
-    }
+    unsigned int index = 0;
+    unsigned int temp = curr * EBPH_NUM_SYSCALLS + prev;
+    if (temp < EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)
+        index = temp;
+    else
+        index = 0;
+    return index;
+}
 
-    /* Invalid access */
-    if (curr < 0 || curr >= EBPH_NUM_SYSCALLS)
-    {
-        /* #ifdef EBPH_DEBUG */
-        /* bpf_trace_printk("ebpH_lookahead: Invalid curr value %ld\n", curr); */
-        /* #endif */
-        return 0;
-    }
-
-    /* Invalid access */
-    if (prev < 0 || prev >= EBPH_NUM_SYSCALLS)
-    {
-        /* #ifdef EBPH_DEBUG */
-        /* bpf_trace_printk("ebpH_lookahead: Invalid prev value %ld\n", prev); */
-        /* #endif */
-        return 0;
-    }
-
-    return curr * EBPH_NUM_SYSCALLS + prev;
+static inline unsigned int ebpH_sequence_index(struct ebpH_process *process, unsigned int i)
+{
+    unsigned int index = 0;
+    unsigned int temp = i + process->seq.top * EBPH_SEQLEN;
+    if (temp < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
+        index = temp;
+    else
+        index = 0;
+    return index;
 }
 
 static int ebpH_push_seq(struct ebpH_process *process)
@@ -195,11 +184,10 @@ static int ebpH_push_seq(struct ebpH_process *process)
     process->seq.top++;
 
     /* Reinitialize the sequence */
-    for (int i = 0; i < EBPH_SEQLEN; i++)
+    long empty = EBPH_EMPTY;
+    for (unsigned int i = 0; i < EBPH_SEQLEN; i++)
     {
-        int seq_index = i + ebpH_seq_index(process);
-        if (seq_index >= 0 && seq_index < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
-            process->seq.seq[i] = EBPH_EMPTY;
+        bpf_probe_read(&process->seq.seq[ebpH_sequence_index(process, i)], sizeof(long), &empty);
     }
 
     return 0;
@@ -229,20 +217,6 @@ static int ebpH_pop_seq(struct ebpH_process *process)
     process->seq.top--;
 
     return 0;
-}
-
-static int ebpH_seq_index(struct ebpH_process *process)
-{
-    /* Check to see if process is null */
-    if (!process)
-    {
-        #ifdef EBPH_DEBUG
-        bpf_trace_printk("ebpH_seq_index: Null process\n");
-        #endif
-        return 0;
-    }
-
-    return (process->seq.top * EBPH_SEQLEN) % (EBPH_SEQLEN * EBPH_SEQSTACK_SIZE);
 }
 
 static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx)
@@ -283,35 +257,21 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         return 0;
     }
 
-    for (int i = 1; i < EBPH_SEQLEN; i++)
+    #pragma unroll // Soothe the verifier
+    for (unsigned int i = 1; i < EBPH_SEQLEN; i++)
     {
-        int seq_index = i + ebpH_seq_index(process);
-        if (seq_index >= 0 && seq_index < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
+        unsigned long curr = EBPH_EMPTY;
+        unsigned long prev = EBPH_EMPTY;
+
+        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, 0)]);
+        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, i)]);
+
+        if (curr != EBPH_EMPTY && prev != EBPH_EMPTY)
         {
-            u32 curr = process->seq.seq[0];
-            u32 prev = process->seq.seq[i];
-
-            u32 lookahead_index = ebpH_lookahead_index(data, curr, prev);
-
-            if (prev == EBPH_EMPTY)
+            /* check for mismatch */
+            if ((data->flags[ebpH_lookahead_index(data, curr, prev)] & (1 << (i-1))) == 0)
             {
-                break;
-            }
-
-            if (lookahead_index >= 0 && lookahead_index < EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)
-            {
-                /* check for mismatch */
-                if ((data->flags[lookahead_index] & (1 << (i-1))) == 0)
-                {
-                    mismatches++;
-                }
-            }
-            else
-            {
-                // FIXME: error logging causes back edge here, figure out why
-                /* #ifdef EBPH_DEBUG */
-                /* bpf_trace_printk("ebpH_add_seq: Null entry at (curr, prev) = (%ld, %ld)\n", curr, prev); */
-                /* #endif */
+                mismatches++;
             }
         }
     }
@@ -449,28 +409,19 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         return -1;
     }
 
-    for (int i = 1; i < EBPH_SEQLEN; i++)
+    #pragma unroll // Soothe the verifier
+    for (unsigned int i = 1; i < EBPH_SEQLEN; i++)
     {
-        int seq_index = i + ebpH_seq_index(process);
-        if (seq_index >= 0 && seq_index < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
+        unsigned long curr = EBPH_EMPTY;
+        unsigned long prev = EBPH_EMPTY;
+
+        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, 0)]);
+        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, i)]);
+
+        if (curr != EBPH_EMPTY && prev != EBPH_EMPTY)
         {
-            u32 curr = process->seq.seq[0];
-            u32 prev = process->seq.seq[i];
 
-            if (prev == EBPH_EMPTY)
-                break;
-
-            u32 lookahead_index = ebpH_lookahead_index(&profile->train, curr, prev);
-            if (lookahead_index >= 0 && lookahead_index < EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)
-            {
-                profile->train.flags[lookahead_index] |= (1 << (i - 1));
-            }
-            else
-            {
-                #ifdef EBPH_DEBUG
-                bpf_trace_printk("ebpH_add_seq: Null entry at (curr, prev) = (%ld, %ld)\n", curr, prev);
-                #endif
-            }
+            profile->train.flags[ebpH_lookahead_index(&profile->train, curr, prev)] |= (1 << (i - 1));
         }
     }
 
@@ -574,11 +525,10 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, stru
 
     for (int i = EBPH_SEQLEN - 1; i > 0; i--)
     {
-        int seq_index = i + ebpH_seq_index(process);
-        if (seq_index >= 1 && seq_index < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
-            process->seq.seq[i] = process->seq.seq[i-1];
+        process->seq.seq[ebpH_sequence_index(process, i)] =
+            process->seq.seq[ebpH_sequence_index(process, i - 1)];
     }
-    process->seq.seq[0] = *syscall;
+    process->seq.seq[ebpH_sequence_index(process, 0)] = *syscall;
 
     /* TODO: take profile lock here */
 
