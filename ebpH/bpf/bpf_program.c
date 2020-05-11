@@ -223,7 +223,7 @@ static int ebpH_pop_seq(struct ebpH_process *process)
     }
 
     #ifdef EBPH_DEBUG
-    bpf_trace_printk("popping sequence %d\n", process->stack.top);
+    bpf_trace_printk("popping sequence %d\n", process->seq.top);
     #endif
 
     /* Decrement top */
