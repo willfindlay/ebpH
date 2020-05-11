@@ -141,7 +141,7 @@ static inline u32 ebpH_get_tgid()
     return tgid;
 }
 
-static inline unsigned int ebpH_lookahead_index(struct ebpH_profile_data *data, unsigned long curr, unsigned long prev)
+static inline unsigned int ebpH_lookahead_index(unsigned long curr, unsigned long prev)
 {
     unsigned int index = 0;
     unsigned int temp = curr * EBPH_NUM_SYSCALLS + prev;
@@ -152,10 +152,18 @@ static inline unsigned int ebpH_lookahead_index(struct ebpH_profile_data *data, 
     return index;
 }
 
-static inline unsigned int ebpH_sequence_index(struct ebpH_process *process, unsigned int i)
+static inline unsigned int ebpH_sequence_index(unsigned int top, unsigned int i)
 {
+    unsigned int the_top = 0;
+    // soothe the verifier
+    #pragma unroll
+    for (int i = 0; i < EBPH_SEQSTACK_SIZE; i++)
+    {
+        if (i == top)
+            the_top = i;
+    }
     unsigned int index = 0;
-    unsigned int temp = i + process->seq.top * EBPH_SEQLEN;
+    unsigned int temp = the_top * EBPH_SEQLEN + i;
     if (temp < EBPH_SEQLEN * EBPH_SEQSTACK_SIZE)
         index = temp;
     else
@@ -188,7 +196,7 @@ static int ebpH_push_seq(struct ebpH_process *process)
     long empty = EBPH_EMPTY;
     for (unsigned int i = 0; i < EBPH_SEQLEN; i++)
     {
-        bpf_probe_read(&process->seq.seq[ebpH_sequence_index(process, i)], sizeof(long), &empty);
+        bpf_probe_read(&process->seq.seq[ebpH_sequence_index(process->seq.top, i)], sizeof(long), &empty);
     }
 
     return 0;
@@ -268,13 +276,13 @@ static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *proces
         unsigned long curr = EBPH_EMPTY;
         unsigned long prev = EBPH_EMPTY;
 
-        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, 0)]);
-        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, i)]);
+        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process->seq.top, 0)]);
+        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process->seq.top, i)]);
 
         if (curr != EBPH_EMPTY && prev != EBPH_EMPTY)
         {
             /* check for mismatch */
-            if ((data->flags[ebpH_lookahead_index(data, curr, prev)] & (1 << (i-1))) == 0)
+            if ((data->flags[ebpH_lookahead_index(curr, prev)] & (1 << (i-1))) == 0)
             {
                 mismatches++;
             }
@@ -420,13 +428,13 @@ static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *proce
         unsigned long curr = EBPH_EMPTY;
         unsigned long prev = EBPH_EMPTY;
 
-        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, 0)]);
-        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process, i)]);
+        bpf_probe_read(&curr, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process->seq.top, 0)]);
+        bpf_probe_read(&prev, sizeof(unsigned long), &process->seq.seq[ebpH_sequence_index(process->seq.top, i)]);
 
         if (curr != EBPH_EMPTY && prev != EBPH_EMPTY)
         {
 
-            profile->train.flags[ebpH_lookahead_index(&profile->train, curr, prev)] |= (1 << (i - 1));
+            profile->train.flags[ebpH_lookahead_index(curr, prev)] |= (1 << (i - 1));
         }
     }
 
@@ -530,10 +538,10 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall, stru
 
     for (int i = EBPH_SEQLEN - 1; i > 0; i--)
     {
-        process->seq.seq[ebpH_sequence_index(process, i)] =
-            process->seq.seq[ebpH_sequence_index(process, i - 1)];
+        process->seq.seq[ebpH_sequence_index(process->seq.top, i)] =
+            process->seq.seq[ebpH_sequence_index(process->seq.top, i - 1)];
     }
-    process->seq.seq[ebpH_sequence_index(process, 0)] = *syscall;
+    process->seq.seq[ebpH_sequence_index(process->seq.top, 0)] = *syscall;
 
     /* TODO: take profile lock here */
 

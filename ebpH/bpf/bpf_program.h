@@ -84,7 +84,7 @@ static int ebpH_is_monitoring();
 static int ebpH_is_saving();
 static int ebpH_is_logging_new_sequences();
 
-static unsigned int ebpH_lookahead_index(struct ebpH_profile_data *data, unsigned long curr, unsigned long prev);
+static unsigned int ebpH_lookahead_index(unsigned long curr, unsigned long prev);
 
 static int ebpH_test(struct ebpH_profile_data *data, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_train(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
@@ -102,7 +102,7 @@ static int ebpH_process_normal(struct ebpH_profile *profile, struct ebpH_process
 static int ebpH_add_seq(struct ebpH_profile *profile, struct ebpH_process *process, struct pt_regs *ctx);
 static int ebpH_add_anomaly_count(struct ebpH_profile *profile, struct ebpH_process *process, int count, struct pt_regs *ctx);
 
-static inline unsigned int ebpH_sequence_index(struct ebpH_process *process, unsigned int i);
+static unsigned int ebpH_sequence_index(unsigned int top, unsigned int i);
 static int ebpH_push_seq(struct ebpH_process *process);
 static int ebpH_pop_seq(struct ebpH_process *process);
 
