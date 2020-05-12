@@ -194,6 +194,7 @@ static int ebpH_push_seq(struct ebpH_process *process)
 
     /* Reinitialize the sequence */
     long empty = EBPH_EMPTY;
+    #pragma unroll
     for (unsigned int i = 0; i < EBPH_SEQLEN; i++)
     {
         bpf_probe_read(&process->seq.seq[ebpH_sequence_index(process->seq.top, i)], sizeof(long), &empty);
