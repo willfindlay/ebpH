@@ -971,7 +971,7 @@ TRACEPOINT_PROBE(signal, signal_deliver)
 
     if (ebpH_push_seq(process))
     {
-        EBPH_ERROR("kretprobe__get_signal: Failed to push sequence onto stack", (struct pt_regs *)args);
+        EBPH_ERROR("signal:signal_deliver: Failed to push sequence onto stack", (struct pt_regs *)args);
         return -1;
     }
 
