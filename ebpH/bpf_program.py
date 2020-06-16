@@ -17,6 +17,7 @@ import signal
 import threading
 import time
 import subprocess
+from typing import List
 
 from bcc import BPF, lib
 
@@ -48,15 +49,15 @@ class BPFProgram:
     processes_lock = threading.Lock()
 
     def __init__(self, args):
-        # Arguments passed in from command line
-        self.args = args
+        # ludikris mode
+        self.ludikris = args.ludikris
 
         # Should the BPF program debugging information to debugfs and read it into the logs?
-        self.debug = self.args.debug
+        self.debug = args.debug
 
         # Should we save or load profiles?
-        self.should_save = not self.args.nosave
-        self.should_load = not self.args.noload
+        self.should_save = not args.nosave
+        self.should_load = not args.noload
 
         # BPF program should be None until it is loaded
         self.bpf = None
@@ -275,16 +276,22 @@ class BPFProgram:
 
         # Set flags
         flags = []
-        if self.debug:
-            flags.append("-DEBPH_DEBUG")
-        if self.args.ludikris:
+        # Set ludikris mode
+        if self.ludikris:
             flags.append("-DLUDIKRIS")
+        # Set tunable parameters
         for k, v in defs.bpf_params.items():
             # Correctly handle string arguments
             if type(v) == str:
                 v = f"\"{v}\""
-            logger.info(f"Using {k}={v}...")
             flags.append(f"-D{k}={v}")
+        self.generate_syscall_defines(flags)
+        # Set debug mode and log flags if we are in debug mode
+        if self.debug:
+            flags.append("-DEBPH_DEBUG")
+            for flag in flags:
+                logger.debug(f"Using {flag}...")
+
         # Include project src
         flags.append(f"-I{defs.project_path}/ebpH")
         # Estimate epoch boot time.
@@ -328,6 +335,13 @@ class BPFProgram:
                 logger.debug(msg.decode('utf-8'))
             except:
                 logger.warning("Could not correctly parse debug information from debugfs")
+
+    def generate_syscall_defines(self, flags: List[str]) -> None:
+        from bcc.syscall import syscalls
+        for num, name in syscalls.items():
+            name = name.decode('utf-8').upper()
+            definition = f'-DEBPH_SYS_{name}={num}'
+            flags.append(definition)
 
     def on_tick(self):
         """

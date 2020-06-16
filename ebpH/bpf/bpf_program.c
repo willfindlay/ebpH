@@ -11,15 +11,6 @@
 
 #include "bpf/bpf_program.h"
 
-#include <linux/binfmts.h>
-#include <linux/fdtable.h>
-#include <linux/fs.h>
-#include <linux/kdev_t.h>
-#include <linux/path.h>
-#include <linux/sched.h>
-#include <linux/timekeeping.h>
-#include <uapi/linux/ptrace.h>
-
 #include "bpf/defs.h"
 
 #define EBPH_ERROR(MSG, CTX) \
@@ -762,7 +753,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
 
     /* Flag for pop on sigreturn
      * We actually want to pop on the NEXT systemcall */
-    if (syscall == __NR_rt_sigreturn) {
+    if (syscall == EBPH_SYS_RT_SIGRETURN) {
         process = processes.lookup(&pid);
         if (!process) {
             return 0;

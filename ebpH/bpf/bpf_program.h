@@ -22,6 +22,15 @@
 #ifndef EBPH_H
 #define EBPH_H
 
+#include <linux/binfmts.h>
+#include <linux/fdtable.h>
+#include <linux/fs.h>
+#include <linux/kdev_t.h>
+#include <linux/path.h>
+#include <linux/sched.h>
+#include <linux/timekeeping.h>
+#include <uapi/linux/ptrace.h>
+
 #include "defs.h"
 
 /* Struct definitions below this line ------------------- */
