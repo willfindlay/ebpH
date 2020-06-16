@@ -21,17 +21,17 @@
 #define EBPH_PROCESSES_TABLE_SIZE 4194304
 #endif
 #ifndef EBPH_PROCESSES_TABLE_SIZE
-#define EBPH_PROFILES_TABLE_SIZE  EBPH_DEFAULT_TABLE_SIZE
+#define EBPH_PROFILES_TABLE_SIZE EBPH_DEFAULT_TABLE_SIZE
 #endif
 
 /* Profile stuff below this line -------------------------- */
 /* Length of a syscall sequence */
-#define EBPH_SEQLEN  9
+#define EBPH_SEQLEN 9
 /* Size of ebpH seq stack */
 #define EBPH_SEQSTACK_SIZE 6
 
 /* Window size for locality frames */
-#define EBPH_LOCALITY_WIN  128
+#define EBPH_LOCALITY_WIN 128
 
 /* Total number of systemcalls in the current kernel version
  * Keep this updated with the latest version of Linux */
@@ -39,11 +39,12 @@
 #define EBPH_NUM_SYSCALLS 450
 #endif
 /* Size of each array of lookahead pairs */
-#define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS
+#define EBPH_LOOKAHEAD_ARRAY_SIZE EBPH_NUM_SYSCALLS* EBPH_NUM_SYSCALLS
 
 /* Amount of time a profile must remain frozen before becoming normal */
 #ifndef EBPH_NORMAL_WAIT
-#define EBPH_NORMAL_WAIT (u64) 24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
+#define EBPH_NORMAL_WAIT \
+    (u64)24 * 7 * 3600 * 1000000000 /* One week in nanoseconds */
 #endif
 
 /* Multiply by a profile's train_count and compare with... */
@@ -55,7 +56,8 @@
 #define EBPH_NORMAL_FACTOR 128
 #endif
 
-/* Number of anomalies allowed before a profile is no longer considered normal */
+/* Number of anomalies allowed before a profile is no longer considered normal
+ */
 #ifndef EBPH_ANOMALY_LIMIT
 #define EBPH_ANOMALY_LIMIT 30
 #endif
@@ -77,7 +79,8 @@
 /* LudiKRIS mode stuff */
 #ifdef LUDIKRIS
 #undef EBPH_NORMAL_WAIT
-#define EBPH_NORMAL_WAIT (u64) 3 * 1000000000 /* Three seconds in nanoseconds, LudiKRIS Mode */
+#define EBPH_NORMAL_WAIT \
+    (u64)3 * 1000000000 /* Three seconds in nanoseconds, LudiKRIS Mode */
 #endif
 
 #endif

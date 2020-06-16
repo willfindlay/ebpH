@@ -14,8 +14,10 @@ except:
 
 commands = []
 
+
 def add_command(command, argtypes):
     commands.append((command, argtypes))
+
 
 def register_uprobes(bpf):
     for item in commands:
@@ -23,8 +25,11 @@ def register_uprobes(bpf):
         argtypes = item[1]
         logger.info(command)
         getattr(libebph, command).argtypes = argtypes
-        bpf.attach_uprobe(name=defs.libebph, sym=command, pid=os.getpid(), fn_name=command)
+        bpf.attach_uprobe(
+            name=defs.libebph, sym=command, pid=os.getpid(), fn_name=command
+        )
         logger.debug(f'Registered uprobe for {command}')
+
 
 # ===============================================================
 # WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
@@ -38,9 +43,9 @@ def register_uprobes(bpf):
 
 # Process commands
 add_command('cmd_normalize_process', [ct.c_uint32])
-add_command('cmd_tolerize_process',  [ct.c_uint32])
+add_command('cmd_tolerize_process', [ct.c_uint32])
 
 # Profile commands
 add_command('cmd_normalize_profile', [ct.c_uint64])
-add_command('cmd_tolerize_profile',  [ct.c_uint64])
-add_command('cmd_reset_profile',     [ct.c_uint64])
+add_command('cmd_tolerize_profile', [ct.c_uint64])
+add_command('cmd_reset_profile', [ct.c_uint64])
