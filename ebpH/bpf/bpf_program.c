@@ -869,6 +869,8 @@ RAW_TRACEPOINT_PROBE(sched_process_exec) {
         return 0;
     }
 
+    ebpH_reset_ALF(process, (struct pt_regs *)ctx);
+
     /* Yoink the linux_binprm */
     struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 
