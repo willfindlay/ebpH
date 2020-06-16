@@ -539,6 +539,7 @@ static int ebpH_process_syscall(struct ebpH_process *process, u32 *syscall,
     if (lfc > EBPH_TOLERIZE_LIMIT) {
         ebpH_reset_profile_data(&(profile->train), ctx);
         profile->anomalies = 0;
+        ebpH_reset_ALF(process, ctx);
         on_tolerize_limit.perf_submit(ctx, process, sizeof(*process));
     }
 
