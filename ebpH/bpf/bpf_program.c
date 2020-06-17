@@ -609,7 +609,7 @@ static int ebpH_start_tracing(struct ebpH_profile *profile,
 }
 
 /* Create a profile if one does not already exist. */
-static int ebpH_create_profile(u64 *key, const char *comm,
+static int ebpH_create_profile(u64 *key, const unsigned char *comm,
                                struct pt_regs *ctx) {
     int zero = 0;
     struct ebpH_profile *profile = NULL;
