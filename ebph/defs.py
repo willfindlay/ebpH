@@ -9,6 +9,9 @@ BPF_DEFINES = {
         'EBPH_MAX_PROFILES': 10240,
         'EBPH_MAX_PROCESSES': 10240,
         'EBPH_NUM_SYSCALLS': 450,
+        'EBPH_SEQSTACK_FRAMES': 2,
+        'EBPH_SEQLEN': 9,
+        'EBPH_EMPTY': 9999,
         }
 
 LOGDIR = '/var/log/ebpH'

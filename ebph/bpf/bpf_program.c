@@ -4,19 +4,30 @@
  * Maps
  * ========================================================================= */
 
+/* PID (Kernel) -> Task State */
 BPF_HASH(task_states, u32, struct ebph_task_state_t, EBPH_MAX_PROCESSES);
 
+/* Profile Key -> Profile */
 BPF_HASH(profiles, u64, struct ebph_profile_t, EBPH_MAX_PROFILES);
 
-/* Inner map for training/testing data */
+/* Inner map for training/testing data flags */
 BPF_F_TABLE("hash", struct ebph_flags_key_t, u8, flags_inner,
             (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
 
+/* Profile Key -> Training Data */
 BPF_TABLE("hash_of_maps$flags_inner", u64, int, training_data,
           EBPH_MAX_PROFILES);
 
+/* Profile Key -> Testing Data */
 BPF_TABLE("hash_of_maps$flags_inner", u64, int, testing_data,
           EBPH_MAX_PROFILES);
+
+/* Inner map for sequence stack */
+BPF_STACK(seqstack_inner, struct ebph_sequence_t, EBPH_SEQSTACK_FRAMES);
+
+/* PID (Kernel) -> Sequence Stack */
+BPF_TABLE("hash_of_maps$seqstack_inner", u32, int, seqstacks,
+          EBPH_MAX_PROCESSES);
 
 /* =========================================================================
  * Ring Buffers
@@ -111,12 +122,11 @@ TRACEPOINT_PROBE(signal, signal_deliver)
     u32 pid = bpf_get_current_pid_tgid();
 
     struct ebph_task_state_t *task_state = task_states.lookup(&pid);
-    /* Process is not being traced */
     if (!task_state) {
         return 0;
     }
 
-    /* Signal is ignored or not handled */
+    // Signal is ignored or not handled
     if (args->sa_handler == (long)SIG_IGN ||
         args->sa_handler == (long)SIG_DFL) {
         return 0;
@@ -205,4 +215,50 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.status = EBPH_PROFILE_STATUS_TRAINING;
 
     return profiles.lookup_or_try_init(&profile_key, &profile);
+}
+
+/* Push a new frame onto the sequence stack for task_state at @pid. */
+static __always_inline int ebph_push_seq(u32 pid)
+{
+    struct ebph_sequence_t new_seq = {};
+
+    // Initialize sequence
+    for (int i = 0; i < EBPH_SEQLEN; i++) {
+        new_seq.calls[i] = EBPH_EMPTY;
+    }
+
+    void *seqstack = seqstacks.lookup(&pid);
+    if (!seqstack) {
+        // TODO: log error
+        return 1;
+    }
+
+    return bpf_map_push_elem(seqstack, &new_seq, 0);
+}
+
+/* Pop a frame from the sequence stack for task_state at @pid.
+ * Store resulting sequence in @result. */
+static __always_inline int ebph_pop_seq(u32 pid, struct ebph_sequence_t *result)
+{
+    void *seqstack = seqstacks.lookup(&pid);
+    if (!seqstack) {
+        // TODO: log error
+        return 1;
+    }
+
+    return bpf_map_pop_elem(seqstack, &result);
+}
+
+/* Peek a frame from the sequence stack for task_state at @pid.
+ * Store resulting sequence in @result. */
+static __always_inline int ebph_peek_seq(u32 pid,
+                                         struct ebph_sequence_t *result)
+{
+    void *seqstack = seqstacks.lookup(&pid);
+    if (!seqstack) {
+        // TODO: log error
+        return 1;
+    }
+
+    return bpf_map_peek_elem(seqstack, &result);
 }

@@ -15,9 +15,13 @@ typedef struct ebph_task_state_t {
     u64 profile_key;
 } ebph_task_state_t;
 
+typedef struct ebph_sequence_t {
+    u16 calls[EBPH_SEQLEN];
+} ebph_sequence_t;
+
 typedef struct ebph_flags_key_t {
-    u32 curr;
-    u32 prev;
+    u16 curr;
+    u16 prev;
 } ebph_flags_key_t;
 
 /* Current status of the ebpH profile.
