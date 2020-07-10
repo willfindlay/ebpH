@@ -6,6 +6,9 @@ BPF_DIR = project_path('ebph/bpf')
 BPF_PROGRAM_C = project_path('ebph/bpf/bpf_program.c')
 
 BPF_DEFINES = {
+        'EBPH_MAX_PROFILES': 10240,
+        'EBPH_MAX_PROCESSES': 10240,
+        'EBPH_NUM_SYSCALLS': 450,
         }
 
 LOGDIR = '/var/log/ebpH'
