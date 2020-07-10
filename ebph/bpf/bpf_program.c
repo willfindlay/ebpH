@@ -33,12 +33,47 @@ BPF_TABLE("hash_of_maps$seqstack_inner", u32, int, seqstacks,
  * Ring Buffers
  * ========================================================================= */
 
+struct ebph_new_profile_event_t {
+    u64 profile_key;
+    char pathname[PATH_MAX];
+};
+
+BPF_RINGBUF_OUTPUT(new_profile_events, 8);
+
 /* =========================================================================
  * BPF Programs
  * ========================================================================= */
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
+    if (args->id < 0) {
+        return 0;
+    }
+
+    u32 pid = bpf_get_current_pid_tgid();
+
+    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
+    if (!task_state) {
+        return 0;
+    }
+
+    // Pop sequence if we are flagged for popping
+    if (task_state->should_pop) {
+        struct ebph_sequence_t dummy;
+        if (ebph_pop_seq(pid, &dummy)) {
+            // TODO: log warning
+        } else {
+            // Mark that we have popped
+            // task_state->should_pop = 0;
+        }
+    }
+
+    // Flag for pop on sigreturn
+    // We actually want to pop on the NEXT systemcall
+    if (args->id == EBPH_SYS_RT_SIGRETURN) {
+        task_state->should_pop = 1;
+    }
+
     return 0;
 }
 
@@ -95,10 +130,25 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
 
     // TODO: reset ALF
 
+    // Does the profile already exist? Important for logging purposes
+    u8 profile_exists = profiles.lookup(&profile_key) ? 1 : 0;
+
     struct ebph_profile_t *profile = ebph_new_profile(profile_key);
     if (!profile) {
         // TODO: log error
         return 1;
+    }
+
+    if (!profile_exists) {
+        struct ebph_new_profile_event_t *event =
+            new_profile_events.ringbuf_reserve(
+                sizeof(struct ebph_new_profile_event_t));
+        if (event) {
+            // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
+            bpf_get_current_comm(event->pathname, sizeof(event->pathname));
+            event->profile_key = profile_key;
+            new_profile_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+        }
     }
 
     // TODO: reset sequence stack
@@ -132,7 +182,8 @@ TRACEPOINT_PROBE(signal, signal_deliver)
         return 0;
     }
 
-    // TODO: Push to stack
+    // Push a new sequence
+    ebph_push_seq(pid);
 
     return 0;
 }
@@ -203,6 +254,7 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     task_state.pid         = pid;
     task_state.tgid        = tgid;
     task_state.profile_key = profile_key;
+    task_state.should_pop  = 0;
 
     return task_states.lookup_or_try_init(&pid, &task_state);
 }
@@ -246,7 +298,7 @@ static __always_inline int ebph_pop_seq(u32 pid, struct ebph_sequence_t *result)
         return 1;
     }
 
-    return bpf_map_pop_elem(seqstack, &result);
+    return bpf_map_pop_elem(seqstack, result);
 }
 
 /* Peek a frame from the sequence stack for task_state at @pid.
@@ -260,5 +312,5 @@ static __always_inline int ebph_peek_seq(u32 pid,
         return 1;
     }
 
-    return bpf_map_peek_elem(seqstack, &result);
+    return bpf_map_peek_elem(seqstack, result);
 }

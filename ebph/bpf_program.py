@@ -1,3 +1,6 @@
+from collections import defaultdict
+from typing import List
+
 from bcc import BPF
 
 from ebph.logger import get_logger
@@ -22,25 +25,40 @@ class BPFProgram:
         self._load_bpf()
         self._register_ring_buffers()
         self._register_uprobes()
+        self.profile_key_to_exe = {}
 
-    def on_tick(self):
+    def on_tick(self) -> None:
         try:
             self.bpf.ring_buffer_consume()
         except Exception:
             pass
 
-    def save_profiles(self):
+    def save_profiles(self) -> None:
         pass
 
-    def _register_ring_buffers(self):
+    def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')
-        logger.error('TODO!')
 
-    def _register_uprobes(self):
+        @ringbuf_callback(self.bpf, 'new_profile_events')
+        def new_profile_events(ctx, event, size):
+            pathname = event.pathname.decode('utf-8')
+
+            self.profile_key_to_exe[event.profile_key] = pathname
+
+            logger.info(f'Created new profile for {pathname}.')
+
+    def _register_uprobes(self) -> None:
         logger.info('Registering uprobes...')
         logger.error('TODO!')
 
-    def _load_bpf(self):
+    def _generate_syscall_defines(self, flags: List[str]) -> None:
+        from bcc.syscall import syscalls
+        for num, name in syscalls.items():
+            name = name.decode('utf-8').upper()
+            definition = f'-DEBPH_SYS_{name}={num}'
+            flags.append(definition)
+
+    def _load_bpf(self) -> None:
         assert self.bpf is None
         logger.info('Loading BPF program...')
 
@@ -54,5 +72,7 @@ class BPFProgram:
 
         for flag in cflags:
             logger.debug(f'Using {flag}...')
+
+        self._generate_syscall_defines(cflags)
 
         self.bpf = BPF(text=bpf_text, cflags=cflags)
