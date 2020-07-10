@@ -26,7 +26,7 @@ BPF_TABLE("hash_of_maps$flags_inner", u64, int, testing_data,
 BPF_STACK(seqstack_inner, struct ebph_sequence_t, EBPH_SEQSTACK_FRAMES);
 
 /* PID (Kernel) -> Sequence Stack */
-BPF_TABLE("hash_of_maps$seqstack_inner", u32, int, seqstacks,
+BPF_TABLE("array_of_maps$seqstack_inner", u32, int, seqstacks,
           EBPH_MAX_PROCESSES);
 
 /* =========================================================================
@@ -39,6 +39,38 @@ struct ebph_new_profile_event_t {
 };
 
 BPF_RINGBUF_OUTPUT(new_profile_events, 8);
+
+static __always_inline void ebph_log_new_profile(u64 profile_key,
+                                                 struct dentry *dentry)
+{
+    struct ebph_new_profile_event_t *event = new_profile_events.ringbuf_reserve(
+        sizeof(struct ebph_new_profile_event_t));
+    if (event) {
+        // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
+        bpf_get_current_comm(event->pathname, sizeof(event->pathname));
+        event->profile_key = profile_key;
+        new_profile_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
+
+struct ebph_new_task_state_event_t {
+    u32 pid;
+    u64 profile_key;
+};
+
+BPF_RINGBUF_OUTPUT(new_task_state_events, 8);
+
+static __always_inline void ebph_log_new_task_state(u32 pid, u64 profile_key)
+{
+    struct ebph_new_task_state_event_t *event =
+        new_task_state_events.ringbuf_reserve(
+            sizeof(struct ebph_new_task_state_event_t));
+    if (event) {
+        event->pid         = pid;
+        event->profile_key = profile_key;
+        new_task_state_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
 
 /* =========================================================================
  * BPF Programs
@@ -96,10 +128,16 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
     u32 cpid  = c->pid;
     u32 ctgid = c->tgid;
 
+    u8 task_state_exists = task_states.lookup(&cpid) ? 1 : 0;
+
     child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
     if (!child_state) {
         // TODO: log error
         return 1;
+    }
+
+    if (!task_state_exists) {
+        ebph_log_new_task_state(cpid, parent_state->profile_key);
     }
 
     return 0;
@@ -120,12 +158,18 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     u32 pid  = bpf_get_current_pid_tgid();
     u32 tgid = bpf_get_current_pid_tgid() >> 32;
 
+    u8 task_state_exists = task_states.lookup(&pid) ? 1 : 0;
+
     /* Create or look up task_state. */
     struct ebph_task_state_t *task_state =
         ebph_new_task_state(pid, tgid, profile_key);
     if (!task_state) {
         // TODO: log error
         return 1;
+    }
+
+    if (!task_state_exists) {
+        ebph_log_new_task_state(pid, profile_key);
     }
 
     // TODO: reset ALF
@@ -140,16 +184,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     }
 
     if (!profile_exists) {
-        struct ebph_new_profile_event_t *event =
-            new_profile_events.ringbuf_reserve(
-                sizeof(struct ebph_new_profile_event_t));
-        if (event) {
-            // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
-            bpf_get_current_comm(event->pathname, sizeof(event->pathname));
-            event->profile_key = profile_key;
-            new_profile_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
-        }
+        ebph_log_new_profile(profile_key, bprm->file->f_path.dentry);
     }
+
+    // FIXME: delete this, testing
+    ebph_push_seq(pid);
 
     // TODO: reset sequence stack
 
@@ -163,6 +202,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
 {
     u32 pid = bpf_get_current_pid_tgid();
     task_states.delete(&pid);
+    // FIXME:
+    // Uh oh. This is a serious road block. Apparently we cannot delete from
+    // map-in-map. This means that we eventually are no longer able to cycle
+    // processes.
+    // seqstacks.delete(&pid);
 
     return 0;
 }
@@ -281,9 +325,12 @@ static __always_inline int ebph_push_seq(u32 pid)
 
     void *seqstack = seqstacks.lookup(&pid);
     if (!seqstack) {
+        bpf_trace_printk("failure\n");
         // TODO: log error
         return 1;
     }
+
+    bpf_trace_printk("success\n");
 
     return bpf_map_push_elem(seqstack, &new_seq, 0);
 }

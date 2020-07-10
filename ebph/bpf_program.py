@@ -1,3 +1,4 @@
+import ctypes as ct
 from collections import defaultdict
 from typing import List
 
@@ -22,14 +23,18 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
 class BPFProgram:
     def __init__(self):
         self.bpf = None
+        self.seqstack_inner_bpf = None
+        self.cflags = []
+        self._set_cflags()
         self._load_bpf()
         self._register_ring_buffers()
         self._register_uprobes()
-        self.profile_key_to_exe = {}
+        self.profile_key_to_exe = defaultdict(lambda: None)
 
     def on_tick(self) -> None:
         try:
             self.bpf.ring_buffer_consume()
+            #logger.debug(len(self.bpf['seqstacks']))
         except Exception:
             pass
 
@@ -41,11 +46,32 @@ class BPFProgram:
 
         @ringbuf_callback(self.bpf, 'new_profile_events')
         def new_profile_events(ctx, event, size):
+            """
+            new_profile_events.
+
+            Callback for new profile creation.
+            Logs creation and caches key -> pathname mapping
+            for later use.
+            """
             pathname = event.pathname.decode('utf-8')
 
             self.profile_key_to_exe[event.profile_key] = pathname
 
             logger.info(f'Created new profile for {pathname}.')
+
+        @ringbuf_callback(self.bpf, 'new_task_state_events')
+        def new_task_state_events(ctx, event, size):
+            """
+            new_task_state_events.
+
+            Callback for new process creation.
+            """
+            pid = ct.c_uint32(event.pid)
+            profile_key = ct.c_uint64(event.profile_key)
+
+            exe = self.profile_key_to_exe[event.profile_key]
+
+            logger.debug(f'Created new task_state for PID {event.pid} ({exe}).')
 
     def _register_uprobes(self) -> None:
         logger.info('Registering uprobes...')
@@ -58,6 +84,18 @@ class BPFProgram:
             definition = f'-DEBPH_SYS_{name}={num}'
             flags.append(definition)
 
+    def _set_cflags(self) -> None:
+        logger.info('Setting cflags...')
+
+        self.cflags.append(f'-I{defs.BPF_DIR}')
+        for k, v in defs.BPF_DEFINES.items():
+            self.cflags.append(f'-D{k}={v}')
+
+        for flag in self.cflags:
+            logger.debug(f'Using {flag}...')
+
+        self._generate_syscall_defines(self.cflags)
+
     def _load_bpf(self) -> None:
         assert self.bpf is None
         logger.info('Loading BPF program...')
@@ -65,14 +103,5 @@ class BPFProgram:
         with open(defs.BPF_PROGRAM_C, 'r') as f:
             bpf_text = f.read()
 
-        cflags = []
-        cflags.append(f'-I{defs.BPF_DIR}')
-        for k, v in defs.BPF_DEFINES.items():
-            cflags.append(f'-D{k}={v}')
+        self.bpf = BPF(text=bpf_text, cflags=self.cflags)
 
-        for flag in cflags:
-            logger.debug(f'Using {flag}...')
-
-        self._generate_syscall_defines(cflags)
-
-        self.bpf = BPF(text=bpf_text, cflags=cflags)
