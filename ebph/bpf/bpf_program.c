@@ -400,6 +400,7 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.train_count    = 0;
     profile.last_mod_count = 0;
     profile.sequences      = 0;
+    profile.anomaly_count  = 0;
 
     ebph_set_normal_time(&profile);
 
@@ -515,9 +516,9 @@ static __always_inline void ebph_update_training_data(
     }
 }
 
-static __always_inline void ebph_train(struct ebph_task_state_t *task_state,
-                                       struct ebph_profile_t *profile,
-                                       struct ebph_sequence_t *sequence)
+static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
+                                          struct ebph_profile_t *profile,
+                                          struct ebph_sequence_t *sequence)
 {
     int mismatches = ebph_test(task_state, sequence, false);
 
@@ -543,7 +544,7 @@ static __always_inline void ebph_train(struct ebph_task_state_t *task_state,
 
         u64 normal_count = 0;
         if (profile->train_count > profile->last_mod_count) {
-            profile->train_count - profile->last_mod_count;
+            normal_count = profile->train_count - profile->last_mod_count;
         }
 
         if ((normal_count > 0) &&
@@ -554,6 +555,84 @@ static __always_inline void ebph_train(struct ebph_task_state_t *task_state,
             ebph_set_normal_time(profile);
         }
     }
+}
+
+static __always_inline void ebph_add_anomaly_count(
+    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile,
+    int count)
+{
+    // TODO locality frame stuff
+
+    if (count > 0) {
+        lock_xadd(&profile->anomaly_count, 1);
+        // TODO more locality frame stuff
+    } else {
+        // TODO more locality frame stuff
+    }
+}
+
+static __always_inline void ebph_copy_train_to_test(
+    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+{
+    struct ebph_flags_key_t key = {};
+
+    key.profile_key = task_state->profile_key;
+
+    for (u16 curr = 0; curr < EBPH_NUM_SYSCALLS; curr++) {
+        key.curr = curr;
+        if (!training_data.lookup(&key)) {
+            continue;
+        }
+
+        struct ebph_flags_t *training_flags = training_data.lookup(&key);
+        if (!training_flags) {
+            continue;
+        }
+        testing_data.update(&key, training_flags);
+    }
+}
+
+static __always_inline void ebph_start_normal(
+    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+{
+    ebph_copy_train_to_test(task_state, profile);
+
+    // TODO log here
+
+    profile->status         = EBPH_PROFILE_STATUS_NORMAL;
+    profile->anomaly_count  = 0;
+    profile->last_mod_count = 0;
+    profile->train_count    = 0;
+}
+
+static __always_inline void ebph_stop_normal(
+    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+{
+    // TODO log here
+
+    profile->status = EBPH_PROFILE_STATUS_TRAINING;
+
+    // TODO reset ALF here
+}
+
+static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
+                                           struct ebph_profile_t *profile,
+                                           struct ebph_sequence_t *sequence)
+{
+    if (!(profile->status & EBPH_PROFILE_STATUS_NORMAL)) {
+        return;
+    }
+
+    int anomalies = ebph_test(task_state, sequence, true);
+
+    if (anomalies) {
+        // TODO log anomalies
+        if (profile->anomaly_count > EBPH_ANOMALY_LIMIT) {
+            ebph_stop_normal(task_state, profile);
+        }
+    }
+
+    ebph_add_anomaly_count(task_state, profile, anomalies);
 }
 
 /* Process a new syscall. */
@@ -580,5 +659,22 @@ static __always_inline void ebph_handle_syscall(
     }
     sequence->calls[0] = syscall;
 
-    ebph_train(task_state, profile, sequence);
+    ebph_do_train(task_state, profile, sequence);
+
+    /* Update normal status if we are frozen and have reached normal_time */
+    if ((profile->status & EBPH_PROFILE_STATUS_FROZEN) &&
+        !(profile->status & EBPH_PROFILE_STATUS_NORMAL) &&
+        ebph_current_time() > profile->normal_time) {
+        ebph_start_normal(task_state, profile);
+    }
+
+    ebph_do_normal(task_state, profile, sequence);
+
+    // TODO
+    // lfc = process->alf.total;
+    // if (lfc > EBPH_TOLERIZE_LIMIT) {
+    //    ebpH_reset_profile_data(&(profile->train), ctx);
+    //    profile->anomalies = 0;
+    //    on_tolerize_limit.perf_submit(ctx, process, sizeof(*process));
+    //}
 }

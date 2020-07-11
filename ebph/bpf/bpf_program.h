@@ -37,15 +37,15 @@ struct ebph_flags_t {
 /* Current status of the ebpH profile.
  * Possible values: training, frozen, and normal. */
 enum ebph_profile_status_t : u8 {
-    EBPH_PROFILE_STATUS_NONE     = 0x0,
-    EBPH_PROFILE_STATUS_TRAINING = 0x1,
-    EBPH_PROFILE_STATUS_FROZEN   = 0x2,
-    EBPH_PROFILE_STATUS_NORMAL   = 0x4,
+    EBPH_PROFILE_STATUS_TRAINING = 0x0,
+    EBPH_PROFILE_STATUS_FROZEN   = 0x1,
+    EBPH_PROFILE_STATUS_NORMAL   = 0x2,
 };
 
 /* An ebpH profile. */
 struct ebph_profile_t {
     enum ebph_profile_status_t status;
+    u64 anomaly_count;
     u64 train_count;
     u64 last_mod_count;
     u64 sequences;
@@ -65,6 +65,8 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev);
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag);
+static __always_inline int ebph_set_testing_data(u64 profile_key, u16 curr,
+                                                 u16 prev, u8 new_flag);
 
 /* Profile creation. */
 static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key);

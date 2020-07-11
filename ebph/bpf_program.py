@@ -63,7 +63,10 @@ class BPFProgram:
 
             self.profile_key_to_exe[event.profile_key] = pathname
 
-            logger.info(f'Created new profile for {pathname}.')
+            if self.debug:
+                logger.info(f'Created new profile for {pathname} ({event.profile_key}).')
+            else:
+                logger.info(f'Created new profile for {pathname}.')
 
         if not self.debug:
             return
