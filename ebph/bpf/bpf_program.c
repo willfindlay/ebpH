@@ -51,6 +51,7 @@ static __always_inline void ebph_log_new_profile(u64 profile_key,
     }
 }
 
+#ifdef EBPH_DEBUG
 struct ebph_new_task_state_event_t {
     u32 pid;
     u64 profile_key;
@@ -69,6 +70,12 @@ static __always_inline void ebph_log_new_task_state(u32 pid, u64 profile_key)
         new_task_state_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
 }
+#else
+static __always_inline void ebph_log_new_task_state(u32 pid, u64 profile_key)
+{
+    // NOP
+}
+#endif
 
 /* =========================================================================
  * BPF Programs
@@ -87,28 +94,9 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    //// Pop sequence if we are flagged for popping
-    // if (task_state->should_pop) {
-    //    if (!ebph_pop_seq(task_state)) {
-    //        // TODO: log warning
-    //    } else {
-    //        // Mark that we have popped
-    //        task_state->should_pop = 0;
-    //    }
-    //}
-
-    //// Flag for pop on sigreturn
-    //// We actually want to pop on the NEXT systemcall
-    // if (args->id == EBPH_SYS_RT_SIGRETURN) {
-    //    task_state->should_pop = 1;
-    //}
-    // TODO: determine if we need to switch back to the above method
     if (args->id == EBPH_SYS_RT_SIGRETURN) {
         if (!ebph_pop_seq(task_state)) {
             // TODO: log warning
-        } else {
-            // Mark that we have popped
-            task_state->should_pop = 0;
         }
     }
 
@@ -247,6 +235,12 @@ TRACEPOINT_PROBE(signal, signal_deliver)
  * Helper Functions
  * ========================================================================= */
 
+/* Calculate current epoch time in nanoseconds. */
+static __always_inline u64 ebph_current_time()
+{
+    return (u64)bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
+};
+
 /* Used by ebph_get_training_data and ebph_get_testing_data.
  * Look up and return a pointer to the flag at {@curr, @prev}
  * in map @flags. */
@@ -309,7 +303,6 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     task_state.pid          = pid;
     task_state.tgid         = tgid;
     task_state.profile_key  = profile_key;
-    task_state.should_pop   = 0;
     task_state.seqstack_top = -1;
 
     if (!ebph_push_seq(&task_state)) {
@@ -320,6 +313,12 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     return task_states.lookup_or_try_init(&pid, &task_state);
 }
 
+/* Calculate normal time for a new profile. */
+static __always_inline void ebph_set_normal_time(struct ebph_profile_t *profile)
+{
+    profile->normal_time = ebph_current_time() + EBPH_NORMAL_WAIT;
+};
+
 /* Create a new profile at @profile_key. */
 static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
 {
@@ -328,6 +327,8 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.status         = EBPH_PROFILE_STATUS_TRAINING;
     profile.train_count    = 0;
     profile.last_mod_count = 0;
+
+    ebph_set_normal_time(&profile);
 
     return profiles.lookup_or_try_init(&profile_key, &profile);
 }

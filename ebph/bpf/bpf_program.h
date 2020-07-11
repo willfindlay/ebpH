@@ -14,7 +14,6 @@ struct ebph_task_state_t {
     u32 tgid;
     u64 profile_key;
     s8 seqstack_top;
-    u8 should_pop;
 };
 
 struct ebph_sequence_key_t {
@@ -31,6 +30,10 @@ struct ebph_flags_key_t {
     u16 prev;
 };
 
+// struct ebph_flags_t {
+//    u32
+//}
+
 /* Current status of the ebpH profile.
  * Possible values: training, frozen, and normal. */
 enum ebph_profile_status_t : u8 {
@@ -45,11 +48,14 @@ struct ebph_profile_t {
     enum ebph_profile_status_t status;
     u64 train_count;
     u64 last_mod_count;
+    u64 normal_time;
 };
 
 /* =========================================================================
  * Helper Functions
  * ========================================================================= */
+
+static __always_inline u64 ebph_current_time();
 
 /* Profile data helpers. */
 static __always_inline u8 *ebph_get_training_data(u64 profile_key, u32 curr,

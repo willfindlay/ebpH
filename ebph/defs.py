@@ -12,6 +12,8 @@ BPF_DEFINES = {
         'EBPH_SEQSTACK_FRAMES': 2,
         'EBPH_SEQLEN': 9,
         'EBPH_EMPTY': 9999,
+        # One week in nanoseconds
+        'EBPH_NORMAL_WAIT': (1000000000 * 60 * 60 * 24 * 7),
         }
 
 LOGDIR = '/var/log/ebpH'
