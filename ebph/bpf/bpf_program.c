@@ -10,22 +10,26 @@ BPF_HASH(task_states, u32, struct ebph_task_state_t, EBPH_MAX_PROCESSES);
 /* Profile Key -> Profile */
 BPF_HASH(profiles, u64, struct ebph_profile_t, EBPH_MAX_PROFILES);
 
-/* Inner map for training/testing data flags */
-BPF_F_TABLE("hash", struct ebph_flags_key_t, u8, flags_inner,
-            (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
+/* {Profile Key, Curr Syscall} -> {Prev Syscall Flags} */
+BPF_F_TABLE("hash", struct ebph_flags_key_t, struct ebph_flags_t, training_data,
+            (EBPH_MAX_PROFILES * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
 
-/* Profile Key -> Training Data */
-BPF_TABLE("hash_of_maps$flags_inner", u64, int, training_data,
-          EBPH_MAX_PROFILES);
-
-/* Profile Key -> Testing Data */
-BPF_TABLE("hash_of_maps$flags_inner", u64, int, testing_data,
-          EBPH_MAX_PROFILES);
+/* {Profile Key, Curr Syscall} -> {Prev Syscall Flags} */
+BPF_F_TABLE("hash", struct ebph_flags_key_t, struct ebph_flags_t, testing_data,
+            (EBPH_MAX_PROFILES * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
 
 /* {PID (Kernel), Stack Top} -> Sequence Stack */
 BPF_F_TABLE("hash", struct ebph_sequence_key_t, struct ebph_sequence_t,
             sequences, (EBPH_MAX_PROCESSES * EBPH_SEQSTACK_FRAMES),
             BPF_F_NO_PREALLOC);
+
+/* The following arrays are read-only, used for initializing large data. */
+BPF_ARRAY(_init_flags, struct ebph_flags_t, 1);
+static __always_inline struct ebph_flags_t *ebph_new_flags()
+{
+    int zero = 0;
+    return _init_flags.lookup(&zero);
+}
 
 /* =========================================================================
  * Ring Buffers
@@ -183,7 +187,16 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
         ebph_log_new_profile(profile_key, bprm->file->f_path.dentry);
     }
 
-    // TODO: reset sequence stack
+    // Reset sequence stack
+    task_state->seqstack_top    = 0;
+    struct ebph_sequence_t *seq = ebph_peek_seq(task_state);
+    if (!seq) {
+        // TODO: log error
+        return 1;
+    }
+    for (int i = 0; i < EBPH_SEQLEN; i++) {
+        seq->calls[i] = EBPH_EMPTY;
+    }
 
     task_state->profile_key = profile_key;
 
@@ -241,57 +254,116 @@ static __always_inline u64 ebph_current_time()
     return (u64)bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
 };
 
-/* Used by ebph_get_training_data and ebph_get_testing_data.
- * Look up and return a pointer to the flag at {@curr, @prev}
- * in map @flags. */
-static __always_inline u8 *_ebph_get_profile_data_common(void *flags, u32 curr,
-                                                         u32 prev)
+/* Look up and return a copy of training data for profile @profile_key
+ * at position {@curr, @prev}. */
+static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
+                                                 u16 prev)
 {
-    u8 *data;
+    curr &= EBPH_NUM_SYSCALLS - 1;
+    prev &= EBPH_NUM_SYSCALLS - 1;
+
+    struct ebph_flags_t *flags = ebph_new_flags();
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
 
     struct ebph_flags_key_t key = {};
 
-    key.curr = curr;
-    key.prev = prev;
+    key.profile_key = profile_key;
+    key.curr        = curr;
 
-    data = bpf_map_lookup_elem(flags, &key);
-    if (data) {
-        return data;
-    }
-
-    u8 init = 0;
-    bpf_map_update_elem(flags, &key, &init, BPF_NOEXIST);
-
-    data = bpf_map_lookup_elem(flags, &key);
-    return data;
-}
-
-/* Look up and return a pointer to training data for profile @profile_key
- * at position {@curr, @prev}. */
-static __always_inline u8 *ebph_get_training_data(u64 profile_key, u32 curr,
-                                                  u32 prev)
-{
-    void *flags = training_data.lookup(&profile_key);
+    flags = training_data.lookup_or_init(&key, flags);
     if (!flags) {
         // TODO log error
-        return NULL;
+        return 0;
     }
 
-    return _ebph_get_profile_data_common(flags, curr, prev);
+    return flags->prev[prev];
 }
 
-/* Look up and return a pointer to testing data for profile @profile_key
+/* Look up and return a copy of testing data for profile @profile_key
  * at position {@curr, @prev}. */
-static __always_inline u8 *ebph_get_testing_data(u64 profile_key, u32 curr,
-                                                 u32 prev)
+static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
+                                                u16 prev)
 {
-    void *flags = testing_data.lookup(&profile_key);
+    curr &= EBPH_NUM_SYSCALLS - 1;
+    prev &= EBPH_NUM_SYSCALLS - 1;
+
+    struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
         // TODO log error
-        return NULL;
+        return 0;
     }
 
-    return _ebph_get_profile_data_common(flags, curr, prev);
+    struct ebph_flags_key_t key = {};
+
+    key.profile_key = profile_key;
+    key.curr        = curr;
+
+    flags = testing_data.lookup_or_init(&key, flags);
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
+
+    return flags->prev[prev];
+}
+
+static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
+                                                  u16 prev, u8 new_flag)
+{
+    curr &= EBPH_NUM_SYSCALLS - 1;
+    prev &= EBPH_NUM_SYSCALLS - 1;
+
+    struct ebph_flags_t *flags = ebph_new_flags();
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
+
+    struct ebph_flags_key_t key = {};
+
+    key.profile_key = profile_key;
+    key.curr        = curr;
+
+    flags = training_data.lookup_or_init(&key, flags);
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
+
+    flags->prev[prev] = new_flag;
+
+    return 0;
+}
+
+static __always_inline int ebph_set_testing_data(u64 profile_key, u16 curr,
+                                                 u16 prev, u8 new_flag)
+{
+    curr &= EBPH_NUM_SYSCALLS - 1;
+    prev &= EBPH_NUM_SYSCALLS - 1;
+
+    struct ebph_flags_t *flags = ebph_new_flags();
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
+
+    struct ebph_flags_key_t key = {};
+
+    key.profile_key = profile_key;
+    key.curr        = curr;
+
+    flags = testing_data.lookup_or_init(&key, flags);
+    if (!flags) {
+        // TODO log error
+        return 0;
+    }
+
+    flags->prev[prev] = new_flag;
+
+    return 0;
 }
 
 /* Create a new task_state {@pid, @tgid, @profile_key} at @pid. */
@@ -327,6 +399,7 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.status         = EBPH_PROFILE_STATUS_TRAINING;
     profile.train_count    = 0;
     profile.last_mod_count = 0;
+    profile.sequences      = 0;
 
     ebph_set_normal_time(&profile);
 
@@ -399,10 +472,101 @@ static __always_inline struct ebph_sequence_t *ebph_peek_seq(
     return sequences.lookup(&key);
 }
 
+static __always_inline int ebph_test(struct ebph_task_state_t *task_state,
+                                     struct ebph_sequence_t *sequence,
+                                     bool use_testing_data)
+{
+    int mismatches = 0;
+
+    for (int i = 1; i < EBPH_SEQLEN; i++) {
+        u16 curr = sequence->calls[0];
+        u16 prev = sequence->calls[i];
+
+        if (curr == EBPH_EMPTY || prev == EBPH_EMPTY) {
+            break;
+        }
+
+        u8 flags =
+            use_testing_data
+                ? ebph_get_testing_data(task_state->profile_key, curr, prev)
+                : ebph_get_training_data(task_state->profile_key, curr, prev);
+        if ((flags & (1 << (i - 1))) == 0) {
+            mismatches++;
+        }
+    }
+
+    return mismatches;
+}
+
+static __always_inline void ebph_update_training_data(
+    struct ebph_task_state_t *task_state, struct ebph_sequence_t *sequence)
+{
+    for (int i = 1; i < EBPH_SEQLEN; i++) {
+        u16 curr = sequence->calls[0];
+        u16 prev = sequence->calls[i];
+
+        if (curr == EBPH_EMPTY || prev == EBPH_EMPTY) {
+            break;
+        }
+
+        u8 flags = ebph_get_training_data(task_state->profile_key, curr, prev);
+        flags |= (1 << (i - 1));
+        ebph_set_training_data(task_state->profile_key, curr, prev, flags);
+    }
+}
+
+static __always_inline void ebph_train(struct ebph_task_state_t *task_state,
+                                       struct ebph_profile_t *profile,
+                                       struct ebph_sequence_t *sequence)
+{
+    int mismatches = ebph_test(task_state, sequence, false);
+
+    lock_xadd(&profile->train_count, 1);
+
+    if (mismatches) {
+        lock_xadd(&profile->sequences, 1);
+        profile->last_mod_count = 0;
+
+        // Unfreeze profile
+        profile->status &= ~EBPH_PROFILE_STATUS_FROZEN;
+
+        ebph_update_training_data(task_state, sequence);
+
+        // TODO
+        // Log new sequence
+    } else {
+        lock_xadd(&profile->last_mod_count, 1);
+
+        if (profile->status & EBPH_PROFILE_STATUS_FROZEN) {
+            return;
+        }
+
+        u64 normal_count = 0;
+        if (profile->train_count > profile->last_mod_count) {
+            profile->train_count - profile->last_mod_count;
+        }
+
+        if ((normal_count > 0) &&
+            (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
+             normal_count * EBPH_NORMAL_FACTOR)) {
+            // Freeze profile
+            profile->status |= EBPH_PROFILE_STATUS_FROZEN;
+            ebph_set_normal_time(profile);
+        }
+    }
+}
+
 /* Process a new syscall. */
 static __always_inline void ebph_handle_syscall(
     struct ebph_task_state_t *task_state, u16 syscall)
 {
+    // Look up profile
+    struct ebph_profile_t *profile = profiles.lookup(&task_state->profile_key);
+    if (!profile) {
+        // TODO log error
+        return;
+    }
+
     // Look up current sequence
     struct ebph_sequence_t *sequence = ebph_peek_seq(task_state);
     if (!sequence) {
@@ -415,4 +579,6 @@ static __always_inline void ebph_handle_syscall(
         sequence->calls[i] = sequence->calls[i - 1];
     }
     sequence->calls[0] = syscall;
+
+    ebph_train(task_state, profile, sequence);
 }
