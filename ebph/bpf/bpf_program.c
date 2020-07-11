@@ -55,6 +55,100 @@ static __always_inline void ebph_log_new_profile(u64 profile_key,
     }
 }
 
+struct ebph_anomaly_event_t {
+    u16 syscall;
+    int misses;
+    u32 pid;
+    u64 profile_key;
+    u64 task_count;
+};
+
+BPF_RINGBUF_OUTPUT(anomaly_events, 8);
+
+static __always_inline void ebph_log_anomaly(u16 syscall, int misses,
+                                             struct ebph_task_state_t *s)
+{
+    struct ebph_anomaly_event_t *event =
+        anomaly_events.ringbuf_reserve(sizeof(struct ebph_anomaly_event_t));
+    if (event) {
+        event->syscall     = syscall;
+        event->misses      = misses;
+        event->pid         = s->pid;
+        event->profile_key = s->profile_key;
+        event->task_count  = s->count;
+        anomaly_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
+
+struct ebph_start_normal_event_t {
+    u32 pid;
+    u64 profile_key;
+    u64 profile_count;
+    u64 task_count;
+    u64 sequences;
+    u64 train_count;
+    u64 last_mod_count;
+    u8 in_task;
+};
+
+BPF_RINGBUF_OUTPUT(start_normal_events, 8);
+
+static __always_inline void ebph_log_start_normal(u64 profile_key,
+                                                  struct ebph_task_state_t *s,
+                                                  struct ebph_profile_t *p)
+{
+    struct ebph_start_normal_event_t *event =
+        start_normal_events.ringbuf_reserve(
+            sizeof(struct ebph_start_normal_event_t));
+    if (event) {
+        if (s) {
+            event->pid        = s->pid;
+            event->task_count = s->count;
+            event->in_task    = 1;
+        } else {
+            event->in_task = 0;
+        }
+        event->profile_key    = profile_key;
+        event->profile_count  = p->count;
+        event->train_count    = p->train_count;
+        event->last_mod_count = p->last_mod_count;
+        event->sequences      = p->sequences;
+        start_normal_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
+
+struct ebph_stop_normal_event_t {
+    u32 pid;
+    u64 profile_key;
+    u64 task_count;
+    u64 anomalies;
+    u64 anomaly_limit;
+    u8 in_task;
+};
+
+BPF_RINGBUF_OUTPUT(stop_normal_events, 8);
+
+static __always_inline void ebph_log_stop_normal(u64 profile_key,
+                                                 struct ebph_task_state_t *s,
+                                                 struct ebph_profile_t *p)
+{
+    struct ebph_stop_normal_event_t *event = stop_normal_events.ringbuf_reserve(
+        sizeof(struct ebph_stop_normal_event_t));
+    if (event) {
+        if (s) {
+            event->pid        = s->pid;
+            event->task_count = s->count;
+            event->in_task    = 1;
+        } else {
+            event->in_task = 0;
+        }
+        event->profile_key   = profile_key;
+        event->anomalies     = p->anomaly_count;
+        event->anomaly_limit = EBPH_ANOMALY_LIMIT;
+        stop_normal_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
+
 #ifdef EBPH_DEBUG
 struct ebph_new_task_state_event_t {
     u32 pid;
@@ -375,6 +469,7 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     task_state.pid          = pid;
     task_state.tgid         = tgid;
     task_state.profile_key  = profile_key;
+    task_state.count        = 0;
     task_state.seqstack_top = -1;
 
     if (!ebph_push_seq(&task_state)) {
@@ -401,6 +496,7 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.last_mod_count = 0;
     profile.sequences      = 0;
     profile.anomaly_count  = 0;
+    profile.count          = 0;
 
     ebph_set_normal_time(&profile);
 
@@ -597,7 +693,7 @@ static __always_inline void ebph_start_normal(
 {
     ebph_copy_train_to_test(task_state, profile);
 
-    // TODO log here
+    ebph_log_start_normal(task_state->profile_key, task_state, profile);
 
     profile->status         = EBPH_PROFILE_STATUS_NORMAL;
     profile->anomaly_count  = 0;
@@ -608,7 +704,7 @@ static __always_inline void ebph_start_normal(
 static __always_inline void ebph_stop_normal(
     struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
 {
-    // TODO log here
+    ebph_log_stop_normal(task_state->profile_key, task_state, profile);
 
     profile->status = EBPH_PROFILE_STATUS_TRAINING;
 
@@ -626,7 +722,8 @@ static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
     int anomalies = ebph_test(task_state, sequence, true);
 
     if (anomalies) {
-        // TODO log anomalies
+        ebph_log_anomaly(sequence->calls[0], anomalies, task_state);
+
         if (profile->anomaly_count > EBPH_ANOMALY_LIMIT) {
             ebph_stop_normal(task_state, profile);
         }
@@ -652,6 +749,9 @@ static __always_inline void ebph_handle_syscall(
         // TODO log error
         return;
     }
+
+    lock_xadd(&profile->count, 1);
+    lock_xadd(&task_state->count, 1);
 
     // Insert syscall into sequence
     for (int i = EBPH_SEQLEN - 1; i > 0; i--) {

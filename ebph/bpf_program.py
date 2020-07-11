@@ -68,6 +68,76 @@ class BPFProgram:
             else:
                 logger.info(f'Created new profile for {pathname}.')
 
+        @ringbuf_callback(self.bpf, 'anomaly_events')
+        def anomaly_events(ctx, event, size):
+            """
+            anomaly_events.
+
+            Log anomalies.
+            """
+            exe = self.profile_key_to_exe[event.profile_key]
+            syscall_number = event.syscall
+            syscall_name = self.syscall_number_to_name[syscall_number]
+            misses = event.misses
+            pid = event.pid
+            count = event.task_count
+
+            logger.warning(f'Anomalous {syscall_name} ({misses} misses) '
+                    f'in PID {pid} ({exe}) after {count} calls.')
+
+        @ringbuf_callback(self.bpf, 'start_normal_events')
+        def start_normal_events(ctx, event, size):
+            """
+            start_normal_events.
+
+            Log when a profile starts normal monitoring.
+            """
+            exe = self.profile_key_to_exe[event.profile_key]
+            profile_count = event.profile_count
+            sequences = event.sequences
+            train_count = event.train_count
+            last_mod_count = event.last_mod_count
+
+            in_task = event.in_task
+            task_count = event.task_count
+            pid = event.pid
+
+            if in_task:
+                logger.info(f'PID {pid} ({exe}) now has {train_count} '
+                        f'training calls and {last_mod_count} since last '
+                        f'change ({profile_count} total).')
+                logger.info(f'Starting normal monitoring in PID {pid} ({exe}) '
+                        f'after {task_count} calls ({sequences} sequences).')
+            else:
+                logger.info(f'{exe} now has {train_count} '
+                        f'training calls and {last_mod_count} since last '
+                        f'change ({profile_count} total).')
+                logger.info(f'Starting normal monitoring for {exe} '
+                        f'with {sequences} sequences.')
+
+        @ringbuf_callback(self.bpf, 'stop_normal_events')
+        def stop_normal_events(ctx, event, size):
+            """
+            stop_normal_events.
+
+            Log when a profile stops normal monitoring.
+            """
+            exe = self.profile_key_to_exe[event.profile_key]
+            anomalies = event.anomalies
+            anomaly_limit = event.anomaly_limit
+
+            in_task = event.in_task
+            task_count = event.task_count
+            pid = event.pid
+
+            if in_task:
+                logger.info(f'Stopped normal monitoring in PID {pid} ({exe}) '
+                        f'after {task_count} calls and {anomalies} anomalies '
+                        f'(limit {anomaly_limit}).')
+            else:
+                logger.info(f'Stopped normal monitoring for {exe} '
+                        f'with {anomalies} anomalies (limit {anomaly_limit}).')
+
         if not self.debug:
             return
 
