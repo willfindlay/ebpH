@@ -22,12 +22,10 @@ BPF_TABLE("hash_of_maps$flags_inner", u64, int, training_data,
 BPF_TABLE("hash_of_maps$flags_inner", u64, int, testing_data,
           EBPH_MAX_PROFILES);
 
-/* Inner map for sequence stack */
-BPF_STACK(seqstack_inner, struct ebph_sequence_t, EBPH_SEQSTACK_FRAMES);
-
-/* PID (Kernel) -> Sequence Stack */
-BPF_TABLE("array_of_maps$seqstack_inner", u32, int, seqstacks,
-          EBPH_MAX_PROCESSES);
+/* {PID (Kernel), Stack Top} -> Sequence Stack */
+BPF_F_TABLE("hash", struct ebph_sequence_key_t, struct ebph_sequence_t,
+            sequences, (EBPH_MAX_PROCESSES * EBPH_SEQSTACK_FRAMES),
+            BPF_F_NO_PREALLOC);
 
 /* =========================================================================
  * Ring Buffers
@@ -89,22 +87,32 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    // Pop sequence if we are flagged for popping
-    if (task_state->should_pop) {
-        struct ebph_sequence_t dummy;
-        if (ebph_pop_seq(pid, &dummy)) {
+    //// Pop sequence if we are flagged for popping
+    // if (task_state->should_pop) {
+    //    if (!ebph_pop_seq(task_state)) {
+    //        // TODO: log warning
+    //    } else {
+    //        // Mark that we have popped
+    //        task_state->should_pop = 0;
+    //    }
+    //}
+
+    //// Flag for pop on sigreturn
+    //// We actually want to pop on the NEXT systemcall
+    // if (args->id == EBPH_SYS_RT_SIGRETURN) {
+    //    task_state->should_pop = 1;
+    //}
+    // TODO: determine if we need to switch back to the above method
+    if (args->id == EBPH_SYS_RT_SIGRETURN) {
+        if (!ebph_pop_seq(task_state)) {
             // TODO: log warning
         } else {
             // Mark that we have popped
-            // task_state->should_pop = 0;
+            task_state->should_pop = 0;
         }
     }
 
-    // Flag for pop on sigreturn
-    // We actually want to pop on the NEXT systemcall
-    if (args->id == EBPH_SYS_RT_SIGRETURN) {
-        task_state->should_pop = 1;
-    }
+    ebph_handle_syscall(task_state, (u16)args->id);
 
     return 0;
 }
@@ -187,9 +195,6 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
         ebph_log_new_profile(profile_key, bprm->file->f_path.dentry);
     }
 
-    // FIXME: delete this, testing
-    ebph_push_seq(pid);
-
     // TODO: reset sequence stack
 
     task_state->profile_key = profile_key;
@@ -202,11 +207,15 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
 {
     u32 pid = bpf_get_current_pid_tgid();
     task_states.delete(&pid);
-    // FIXME:
-    // Uh oh. This is a serious road block. Apparently we cannot delete from
-    // map-in-map. This means that we eventually are no longer able to cycle
-    // processes.
-    // seqstacks.delete(&pid);
+
+    struct ebph_sequence_key_t key = {};
+
+    key.pid = pid;
+
+    for (int i = 0; i < EBPH_SEQSTACK_FRAMES; i++) {
+        key.seqstack_top = i;
+        sequences.delete(&key);
+    }
 
     return 0;
 }
@@ -227,7 +236,9 @@ TRACEPOINT_PROBE(signal, signal_deliver)
     }
 
     // Push a new sequence
-    ebph_push_seq(pid);
+    if (!ebph_push_seq(task_state)) {
+        // TODO log warning
+    }
 
     return 0;
 }
@@ -295,10 +306,16 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
 {
     struct ebph_task_state_t task_state = {};
 
-    task_state.pid         = pid;
-    task_state.tgid        = tgid;
-    task_state.profile_key = profile_key;
-    task_state.should_pop  = 0;
+    task_state.pid          = pid;
+    task_state.tgid         = tgid;
+    task_state.profile_key  = profile_key;
+    task_state.should_pop   = 0;
+    task_state.seqstack_top = -1;
+
+    if (!ebph_push_seq(&task_state)) {
+        // TODO log error
+        return NULL;
+    }
 
     return task_states.lookup_or_try_init(&pid, &task_state);
 }
@@ -308,14 +325,32 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
 {
     struct ebph_profile_t profile = {};
 
-    profile.status = EBPH_PROFILE_STATUS_TRAINING;
+    profile.status         = EBPH_PROFILE_STATUS_TRAINING;
+    profile.train_count    = 0;
+    profile.last_mod_count = 0;
 
     return profiles.lookup_or_try_init(&profile_key, &profile);
 }
 
-/* Push a new frame onto the sequence stack for task_state at @pid. */
-static __always_inline int ebph_push_seq(u32 pid)
+/* Push a new frame onto the sequence stack for @task_state. */
+static __always_inline struct ebph_sequence_t *ebph_push_seq(
+    struct ebph_task_state_t *task_state)
 {
+    // Stack is full
+    if (task_state->seqstack_top + 1 >= EBPH_SEQSTACK_FRAMES) {
+        // TODO: log warning
+        return NULL;
+    }
+
+    // Increment top of stack
+    task_state->seqstack_top++;
+
+    struct ebph_sequence_key_t key = {};
+
+    // Set key
+    key.pid          = task_state->pid;
+    key.seqstack_top = task_state->seqstack_top;
+
     struct ebph_sequence_t new_seq = {};
 
     // Initialize sequence
@@ -323,41 +358,60 @@ static __always_inline int ebph_push_seq(u32 pid)
         new_seq.calls[i] = EBPH_EMPTY;
     }
 
-    void *seqstack = seqstacks.lookup(&pid);
-    if (!seqstack) {
-        bpf_trace_printk("failure\n");
-        // TODO: log error
-        return 1;
-    }
+    sequences.update(&key, &new_seq);
 
-    bpf_trace_printk("success\n");
-
-    return bpf_map_push_elem(seqstack, &new_seq, 0);
+    return sequences.lookup(&key);
 }
 
-/* Pop a frame from the sequence stack for task_state at @pid.
- * Store resulting sequence in @result. */
-static __always_inline int ebph_pop_seq(u32 pid, struct ebph_sequence_t *result)
+/* Pop a frame from the sequence stack for @task_state. */
+static __always_inline struct ebph_sequence_t *ebph_pop_seq(
+    struct ebph_task_state_t *task_state)
 {
-    void *seqstack = seqstacks.lookup(&pid);
-    if (!seqstack) {
-        // TODO: log error
-        return 1;
+    // Stack would be empty
+    if (task_state->seqstack_top == 0) {
+        // TODO: log warning
+        return NULL;
     }
 
-    return bpf_map_pop_elem(seqstack, result);
+    struct ebph_sequence_key_t key = {};
+
+    // Set key
+    key.pid          = task_state->pid;
+    key.seqstack_top = task_state->seqstack_top;
+
+    // Decrement top of stack
+    task_state->seqstack_top--;
+
+    return sequences.lookup(&key);
 }
 
-/* Peek a frame from the sequence stack for task_state at @pid.
- * Store resulting sequence in @result. */
-static __always_inline int ebph_peek_seq(u32 pid,
-                                         struct ebph_sequence_t *result)
+/* Peek a frame from the sequence stack for @task_state. */
+static __always_inline struct ebph_sequence_t *ebph_peek_seq(
+    struct ebph_task_state_t *task_state)
 {
-    void *seqstack = seqstacks.lookup(&pid);
-    if (!seqstack) {
-        // TODO: log error
-        return 1;
+    struct ebph_sequence_key_t key = {};
+
+    // Set key
+    key.pid          = task_state->pid;
+    key.seqstack_top = task_state->seqstack_top;
+
+    return sequences.lookup(&key);
+}
+
+/* Process a new syscall. */
+static __always_inline void ebph_handle_syscall(
+    struct ebph_task_state_t *task_state, u16 syscall)
+{
+    // Look up current sequence
+    struct ebph_sequence_t *sequence = ebph_peek_seq(task_state);
+    if (!sequence) {
+        // TODO log error
+        return;
     }
 
-    return bpf_map_peek_elem(seqstack, result);
+    // Insert syscall into sequence
+    for (int i = EBPH_SEQLEN - 1; i > 0; i--) {
+        sequence->calls[i] = sequence->calls[i - 1];
+    }
+    sequence->calls[0] = syscall;
 }

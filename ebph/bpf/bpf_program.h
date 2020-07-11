@@ -13,13 +13,14 @@ struct ebph_task_state_t {
     u32 pid;
     u32 tgid;
     u64 profile_key;
+    s8 seqstack_top;
     u8 should_pop;
 };
 
 struct ebph_sequence_key_t {
     u32 pid;
-    u8 frame_number;
-}
+    s8 seqstack_top;
+};
 
 struct ebph_sequence_t {
     u16 calls[EBPH_SEQLEN];
@@ -42,6 +43,8 @@ enum ebph_profile_status_t : u8 {
 /* An ebpH profile. */
 struct ebph_profile_t {
     enum ebph_profile_status_t status;
+    u64 train_count;
+    u64 last_mod_count;
 };
 
 /* =========================================================================
@@ -62,10 +65,14 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     u32 pid, u32 tgid, u64 profile_key);
 
 /* Sequence stack helpers. */
-static __always_inline int ebph_push_seq(u32 pid);
-static __always_inline int ebph_pop_seq(u32 pid,
-                                        struct ebph_sequence_t *result);
-static __always_inline int ebph_peek_seq(u32 pid,
-                                         struct ebph_sequence_t *result);
+static __always_inline struct ebph_sequence_t *ebph_push_seq(
+    struct ebph_task_state_t *task_state);
+static __always_inline struct ebph_sequence_t *ebph_pop_seq(
+    struct ebph_task_state_t *task_state);
+static __always_inline struct ebph_sequence_t *ebph_peek_seq(
+    struct ebph_task_state_t *task_state);
+
+static __always_inline void ebph_handle_syscall(
+    struct ebph_task_state_t *task_state, u16 syscall);
 
 #endif /* ifndef BPF_PROGRAM_H */
