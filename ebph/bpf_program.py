@@ -7,6 +7,7 @@ from typing import List
 from bcc import BPF
 
 from ebph.logger import get_logger
+from ebph.profile import EBPHProfileStruct
 from ebph import defs
 
 logger = get_logger()
@@ -60,7 +61,6 @@ class BPFProgram:
             for later use.
             """
             pathname = event.pathname.decode('utf-8')
-
             self.profile_key_to_exe[event.profile_key] = pathname
 
             if self.debug:
