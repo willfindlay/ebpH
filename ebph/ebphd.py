@@ -71,6 +71,8 @@ def main():
         parser.add_argument('--nolog', dest='nolog', action='store_true',
                 help=f"Write to stderr instead of logfile. In daemon mode, "
                 "this will simply not write any logging information.")
+        parser.add_argument('--logseq', dest='log_sequences', action='store_true',
+                help=f"Log new sequences. WARNING: This option can use a lot of resources if profiles are not stable!")
         parser.add_argument('--nosave', dest='nosave', action='store_true',
                 help=f"Don't save profiles on exit.")
         parser.add_argument('--noload', dest='noload', action='store_true',

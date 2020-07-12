@@ -82,8 +82,24 @@ class BPFProgram:
             pid = event.pid
             count = event.task_count
 
-            logger.warning(f'Anomalous {syscall_name} ({misses} misses) '
+            logger.audit(f'Anomalous {syscall_name} ({misses} misses) '
                     f'in PID {pid} ({exe}) after {count} calls.')
+
+        @ringbuf_callback(self.bpf, 'new_sequence_events')
+        def new_sequence_events(ctx, event, size):
+            """
+            new_sequence_events.
+
+            Log new sequences.
+            """
+            exe = self.profile_key_to_exe[event.profile_key]
+            sequence = [self.syscall_number_to_name[call] for call in event.sequence if call != defs.BPF_DEFINES['EBPH_EMPTY']]
+            sequence = reversed(sequence)
+            pid = event.pid
+            profile_count = event.profile_count
+
+            logger.sequence(f'PID {pid} ({exe}), {profile_count} total calls: '
+                    + ', '.join(sequence))
 
         @ringbuf_callback(self.bpf, 'start_normal_events')
         def start_normal_events(ctx, event, size):

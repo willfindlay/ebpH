@@ -80,6 +80,31 @@ static __always_inline void ebph_log_anomaly(u16 syscall, int misses,
     }
 }
 
+struct ebph_new_sequence_event_t {
+    u32 pid;
+    u64 profile_key;
+    u64 profile_count;
+    u16 sequence[EBPH_SEQLEN];
+};
+
+BPF_RINGBUF_OUTPUT(new_sequence_events, 8);
+
+static __always_inline void ebph_log_new_sequence(struct ebph_task_state_t *s,
+                                                  struct ebph_profile_t *p,
+                                                  struct ebph_sequence_t *seq)
+{
+    struct ebph_new_sequence_event_t *event =
+        new_sequence_events.ringbuf_reserve(
+            sizeof(struct ebph_new_sequence_event_t));
+    if (event) {
+        event->pid           = s->pid;
+        event->profile_key   = s->profile_key;
+        event->profile_count = p->count;
+        bpf_probe_read(event->sequence, sizeof(event->sequence), seq->calls);
+        new_sequence_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
+    }
+}
+
 struct ebph_start_normal_event_t {
     u32 pid;
     u64 profile_key;
@@ -629,8 +654,7 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
 
         ebph_update_training_data(task_state, sequence);
 
-        // TODO
-        // Log new sequence
+        ebph_log_new_sequence(task_state, profile, sequence);
     } else {
         lock_xadd(&profile->last_mod_count, 1);
 
