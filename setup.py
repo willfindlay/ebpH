@@ -4,7 +4,7 @@ import os, sys
 import re
 from distutils.core import setup
 
-version = '0.2.1'
+version = '0.2.0'
 
 setup(name='ebph',
       version=version,
@@ -13,5 +13,6 @@ setup(name='ebph',
       author_email='william@williamfindlay.com',
       url='https://github.com/willfindlay/ebpH',
       packages=['ebph'],
+      scripts=['bin/ebphd'],
       include_package_data=True,
      )

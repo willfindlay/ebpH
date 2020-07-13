@@ -21,7 +21,7 @@ class EBPHDaemon(DaemonMixin):
     """
     def __init__(self, args):
         # BPF Program
-        self.bpf_program = BPFProgram()
+        self.bpf_program = BPFProgram(debug=args.debug)
 
         # Number of elapsed ticks
         self.tick_count = 0
@@ -71,6 +71,8 @@ def main():
         parser.add_argument('--nolog', dest='nolog', action='store_true',
                 help=f"Write to stderr instead of logfile. In daemon mode, "
                 "this will simply not write any logging information.")
+        parser.add_argument('--logseq', dest='log_sequences', action='store_true',
+                help=f"Log new sequences. WARNING: This option can use a lot of resources if profiles are not stable!")
         parser.add_argument('--nosave', dest='nosave', action='store_true',
                 help=f"Don't save profiles on exit.")
         parser.add_argument('--noload', dest='noload', action='store_true',
@@ -78,7 +80,7 @@ def main():
         parser.add_argument('--debug', action='store_true',
                 help=f"Run in debug mode. Side effect: sets verbosity level to debug regardless of what is set in configuration options.")
         parser.add_argument('--testing', action='store_true',
-                help=f"Quick testing mode. This option sets --nodaemon --nolog --nosave --noload --debug flags.")
+                help=f"Quick testing mode. This option sets --nodaemon --nolog --nosave --noload flags.")
 
         args = parser.parse_args(args)
 
@@ -88,7 +90,6 @@ def main():
             args.nolog = True
             args.nosave = True
             args.noload = True
-            args.debug = True
 
         # Check for root
         if not (os.geteuid() == 0):

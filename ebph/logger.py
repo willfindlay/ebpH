@@ -38,22 +38,32 @@ class LoggerWriter:
 
 class EBPHLoggerClass(logging.getLoggerClass()):
     """
-    Custom logger class that allows for the logging of policy messages.
+    Custom logger class that allows for the logging of audit messages.
     """
-    POLICY = logging.WARN - 5
+    AUDIT = logging.WARN - 5
+    SEQUENCE = logging.INFO - 5
 
     def __init__(self, name, level=logging.NOTSET):
         super().__init__(name, level)
 
-        logging.addLevelName(EBPHLoggerClass.POLICY, "POLICY")
+        logging.addLevelName(EBPHLoggerClass.AUDIT, "AUDIT")
+        logging.addLevelName(EBPHLoggerClass.SEQUENCE, "NEWSEQ")
 
-    def policy(self, msg, *args, **kwargs):
+    def audit(self, msg, *args, **kwargs):
         """
         Write a policy message to logs.
         This should be used to inform the user about policy decisions/enforcement.
         """
-        if self.isEnabledFor(EBPHLoggerClass.POLICY):
-            self._log(EBPHLoggerClass.POLICY, msg, args, **kwargs)
+        if self.isEnabledFor(EBPHLoggerClass.AUDIT):
+            self._log(EBPHLoggerClass.AUDIT, msg, args, **kwargs)
+
+    def sequence(self, msg, *args, **kwargs):
+        """
+        Write a policy message to logs.
+        This should be used to inform the user about policy decisions/enforcement.
+        """
+        if self.isEnabledFor(EBPHLoggerClass.SEQUENCE):
+            self._log(EBPHLoggerClass.SEQUENCE, msg, args, **kwargs)
 
 logging.setLoggerClass(EBPHLoggerClass)
 
@@ -117,6 +127,8 @@ def setup_logger(args):
     logger = get_logger()
     if args.debug:
         logger.setLevel(logging.DEBUG)
+    elif args.log_sequences:
+        logger.setLevel(EBPHLoggerClass.SEQUENCE)
     else:
         logger.setLevel(logging.INFO)
 
