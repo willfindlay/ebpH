@@ -35,6 +35,7 @@ static __always_inline struct ebph_flags_t *ebph_new_flags()
  * Ring Buffers
  * ========================================================================= */
 
+/* Profile creation events */
 struct ebph_new_profile_event_t {
     u64 profile_key;
     char pathname[PATH_MAX];
@@ -55,6 +56,7 @@ static __always_inline void ebph_log_new_profile(u64 profile_key,
     }
 }
 
+/* Anomaly events */
 struct ebph_anomaly_event_t {
     u16 syscall;
     int misses;
@@ -80,10 +82,12 @@ static __always_inline void ebph_log_anomaly(u16 syscall, int misses,
     }
 }
 
+/* New sequence events */
 struct ebph_new_sequence_event_t {
     u32 pid;
     u64 profile_key;
     u64 profile_count;
+    u64 task_count;
     u16 sequence[EBPH_SEQLEN];
 };
 
@@ -100,11 +104,13 @@ static __always_inline void ebph_log_new_sequence(struct ebph_task_state_t *s,
         event->pid           = s->pid;
         event->profile_key   = s->profile_key;
         event->profile_count = p->count;
+        event->task_count    = s->count;
         bpf_probe_read(event->sequence, sizeof(event->sequence), seq->calls);
         new_sequence_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
 }
 
+/* Start normal events */
 struct ebph_start_normal_event_t {
     u32 pid;
     u64 profile_key;
@@ -142,6 +148,7 @@ static __always_inline void ebph_log_start_normal(u64 profile_key,
     }
 }
 
+/* Stop normal events */
 struct ebph_stop_normal_event_t {
     u32 pid;
     u64 profile_key;
@@ -173,32 +180,6 @@ static __always_inline void ebph_log_stop_normal(u64 profile_key,
         stop_normal_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
 }
-
-#ifdef EBPH_DEBUG
-struct ebph_new_task_state_event_t {
-    u32 pid;
-    u64 profile_key;
-};
-
-BPF_RINGBUF_OUTPUT(new_task_state_events, 8);
-
-static __always_inline void ebph_log_new_task_state(u32 pid, u64 profile_key)
-{
-    struct ebph_new_task_state_event_t *event =
-        new_task_state_events.ringbuf_reserve(
-            sizeof(struct ebph_new_task_state_event_t));
-    if (event) {
-        event->pid         = pid;
-        event->profile_key = profile_key;
-        new_task_state_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
-    }
-}
-#else
-static __always_inline void ebph_log_new_task_state(u32 pid, u64 profile_key)
-{
-    // NOP
-}
-#endif
 
 /* =========================================================================
  * BPF Programs
@@ -247,16 +228,10 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
     u32 cpid  = c->pid;
     u32 ctgid = c->tgid;
 
-    u8 task_state_exists = task_states.lookup(&cpid) ? 1 : 0;
-
     child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
     if (!child_state) {
         // TODO: log error
         return 1;
-    }
-
-    if (!task_state_exists) {
-        ebph_log_new_task_state(cpid, parent_state->profile_key);
     }
 
     return 0;
@@ -277,8 +252,6 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     u32 pid  = bpf_get_current_pid_tgid();
     u32 tgid = bpf_get_current_pid_tgid() >> 32;
 
-    u8 task_state_exists = task_states.lookup(&pid) ? 1 : 0;
-
     /* Create or look up task_state. */
     struct ebph_task_state_t *task_state =
         ebph_new_task_state(pid, tgid, profile_key);
@@ -286,12 +259,6 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
         // TODO: log error
         return 1;
     }
-
-    if (!task_state_exists) {
-        ebph_log_new_task_state(pid, profile_key);
-    }
-
-    // TODO: reset ALF
 
     // Does the profile already exist? Important for logging purposes
     u8 profile_exists = profiles.lookup(&profile_key) ? 1 : 0;
@@ -316,6 +283,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     for (int i = 0; i < EBPH_SEQLEN; i++) {
         seq->calls[i] = EBPH_EMPTY;
     }
+
+    // Reset task state count
+    task_state->count = 0;
+
+    // TODO: reset ALF
 
     task_state->profile_key = profile_key;
 
@@ -392,7 +364,7 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
     key.profile_key = profile_key;
     key.curr        = curr;
 
-    flags = training_data.lookup_or_init(&key, flags);
+    flags = training_data.lookup_or_try_init(&key, flags);
     if (!flags) {
         // TODO log error
         return 0;
@@ -420,7 +392,7 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
     key.profile_key = profile_key;
     key.curr        = curr;
 
-    flags = testing_data.lookup_or_init(&key, flags);
+    flags = testing_data.lookup_or_try_init(&key, flags);
     if (!flags) {
         // TODO log error
         return 0;
@@ -438,7 +410,7 @@ static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
         // TODO log error
-        return 0;
+        return 1;
     }
 
     struct ebph_flags_key_t key = {};
@@ -446,38 +418,10 @@ static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
     key.profile_key = profile_key;
     key.curr        = curr;
 
-    flags = training_data.lookup_or_init(&key, flags);
+    flags = training_data.lookup_or_try_init(&key, flags);
     if (!flags) {
         // TODO log error
-        return 0;
-    }
-
-    flags->prev[prev] = new_flag;
-
-    return 0;
-}
-
-static __always_inline int ebph_set_testing_data(u64 profile_key, u16 curr,
-                                                 u16 prev, u8 new_flag)
-{
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
-
-    struct ebph_flags_t *flags = ebph_new_flags();
-    if (!flags) {
-        // TODO log error
-        return 0;
-    }
-
-    struct ebph_flags_key_t key = {};
-
-    key.profile_key = profile_key;
-    key.curr        = curr;
-
-    flags = testing_data.lookup_or_init(&key, flags);
-    if (!flags) {
-        // TODO log error
-        return 0;
+        return 1;
     }
 
     flags->prev[prev] = new_flag;
@@ -623,7 +567,7 @@ static __always_inline int ebph_test(struct ebph_task_state_t *task_state,
 static __always_inline void ebph_update_training_data(
     struct ebph_task_state_t *task_state, struct ebph_sequence_t *sequence)
 {
-    for (int i = 1; i < EBPH_SEQLEN; i++) {
+    for (u32 i = 1; i < EBPH_SEQLEN; i++) {
         u16 curr = sequence->calls[0];
         u16 prev = sequence->calls[i];
 

@@ -13,7 +13,8 @@ BPF_DEFINES = {
         'EBPH_SEQLEN': 9,
         'EBPH_EMPTY': 9999,
         #'EBPH_NORMAL_WAIT': (1000000000 * 60 * 60 * 24 * 7), # 1 week
-        'EBPH_NORMAL_WAIT': (1000000000 * 60 * 10), # 10 minutes
+        #'EBPH_NORMAL_WAIT': (1000000000 * 60 * 10), # 10 minutes
+        'EBPH_NORMAL_WAIT': (1000000000 * 30), # 30 seconds
         'EBPH_NORMAL_FACTOR': 128,
         'EBPH_NORMAL_FACTOR_DEN': 32,
         'EBPH_ANOMALY_LIMIT': 30,

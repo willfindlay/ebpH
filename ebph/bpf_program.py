@@ -41,7 +41,6 @@ class BPFProgram:
     def on_tick(self) -> None:
         try:
             self.bpf.ring_buffer_consume()
-            #logger.debug(len(self.bpf['seqstacks']))
         except Exception:
             pass
 
@@ -97,8 +96,10 @@ class BPFProgram:
             sequence = reversed(sequence)
             pid = event.pid
             profile_count = event.profile_count
+            task_count = event.task_count
 
-            logger.sequence(f'PID {pid} ({exe}), {profile_count} total calls: '
+            logger.debug(f'New sequence in PID {pid} ({exe}), task count = {task_count}, profile count = {profile_count}.')
+            logger.sequence(f'PID {pid} ({exe}): '
                     + ', '.join(sequence))
 
         @ringbuf_callback(self.bpf, 'start_normal_events')
@@ -154,22 +155,6 @@ class BPFProgram:
                 logger.info(f'Stopped normal monitoring for {exe} '
                         f'with {anomalies} anomalies (limit {anomaly_limit}).')
 
-        if not self.debug:
-            return
-
-        @ringbuf_callback(self.bpf, 'new_task_state_events')
-        def new_task_state_events(ctx, event, size):
-            """
-            new_task_state_events.
-
-            Callback for new process creation.
-            """
-            pid = event.pid
-            profile_key = event.profile_key
-            exe = self.profile_key_to_exe[profile_key]
-
-            logger.debug(f'Created new task_state for PID {pid} ({exe}).')
-
     def _register_uprobes(self) -> None:
         logger.info('Registering uprobes...')
         logger.error('TODO!')
@@ -185,7 +170,7 @@ class BPFProgram:
     def _calculate_boot_epoch(self):
         boot_time = time.monotonic() * int(1e9)
         boot_epoch = time.time() * int(1e9) - boot_time
-        return boot_epoch
+        return int(boot_epoch)
 
     def _set_cflags(self) -> None:
         logger.info('Setting cflags...')

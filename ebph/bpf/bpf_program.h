@@ -67,8 +67,6 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev);
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag);
-static __always_inline int ebph_set_testing_data(u64 profile_key, u16 curr,
-                                                 u16 prev, u8 new_flag);
 
 /* Profile creation. */
 static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key);
