@@ -13,5 +13,6 @@ setup(name='ebph',
       author_email='william@williamfindlay.com',
       url='https://github.com/willfindlay/ebpH',
       packages=['ebph'],
+      scripts=['bin/ebphd'],
       include_package_data=True,
      )
