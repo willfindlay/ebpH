@@ -47,6 +47,9 @@ class BPFProgram:
     def save_profiles(self) -> None:
         pass
 
+    def get_profiles(self):
+        return self.profile_key_to_exe
+
     def get_profile(self, key: int):
         return self.bpf['profiles'][ct.c_uint64(key)]
 
