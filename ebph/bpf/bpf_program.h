@@ -13,13 +13,13 @@ struct ebph_task_state_t {
     u32 pid;
     u32 tgid;
     u64 profile_key;
-    s8 seqstack_top;
+    char seqstack_top;
     u64 count;
 };
 
 struct ebph_sequence_key_t {
     u32 pid;
-    s8 seqstack_top;
+    char seqstack_top;
 };
 
 struct ebph_sequence_t {
@@ -38,9 +38,9 @@ struct ebph_flags_t {
 /* Current status of the ebpH profile.
  * Possible values: training, frozen, and normal. */
 enum ebph_profile_status_t : u8 {
-    EBPH_PROFILE_STATUS_TRAINING = 0x0,
-    EBPH_PROFILE_STATUS_FROZEN   = 0x1,
-    EBPH_PROFILE_STATUS_NORMAL   = 0x2,
+    EBPH_PROFILE_STATUS_TRAINING = 0x1,
+    EBPH_PROFILE_STATUS_FROZEN   = 0x2,
+    EBPH_PROFILE_STATUS_NORMAL   = 0x4,
 };
 
 /* An ebpH profile. */

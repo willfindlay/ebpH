@@ -30,7 +30,7 @@ class BPFProgram:
         self.cflags = []
         self.debug = debug
 
-        self.profile_key_to_exe = defaultdict(lambda: None)
+        self.profile_key_to_exe = defaultdict(lambda: '[unknown]')
         self.syscall_number_to_name = defaultdict(lambda: '[unknown]')
 
         self._set_cflags()
@@ -46,6 +46,12 @@ class BPFProgram:
 
     def save_profiles(self) -> None:
         pass
+
+    def get_profile(self, key: int) -> ct.Structure:
+        return self.bpf['profiles'][ct.c_uint64(key)]
+
+    def get_process(self, pid: int) -> ct.Structure:
+        return self.bpf['task_states'][ct.c_uint32(pid)]
 
     def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')

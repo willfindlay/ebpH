@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 
 def project_path(f):
     """
@@ -20,3 +21,7 @@ def read_chunks(f, size=1024):
         if not data:
             break
         yield data
+
+def ns_to_str(ns: int):
+    dt = datetime.fromtimestamp(ns // 1000000000)
+    return dt.strftime('%Y-%m-%d %H:%M:%S')

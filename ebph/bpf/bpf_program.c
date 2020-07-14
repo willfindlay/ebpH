@@ -602,7 +602,7 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
     } else {
         lock_xadd(&profile->last_mod_count, 1);
 
-        if (profile->status & EBPH_PROFILE_STATUS_FROZEN) {
+        if (profile->status & (EBPH_PROFILE_STATUS_FROZEN | EBPH_PROFILE_STATUS_NORMAL)) {
             return;
         }
 

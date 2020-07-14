@@ -3,6 +3,7 @@ import time
 import argparse
 import os
 import signal
+import threading
 
 from ebph.bpf_program import BPFProgram
 from ebph.logger import get_logger, setup_logger, LoggerWriter
@@ -21,7 +22,9 @@ class EBPHDaemon(DaemonMixin):
     """
     def __init__(self, args):
         # BPF Program
-        self.bpf_program = BPFProgram(debug=args.debug)
+        self.bpf_program = None
+
+        self.debug = args.debug
 
         # Number of elapsed ticks
         self.tick_count = 0
@@ -37,14 +40,30 @@ class EBPHDaemon(DaemonMixin):
 
         self.bpf_program.on_tick()
 
+    def _init_bpf_program(self):
+        assert self.bpf_program is None
+        self.bpf_program = BPFProgram(debug=self.debug)
+        global bpf_program
+        bpf_program = self.bpf_program
+
+    def _bpf_work_loop(self):
+        while 1:
+            self.bpf_program.on_tick()
+            time.sleep(defs.TICK_SLEEP)
 
     def loop_forever(self):
         """
         Main daemon setup + event loop.
         """
-        while 1:
-            self.bpf_program.on_tick()
-            time.sleep(defs.TICK_SLEEP)
+        self._init_bpf_program()
+
+        server_thread = threading.Thread(target=self._bpf_work_loop)
+        server_thread.daemon = True
+        server_thread.start()
+
+        from ebph.api import serve_forever
+        logger.info('Starting ebpH server...')
+        serve_forever()
 
 
     def stop_daemon(self):
@@ -59,7 +78,7 @@ def main():
 
     def parse_args(args=[]):
         parser = argparse.ArgumentParser(description="Daemon script for ebpH.",
-                prog="ebphd", epilog="Condiguration file can be found at /etc/ebpH/ebpH.cfg",
+                prog="ebphd", #epilog="Configuration file can be found at /etc/ebpH/ebpH.cfg",
                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
         parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(),
@@ -109,10 +128,7 @@ def main():
 
     global logger
     logger = get_logger()
-    sys.stdout = LoggerWriter(logger.debug)
-    sys.stderr = LoggerWriter(logger.error)
 
-    global ebphd
     ebphd = EBPHDaemon(args)
 
     #logger.debug(f"ebphd.py path: {path(__file__)}")
