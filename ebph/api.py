@@ -2,13 +2,13 @@ from http import HTTPStatus
 import logging
 from typing import List, Dict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Path, Query
 from uvicorn.config import LOGGING_CONFIG
 import uvicorn
 
 from ebph import defs
 from ebph.ebphd import bpf_program
-from ebph.profile import EBPH_PROFILE_STATUS
+from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
 from ebph.utils import ns_to_str
 from ebph.logger import get_logger
 
@@ -128,3 +128,27 @@ def get_process(pid: int) -> Dict:
             'count': process.count,
             'profile': profile,
             }
+
+
+# FIXME: change setting type to EBPH_SETTINGS
+@app.get('/settings/{setting}')
+def get_setting(setting: EBPH_SETTINGS) -> Dict:
+    """
+    Get an ebpH setting.
+    """
+    value = bpf_program.get_setting(setting)
+    if value is None:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'No such setting {setting}.')
+    return {'setting': setting, 'value': value}
+
+
+# FIXME: change setting type to EBPH_SETTINGS
+@app.put('/settings/{setting}/{value}')
+def change_setting(setting: EBPH_SETTINGS, value: int = Path(..., ge=0)) -> Dict:
+    """
+    Change an ebpH setting.
+    """
+    res = bpf_program.change_setting(setting, value)
+    if res < 0:
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Unable to change {setting} to {value}.')
+    return get_setting(setting)

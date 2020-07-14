@@ -1,6 +1,6 @@
 from pprint import pformat
 import ctypes as ct
-from enum import Flag, unique
+from enum import IntEnum, IntFlag, unique, auto
 from typing import List, Dict
 
 from bcc import BPF
@@ -22,10 +22,18 @@ def calculate_profile_magic():
     return int(sha256(version).hexdigest(), 16) & 0xFFFF_FFFF_FFFF_FFFF
 
 @unique
-class EBPH_PROFILE_STATUS(Flag):
+class EBPH_PROFILE_STATUS(IntFlag):
     TRAINING = 0x1
     FROZEN = 0x2
     NORMAL = 0x4
+
+@unique
+class EBPH_SETTINGS(IntEnum):
+    MONITORING = 0
+    NORMAL_WAIT = auto()
+    NORMAL_FACTOR = auto()
+    NORMAL_FACTOR_DEN = auto()
+    ANOMALY_LIMIT = auto()
 
 
 class EBPHProfileStruct(ct.Structure):

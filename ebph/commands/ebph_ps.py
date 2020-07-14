@@ -24,7 +24,8 @@ def print_profile_information(profile: Dict):
 
     global header
     if not header:
-        print(f"{'COMM':<20} {'STATUS':<16} {'TRAIN_COUNT':>12} {'LAST_MOD':>12} {'ANOMALIES':>12}   {'NORMAL TIME':<16}")
+        print(f"{'COMM':<20} {'STATUS':<16} {'TRAIN_COUNT':>12} {'LAST_MOD':>12} "
+                f"{'ANOMALIES':>12}   {'NORMAL TIME':<16}")
         header = True
 
     print(f"{comm:<20} {status:<16} {train_count:>12} {last_mod_count:>12} "
@@ -34,7 +35,6 @@ def print_process_information(process: Dict, show_tid: bool):
     # Process stuff
     pid = process['pid']
     tid = process['tid']
-    process_count = process['count']
     # Profile stuff
     profile = process['profile']
     comm = format_comm(profile["exe"])
@@ -52,7 +52,8 @@ def print_process_information(process: Dict, show_tid: bool):
 
     global header
     if not header:
-        print(f"{process_part} {'COMM':<20} {'STATUS':<16} {'TRAIN_COUNT':>12} {'LAST_MOD':>12} {'ANOMALIES':>12}   {'NORMAL TIME':<16}")
+        print(f"{process_part} {'COMM':<20} {'STATUS':<16} {'TRAIN_COUNT':>12} "
+                f"{'LAST_MOD':>12} {'ANOMALIES':>12}   {'NORMAL TIME':<16}")
         header = True
 
     if show_tid:
@@ -73,6 +74,7 @@ def main(args: Namespace):
             sys.exit(-1)
         if res.status_code != 200:
             print('Unable to get profiles!', file=sys.stderr)
+            sys.exit(-1)
         for p in sorted(json.loads(res.content), key=lambda p: p['exe']):
             print_profile_information(p)
     else:
@@ -83,6 +85,7 @@ def main(args: Namespace):
             sys.exit(-1)
         if res.status_code != 200:
             print('Unable to get processes!', file=sys.stderr)
+            sys.exit(-1)
         processes = json.loads(res.content)
         if not args.threads:
             processes = [p for p in processes if p['pid'] == p['tid']]

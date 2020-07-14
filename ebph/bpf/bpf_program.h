@@ -9,6 +9,16 @@
  * Data Structures and Types
  * ========================================================================= */
 
+/* Keys into settings map */
+enum ebph_setting_key_t : int {
+    EBPH_SETTING_MONITORING = 0,
+    EBPH_SETTING_NORMAL_WAIT,
+    EBPH_SETTING_NORMAL_FACTOR,
+    EBPH_SETTING_NORMAL_FACTOR_DEN,
+    EBPH_SETTING_ANOMALY_LIMIT,
+    EBPH_SETTING__END,  // This must be the last entry
+};
+
 struct ebph_task_state_t {
     u32 pid;
     u32 tgid;

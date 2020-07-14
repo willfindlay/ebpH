@@ -5,7 +5,6 @@ import os
 import signal
 import threading
 
-from ebph.bpf_program import BPFProgram
 from ebph.logger import get_logger, setup_logger, LoggerWriter
 from ebph.daemon_mixin import DaemonMixin
 from ebph import defs
@@ -42,6 +41,7 @@ class EBPHDaemon(DaemonMixin):
 
     def _init_bpf_program(self):
         assert self.bpf_program is None
+        from ebph.bpf_program import BPFProgram
         self.bpf_program = BPFProgram(debug=self.debug)
         global bpf_program
         bpf_program = self.bpf_program
@@ -55,6 +55,7 @@ class EBPHDaemon(DaemonMixin):
         """
         Main daemon setup + event loop.
         """
+        logger.info("Starting ebpH...")
         self._init_bpf_program()
 
         server_thread = threading.Thread(target=self._bpf_work_loop)
