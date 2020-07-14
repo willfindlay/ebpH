@@ -1,5 +1,6 @@
 from http import HTTPStatus
 import logging
+from typing import List, Dict
 
 from fastapi import FastAPI, HTTPException
 from uvicorn.config import LOGGING_CONFIG
@@ -34,19 +35,19 @@ def serve_forever():
 
 
 @app.get('/profiles')
-def get_profiles():
+def get_profiles() -> List[Dict]:
     """
     Returns a dictionary of key -> executable.
     """
     try:
-        return bpf_program.get_profiles()
+        return [get_profile_key(k.value) for k in bpf_program.bpf['profiles'].keys()]
     except Exception as e:
         logger.error('', exc_info=e)
-        return None
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profiles.')
 
 
 @app.get('/profiles/key/{key}')
-def get_profile_key(key: int):
+def get_profile_key(key: int) -> Dict:
     """
     Returns a profile by key.
     """
@@ -71,15 +72,15 @@ def get_profile_key(key: int):
 
 
 @app.get('/profiles/exe/{exe:path}')
-def get_profile_exe(exe: str):
+def get_profile_exe(exe: str) -> Dict:
     """
     Returns a profile by exe.
     """
-    rev = {v: k for k, v in get_profiles().items()}
+    rev = {v: k for k, v in bpf_program.profile_key_to_exe.items()}
     try:
         return get_profile_key(rev[exe])
     except KeyError as e:
         raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
     except Exception as e:
         logger.debug('', exc_info=e)
-        return None
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {exe}.')

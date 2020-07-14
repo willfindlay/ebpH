@@ -1,0 +1,76 @@
+#! /usr/bin/env python3
+
+import os
+import sys
+import argparse
+from typing import Callable, List
+
+commands = {}
+
+def command(name: str):
+    def inner(func: Callable):
+        def wrapper(args):
+            func(args)
+        global commands
+        commands[name] = wrapper
+    return inner
+
+
+def parse_args(sys_args: List[str]):
+    description = """
+    Issue commands to the ebpH daemon.
+    The ebpH daemon (ebphd) must be running in order to run this software.
+    """
+
+    epilog = """
+    """
+
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
+        prog="ebph",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    commands = parser.add_subparsers(dest='command', required=True)
+
+    # ebpH ps
+    ps = commands.add_parser(
+        'ps', help='List traced processes, threads, or profiles.'
+    )
+    process_or_thread = ps.add_mutually_exclusive_group()
+    process_or_thread.add_argument(
+        '-t',
+        '--threads',
+        action='store_true',
+        help=f"Print all threads instead of just thread group leader.",
+    )
+    process_or_thread.add_argument(
+        '-p',
+        '--profiles',
+        action='store_true',
+        help=f"Print all profiles instead of active processes.",
+    )
+
+    args = parser.parse_args(sys_args)
+
+    # Check for root
+    if not (os.geteuid() == 0):
+        parser.error("This script must be run with root privileges! Exiting.")
+
+    return args
+
+
+@command('ps')
+def ps(args):
+    from ebph.commands.ebph_ps import main
+    main(args)
+
+
+def main(sys_args: List[str] = sys.argv[1:]):
+    args = parse_args(sys_args)
+    commands[args.command](args)
+
+
+if __name__ == '__main__':
+    main()
