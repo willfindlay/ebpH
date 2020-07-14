@@ -34,7 +34,10 @@ def serve_forever():
 
 
 @app.get('/profiles')
-def _get_profiles():
+def get_profiles():
+    """
+    Returns a dictionary of key -> executable.
+    """
     try:
         return bpf_program.get_profiles()
     except Exception as e:
@@ -43,9 +46,12 @@ def _get_profiles():
 
 
 @app.get('/profiles/key/{key}')
-def _get_profile_key(key: int):
+def get_profile_key(key: int):
+    """
+    Returns a profile by key.
+    """
     try:
-        profile = bpf_program.get_profile(int(key))
+        profile = bpf_program.get_profile(key)
         return {
                 'exe': bpf_program.profile_key_to_exe[key],
                 'profile_key': key,
@@ -64,11 +70,14 @@ def _get_profile_key(key: int):
         raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {key}.')
 
 
-@app.get('/profiles/exe/{exe}')
-def _get_profile_exe(exe: str):
-    rev = {v: k for k, v in _get_profiles().items()}
+@app.get('/profiles/exe/{exe:path}')
+def get_profile_exe(exe: str):
+    """
+    Returns a profile by exe.
+    """
+    rev = {v: k for k, v in get_profiles().items()}
     try:
-        return _get_profile_key(rev[exe])
+        return get_profile_key(rev[exe])
     except KeyError as e:
         raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
     except Exception as e:
