@@ -13,13 +13,13 @@ struct ebph_task_state_t {
     u32 pid;
     u32 tgid;
     u64 profile_key;
-    s8 seqstack_top;
+    char seqstack_top;
     u64 count;
 };
 
 struct ebph_sequence_key_t {
     u32 pid;
-    s8 seqstack_top;
+    char seqstack_top;
 };
 
 struct ebph_sequence_t {
