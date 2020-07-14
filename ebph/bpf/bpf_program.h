@@ -38,9 +38,9 @@ struct ebph_flags_t {
 /* Current status of the ebpH profile.
  * Possible values: training, frozen, and normal. */
 enum ebph_profile_status_t : u8 {
-    EBPH_PROFILE_STATUS_TRAINING = 0x0,
-    EBPH_PROFILE_STATUS_FROZEN   = 0x1,
-    EBPH_PROFILE_STATUS_NORMAL   = 0x2,
+    EBPH_PROFILE_STATUS_TRAINING = 0x1,
+    EBPH_PROFILE_STATUS_FROZEN   = 0x2,
+    EBPH_PROFILE_STATUS_NORMAL   = 0x4,
 };
 
 /* An ebpH profile. */

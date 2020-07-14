@@ -45,6 +45,10 @@ BPF_DEFINES = {
 LOGDIR = '/var/log/ebpH'
 LOGFILE = os.path.join(LOGDIR, 'ebph.log')
 
+PIDFILE = '/run/ebpH.pid'
+
+EBPH_DATA_DIR = '/var/log/ebpH'
+
 EBPH_PORT = 1337
 
 PROFILE_SAVE_INTERVAL = 10000

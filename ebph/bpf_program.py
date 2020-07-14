@@ -47,6 +47,9 @@ class BPFProgram:
     def save_profiles(self) -> None:
         pass
 
+    def get_profile(self, key: int):
+        return self.bpf['profiles'][ct.c_uint64(key)]
+
     def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')
 

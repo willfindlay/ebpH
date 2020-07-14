@@ -18,6 +18,12 @@ class LoggerWriter:
         self.level = level
         self.message = ""
 
+    def isatty(self):
+        return False
+
+    def fileno(self):
+        return -1
+
     def write(self, message):
         """
         Write each line of the message to the log.

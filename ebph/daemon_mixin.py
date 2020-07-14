@@ -17,7 +17,7 @@ class DaemonMixin:
         Get pid of the running daemon.
         """
         try:
-            with open(defs.pidfile, 'r') as f:
+            with open(defs.PIDFILE, 'r') as f:
                return int(f.read().strip())
         except:
             return None
@@ -38,8 +38,8 @@ class DaemonMixin:
         """
         with DaemonContext(
                 umask=0o022,
-                working_directory=defs.ebph_data_dir,
-                pidfile=pidfile.TimeoutPIDLockFile(defs.pidfile),
+                working_directory=defs.EBPH_DATA_DIR,
+                pidfile=pidfile.TimeoutPIDLockFile(defs.PIDFILE),
                 # Necessary to preserve logging
                 files_preserve=[handler.stream for handler in logger.handlers]
                 ):
