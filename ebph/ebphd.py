@@ -124,15 +124,12 @@ def main():
         return args
 
     args = parse_args(sys.argv[1:])
-    # TODO: intialize folders here
-    setup_logger(args)
+    defs.init(args)
 
     global logger
     logger = get_logger()
 
     ebphd = EBPHDaemon(args)
-
-    #logger.debug(f"ebphd.py path: {path(__file__)}")
 
     if args.operation == "start":
         ebphd.start_daemon()

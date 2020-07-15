@@ -66,3 +66,26 @@ EBPH_PORT = 1337
 PROFILE_SAVE_INTERVAL = 10000
 
 TICK_SLEEP = 0.1
+
+
+def init(args):
+    """
+    Perform basic setup.
+    """
+    # Make working_directory or set permissions of existing working_directory
+    try:
+        os.makedirs(EBPH_DATA_DIR, mode=0o700, exist_ok=True)
+    except OSError:
+        os.chmod(EBPH_DATA_DIR, mode=0o700)
+
+    # Make policy_directory or set permissions of existing policy_directory
+    try:
+        os.makedirs(LOGDIR, mode=0o755, exist_ok=True)
+    except OSError:
+        os.chmod(LOGDIR, mode=0o755)
+
+    from ebph.logger import setup_logger
+    setup_logger(args)
+
+    # Make pidfile parent directory
+    os.makedirs(os.path.dirname(PIDFILE), exist_ok=True)
