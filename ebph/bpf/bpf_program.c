@@ -436,7 +436,7 @@ out:
 /* Calculate current epoch time in nanoseconds. */
 static __always_inline u64 ebph_current_time()
 {
-    return (u64)bpf_ktime_get_ns() + EBPH_BOOT_EPOCH;
+    return (u64)bpf_ktime_get_boot_ns() + EBPH_BOOT_EPOCH;
 };
 
 /* Look up and return a copy of training data for profile @profile_key
@@ -546,7 +546,7 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
 /* Calculate normal time for a new profile. */
 static __always_inline void ebph_set_normal_time(struct ebph_profile_t *profile)
 {
-    profile->normal_time = ebph_current_time() + EBPH_NORMAL_WAIT;
+    profile->normal_time = ebph_current_time() + ebph_get_setting(EBPH_SETTING_NORMAL_WAIT);
 };
 
 /* Create a new profile at @profile_key. */

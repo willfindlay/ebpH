@@ -55,7 +55,6 @@ class EBPHDaemon(DaemonMixin):
         """
         Main daemon setup + event loop.
         """
-        logger.info("Starting ebpH...")
         self._init_bpf_program()
 
         server_thread = threading.Thread(target=self._bpf_work_loop)
