@@ -1,8 +1,30 @@
 #include "bpf_program.h"
 
 /* =========================================================================
- * Maps
+ * ebpH Settings
  * ========================================================================= */
+
+BPF_ARRAY(_ebph_settings, u64, EBPH_SETTING__END);
+
+static __always_inline u64 ebph_get_setting(int key)
+{
+    u64 *res = _ebph_settings.lookup(&key);
+    if (!res) {
+        return 0;
+    }
+
+    return *res;
+}
+
+static __always_inline int ebph_set_setting(int key, u64 val)
+{
+    return _ebph_settings.update(&key, &val);
+}
+
+/* =========================================================================
+ * Maps
+ * =========================================================================
+ */
 
 /* PID (Kernel) -> Task State */
 BPF_HASH(task_states, u32, struct ebph_task_state_t, EBPH_MAX_PROCESSES);
@@ -50,7 +72,8 @@ static __always_inline void ebph_log_new_profile(u64 profile_key,
         sizeof(struct ebph_new_profile_event_t));
     if (event) {
         // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
-        bpf_get_current_comm(event->pathname, sizeof(event->pathname));
+        bpf_probe_read_str(event->pathname, sizeof(event->pathname),
+                           dentry->d_name.name);
         event->profile_key = profile_key;
         new_profile_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
@@ -176,7 +199,7 @@ static __always_inline void ebph_log_stop_normal(u64 profile_key,
         }
         event->profile_key   = profile_key;
         event->anomalies     = p->anomaly_count;
-        event->anomaly_limit = EBPH_ANOMALY_LIMIT;
+        event->anomaly_limit = ebph_get_setting(EBPH_SETTING_ANOMALY_LIMIT);
         stop_normal_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
 }
@@ -187,6 +210,11 @@ static __always_inline void ebph_log_stop_normal(u64 profile_key,
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
     if (args->id < 0) {
         return 0;
     }
@@ -211,6 +239,11 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 
 RAW_TRACEPOINT_PROBE(sched_process_fork)
 {
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
     struct ebph_task_state_t *parent_state;
     struct ebph_task_state_t *child_state;
 
@@ -239,6 +272,11 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
 
 RAW_TRACEPOINT_PROBE(sched_process_exec)
 {
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
     /* Yoink the linux_binprm */
     struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 
@@ -297,6 +335,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
 /* When a task exits */
 RAW_TRACEPOINT_PROBE(sched_process_exit)
 {
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
     u32 pid = bpf_get_current_pid_tgid();
     task_states.delete(&pid);
 
@@ -314,6 +357,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
 
 TRACEPOINT_PROBE(signal, signal_deliver)
 {
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
     u32 pid = bpf_get_current_pid_tgid();
 
     struct ebph_task_state_t *task_state = task_states.lookup(&pid);
@@ -331,6 +379,52 @@ TRACEPOINT_PROBE(signal, signal_deliver)
     if (!ebph_push_seq(task_state)) {
         // TODO log warning
     }
+
+    return 0;
+}
+
+/* =========================================================================
+ * USDT Commands
+ * ========================================================================= */
+
+int command_set_setting(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    int *key_p;
+    bpf_usdt_readarg(2, ctx, &key_p);
+    u64 *val_p;
+    bpf_usdt_readarg(3, ctx, &val_p);
+
+    int rc = 0;
+
+    int key;
+    if (bpf_probe_read(&key, sizeof(key), key_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    u64 val;
+    if (bpf_probe_read(&val, sizeof(val), val_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    if (ebph_get_setting(key) == val) {
+        rc = 1;
+        goto out;
+    }
+
+    if (ebph_set_setting(key, val)) {
+        rc = -EINVAL;
+        goto out;
+    }
+
+    bpf_trace_printk("set %d to %lu\n", key, val);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
 
     return 0;
 }
@@ -602,7 +696,8 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
     } else {
         lock_xadd(&profile->last_mod_count, 1);
 
-        if (profile->status & (EBPH_PROFILE_STATUS_FROZEN | EBPH_PROFILE_STATUS_NORMAL)) {
+        if (profile->status &
+            (EBPH_PROFILE_STATUS_FROZEN | EBPH_PROFILE_STATUS_NORMAL)) {
             return;
         }
 
@@ -612,8 +707,9 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
         }
 
         if ((normal_count > 0) &&
-            (profile->train_count * EBPH_NORMAL_FACTOR_DEN >
-             normal_count * EBPH_NORMAL_FACTOR)) {
+            (profile->train_count *
+                 ebph_get_setting(EBPH_SETTING_NORMAL_FACTOR_DEN) >
+             normal_count * ebph_get_setting(EBPH_SETTING_NORMAL_FACTOR))) {
             // Freeze profile
             profile->status |= EBPH_PROFILE_STATUS_FROZEN;
             ebph_set_normal_time(profile);
@@ -692,7 +788,8 @@ static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
     if (anomalies) {
         ebph_log_anomaly(sequence->calls[0], anomalies, task_state);
 
-        if (profile->anomaly_count > EBPH_ANOMALY_LIMIT) {
+        if (profile->anomaly_count >
+            ebph_get_setting(EBPH_SETTING_ANOMALY_LIMIT)) {
             ebph_stop_normal(task_state, profile);
         }
     }

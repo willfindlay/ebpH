@@ -1,13 +1,15 @@
+import os
 import time
 import atexit
 import ctypes as ct
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
 from bcc import BPF
 
+from ebph.libebph import Lib
 from ebph.logger import get_logger
-from ebph.profile import EBPHProfileStruct
+from ebph.structs import EBPHProfileStruct, EBPH_SETTINGS
 from ebph import defs
 
 logger = get_logger()
@@ -26,6 +28,7 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
 class BPFProgram:
     def __init__(self, debug=False):
         self.bpf = None
+        self.usdt_contexts = []
         self.seqstack_inner_bpf = None
         self.cflags = []
         self.debug = debug
@@ -36,7 +39,14 @@ class BPFProgram:
         self._set_cflags()
         self._load_bpf()
         self._register_ring_buffers()
-        self._register_uprobes()
+        self.load_profiles()
+
+        self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
+        self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
+        self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN)
+        self.change_setting(EBPH_SETTINGS.ANOMALY_LIMIT, defs.ANOMALY_LIMIT)
+
+        self.start_monitoring()
 
     def on_tick(self) -> None:
         try:
@@ -44,7 +54,53 @@ class BPFProgram:
         except Exception:
             pass
 
+    def change_setting(self, setting: EBPH_SETTINGS, value: int) -> int:
+        if value < 0:
+            logger.error('Value for {setting.name} must be a positive integer.')
+            return -1
+        rc = Lib.set_setting(setting, value)
+        err = os.strerror(ct.get_errno())
+        if rc < 0:
+            logger.error(f'Failed to set {setting.name} to {value}: {err}')
+        if rc == 1:
+            logger.warning(f'{setting.name} is already set to {value}.')
+        if rc == 0:
+            logger.info(f'{setting.name} set to {value}.')
+        return rc
+
+    def get_setting(self, setting: EBPH_SETTINGS) -> Optional[int]:
+        try:
+            return self.bpf['_ebph_settings'][ct.c_uint64(setting)].value
+        except (KeyError, IndexError):
+            logger.error(f'Failed to get {setting.name}: Key does not exist')
+        return None
+
+    def start_monitoring(self) -> int:
+        rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, True)
+        err = os.strerror(ct.get_errno())
+        if rc < 0:
+            logger.error(f'Failed to start monitoring: {err}')
+        if rc == 1:
+            logger.warning('System is already being monitored.')
+        if rc == 0:
+            logger.info('Started monitoring the system.')
+        return rc
+
+    def stop_monitoring(self) -> int:
+        rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, False)
+        err = os.strerror(ct.get_errno())
+        if rc < 0:
+            logger.error(f'Failed to stop monitoring: {err}')
+        if rc == 1:
+            logger.warning('System is not being monitored.')
+        if rc == 0:
+            logger.info('Stopped monitoring the system.')
+        return rc
+
     def save_profiles(self) -> None:
+        pass
+
+    def load_profiles(self) -> None:
         pass
 
     def get_profile(self, key: int) -> ct.Structure:
@@ -161,10 +217,6 @@ class BPFProgram:
                 logger.info(f'Stopped normal monitoring for {exe} '
                         f'with {anomalies} anomalies (limit {anomaly_limit}).')
 
-    def _register_uprobes(self) -> None:
-        logger.info('Registering uprobes...')
-        logger.error('TODO!')
-
     def _generate_syscall_defines(self, flags: List[str]) -> None:
         from bcc.syscall import syscalls
         for num, name in syscalls.items():
@@ -201,7 +253,7 @@ class BPFProgram:
         with open(defs.BPF_PROGRAM_C, 'r') as f:
             bpf_text = f.read()
 
-        self.bpf = BPF(text=bpf_text, cflags=self.cflags)
+        self.bpf = BPF(text=bpf_text, usdt_contexts=[Lib.usdt_context], cflags=self.cflags)
         # FIXME: BPF cleanup function is segfaulting, so unregister it for now.
         # It actually doesn't really do anything particularly useful.
         atexit.unregister(self.bpf.cleanup)
