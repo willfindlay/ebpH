@@ -444,8 +444,8 @@ static __always_inline u64 ebph_current_time()
 static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
                                                  u16 prev)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -459,7 +459,7 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
         return 0;
     }
 
-    return flags->flags[curr][prev];
+    return flags->flags[idx];
 }
 
 /* Look up and return a copy of testing data for profile @profile_key
@@ -467,8 +467,8 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
 static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -482,14 +482,14 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
         return 0;
     }
 
-    return flags->flags[curr][prev];
+    return flags->flags[idx];
 }
 
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -503,7 +503,7 @@ static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
         return 1;
     }
 
-    flags->flags[curr][prev] = new_flag;
+    flags->flags[idx] = new_flag;
 
     return 0;
 }

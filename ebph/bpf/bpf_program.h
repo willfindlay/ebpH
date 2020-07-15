@@ -38,7 +38,7 @@ struct ebph_sequence_t {
 };
 
 struct ebph_flags_t {
-    u8 flags[EBPH_NUM_SYSCALLS][EBPH_NUM_SYSCALLS];
+    u8 flags[EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS];
 };
 
 /* Current status of the ebpH profile.

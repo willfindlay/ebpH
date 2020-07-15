@@ -49,7 +49,7 @@ class EBPHDaemon(DaemonMixin):
 
     def _bpf_work_loop(self):
         while 1:
-            self.bpf_program.on_tick()
+            self.tick()
             time.sleep(defs.TICK_SLEEP)
 
     def loop_forever(self):
