@@ -117,6 +117,16 @@ def parse_args(sys_args: List[str]):
         'consider using ebphd instead.',
     )
 
+    save = admin_commands.add_parser(
+        'save',
+        help='Force ebpH to save all profiles to disk.',
+    )
+
+    load = admin_commands.add_parser(
+        'load',
+        help='Force ebpH to load all profiles from disk. Warning: This will overwrite your currently active profiles.',
+    )
+
     _set = admin_commands.add_parser('set', help='Change ebpH options.')
 
     set_categories = {

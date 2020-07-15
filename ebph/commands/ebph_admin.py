@@ -15,11 +15,15 @@ header = False
 def main(args: Namespace):
     if args.admin_command == 'start':
         subprocess.Popen(['ebphd', 'start']).wait()
-    if args.admin_command == 'stop':
+    elif args.admin_command == 'stop':
         subprocess.Popen(['ebphd', 'stop']).wait()
-    if args.admin_command == 'restart':
+    elif args.admin_command == 'restart':
         subprocess.Popen(['ebphd', 'restart']).wait()
-    if args.admin_command == 'set':
+    elif args.admin_command == 'save':
+        raise NotImplementedError()
+    elif args.admin_command == 'load':
+        raise NotImplementedError()
+    elif args.admin_command == 'set':
         setting = EBPH_SETTINGS(args.category)
         value = args.value
         try:
@@ -30,9 +34,12 @@ def main(args: Namespace):
             print(f'Failed to change {setting.name} to {value}!', file=sys.stderr)
             sys.exit(-1)
         print(f'Changed {setting.name} to {value}.')
-    if args.admin_command == 'normalize':
+    elif args.admin_command == 'normalize':
         raise NotImplementedError()
-    if args.admin_command == 'sensitize':
+    elif args.admin_command == 'sensitize':
         raise NotImplementedError()
-    if args.admin_command == 'tolerize':
+    elif args.admin_command == 'tolerize':
         raise NotImplementedError()
+    else:
+        print(f'Invalid command: {args.admin_command}!', file=sys.stderr)
+        sys.exit(-1)
