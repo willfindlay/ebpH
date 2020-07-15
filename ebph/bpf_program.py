@@ -9,7 +9,7 @@ from bcc import BPF
 
 from ebph.libebph import Lib
 from ebph.logger import get_logger
-from ebph.structs import EBPHProfileStruct, EBPH_SETTINGS
+from ebph.structs import EBPHProfileStruct, EBPH_SETTINGS, calculate_profile_magic
 from ebph import defs
 
 logger = get_logger()
@@ -26,7 +26,7 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
     return _inner
 
 class BPFProgram:
-    def __init__(self, debug=False):
+    def __init__(self, debug:bool = False, log_sequences:bool = False):
         self.bpf = None
         self.usdt_contexts = []
         self.seqstack_inner_bpf = None
@@ -40,6 +40,10 @@ class BPFProgram:
         self._load_bpf()
         self._register_ring_buffers()
         self.load_profiles()
+
+        atexit.register(self._cleanup)
+
+        self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
@@ -58,12 +62,17 @@ class BPFProgram:
         if value < 0:
             logger.error('Value for {setting.name} must be a positive integer.')
             return -1
+
+        if setting == EBPH_SETTINGS.MONITORING:
+            return self.start_monitoring() if value > 0 else self.stop_monitoring()
+
         rc = Lib.set_setting(setting, value)
         err = os.strerror(ct.get_errno())
+
         if rc < 0:
             logger.error(f'Failed to set {setting.name} to {value}: {err}')
         if rc == 1:
-            logger.warning(f'{setting.name} is already set to {value}.')
+            logger.info(f'{setting.name} is already set to {value}.')
         if rc == 0:
             logger.info(f'{setting.name} set to {value}.')
         return rc
@@ -75,33 +84,67 @@ class BPFProgram:
             logger.error(f'Failed to get {setting.name}: Key does not exist')
         return None
 
-    def start_monitoring(self) -> int:
+    def start_monitoring(self, silent=False) -> int:
         rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, True)
         err = os.strerror(ct.get_errno())
-        if rc < 0:
+        if rc < 0 and not silent:
             logger.error(f'Failed to start monitoring: {err}')
-        if rc == 1:
-            logger.warning('System is already being monitored.')
-        if rc == 0:
+        if rc == 1 and not silent:
+            logger.info('System is already being monitored.')
+        if rc == 0 and not silent:
             logger.info('Started monitoring the system.')
         return rc
 
-    def stop_monitoring(self) -> int:
+    def stop_monitoring(self, silent=False) -> int:
         rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, False)
         err = os.strerror(ct.get_errno())
-        if rc < 0:
+        if rc < 0 and not silent:
             logger.error(f'Failed to stop monitoring: {err}')
-        if rc == 1:
-            logger.warning('System is not being monitored.')
-        if rc == 0:
+        if rc == 1 and not silent:
+            logger.info('System is not being monitored.')
+        if rc == 0 and not silent:
             logger.info('Stopped monitoring the system.')
         return rc
 
     def save_profiles(self) -> None:
-        pass
+        logger.info('Saving profiles...')
+        for k in self.bpf['profiles'].keys():
+            key = k.value
+            exe = self.profile_key_to_exe[key]
+            fname = f'{key}'
+            try:
+                profile = EBPHProfileStruct.from_bpf(self.bpf, exe.encode('ascii'), key)
+                with open(os.path.join(defs.EBPH_DATA_DIR, fname), 'wb') as f:
+                    f.write(profile)
+                logger.debug(f'Successfully saved profile {fname} ({exe}).')
+            except Exception as e:
+                logger.error(f'Unable to save profile {fname} ({exe}).', exc_info=e)
+        logger.info('Saved profiles successfully!')
 
     def load_profiles(self) -> None:
-        pass
+        logger.info('Loading profiles...')
+        # If we are monitoring, stop
+        monitoring = self.get_setting(EBPH_SETTINGS.MONITORING)
+        if monitoring:
+            self.stop_monitoring()
+
+        for fname in os.listdir(defs.EBPH_DATA_DIR):
+            profile = EBPHProfileStruct()
+            with open(os.path.join(defs.EBPH_DATA_DIR, fname), 'rb') as f:
+                f.readinto(profile)
+            # Wrong version
+            if profile.magic != calculate_profile_magic():
+                logger.debug(f'Wrong magic number for profile {fname}, skipping.')
+                continue
+            profile.load_into_bpf(self.bpf)
+            self.profile_key_to_exe[profile.profile_key] = profile.exe.decode('ascii')
+            exe = self.profile_key_to_exe[profile.profile_key]
+            logger.debug(f'Successfully loaded profile {fname} ({exe}).')
+
+        # If we were monitoring, resume
+        if monitoring:
+            self.start_monitoring()
+        logger.info('Loaded profiles successfully!')
 
     def get_profile(self, key: int) -> ct.Structure:
         return self.bpf['profiles'][ct.c_uint64(key)]
@@ -161,8 +204,7 @@ class BPFProgram:
             task_count = event.task_count
 
             logger.debug(f'New sequence in PID {pid} ({exe}), task count = {task_count}, profile count = {profile_count}.')
-            logger.sequence(f'PID {pid} ({exe}): '
-                    + ', '.join(sequence))
+            logger.sequence(f'PID {pid} ({exe}): ' + ', '.join(sequence))
 
         @ringbuf_callback(self.bpf, 'start_normal_events')
         def start_normal_events(ctx, event, size):
@@ -257,4 +299,7 @@ class BPFProgram:
         # FIXME: BPF cleanup function is segfaulting, so unregister it for now.
         # It actually doesn't really do anything particularly useful.
         atexit.unregister(self.bpf.cleanup)
+
+    def _cleanup(self) -> None:
+        self.save_profiles()
 

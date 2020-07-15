@@ -3,17 +3,48 @@
 import os
 import sys
 import argparse
-from typing import Callable, List
+from typing import Callable, List, Union
+from pprint import pformat
+
+from ebph.structs import EBPH_SETTINGS
 
 commands = {}
+
 
 def command(name: str):
     def inner(func: Callable):
         def wrapper(args):
             func(args)
+
         global commands
         commands[name] = wrapper
+
     return inner
+
+
+class MappingAction(argparse.Action):
+    def __init__(self, option_strings, dest, mapping, **kwargs):
+        self.mapping = mapping
+        super(MappingAction, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = self.mapping.get(values, None)
+        setattr(namespace, self.dest, values)
+
+
+def option_value(value):
+    if value.lower() in ['t', 'true']:
+        ivalue = 1
+    elif value.lower() in ['f', 'false']:
+        ivalue = 0
+    else:
+        try:
+            ivalue = int(value)
+        except Exception:
+            raise argparse.ArgumentTypeError("Invalid option value")
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError("Option values must not be negative")
+    return ivalue
 
 
 def parse_args(sys_args: List[str]):
@@ -29,15 +60,18 @@ def parse_args(sys_args: List[str]):
         description=description,
         epilog=epilog,
         prog="ebph",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
-    commands = parser.add_subparsers(dest='command', metavar='command', required=True)
+    commands = parser.add_subparsers(
+        dest='command', metavar='command', required=True
+    )
 
     # ebpH ps
     ps = commands.add_parser(
         'ps', help='List traced processes, threads, or profiles.'
     )
+
     process_or_thread = ps.add_mutually_exclusive_group()
     process_or_thread.add_argument(
         '-t',
@@ -45,6 +79,7 @@ def parse_args(sys_args: List[str]):
         action='store_true',
         help=f"Print all threads instead of just thread group leader.",
     )
+
     process_or_thread.add_argument(
         '-p',
         '--profiles',
@@ -56,16 +91,93 @@ def parse_args(sys_args: List[str]):
     admin = commands.add_parser(
         'admin', help='Issue commands to the ebpH daemon.'
     )
-    admin_commands = admin.add_subparsers(dest='admin_command', metavar='subcommand', required=True)
-    start = admin_commands.add_parser('start', help='Start the daemon. You must '
-            'have root privileges to do this. For more advanced options, '
-            'consider using ebphd instead.')
-    stop = admin_commands.add_parser('stop', help='Stop the daemon. You must '
-            'have root privileges to do this. For more advanced options, '
-            'consider using ebphd instead.')
-    restart = admin_commands.add_parser('restart', help='Restart the daemon. You must '
-            'have root privileges to do this. For more advanced options, '
-            'consider using ebphd instead.')
+
+    admin_commands = admin.add_subparsers(
+        dest='admin_command', metavar='subcommand', required=True
+    )
+
+    start = admin_commands.add_parser(
+        'start',
+        help='Start the daemon. You must '
+        'have root privileges to do this. For more advanced options, '
+        'consider using ebphd instead.',
+    )
+
+    stop = admin_commands.add_parser(
+        'stop',
+        help='Stop the daemon. You must '
+        'have root privileges to do this. For more advanced options, '
+        'consider using ebphd instead.',
+    )
+
+    restart = admin_commands.add_parser(
+        'restart',
+        help='Restart the daemon. You must '
+        'have root privileges to do this. For more advanced options, '
+        'consider using ebphd instead.',
+    )
+
+    save = admin_commands.add_parser(
+        'save',
+        help='Force ebpH to save all profiles to disk.',
+    )
+
+    load = admin_commands.add_parser(
+        'load',
+        help='Force ebpH to load all profiles from disk. Warning: This will overwrite your currently active profiles.',
+    )
+
+    _set = admin_commands.add_parser('set', help='Change ebpH options.')
+
+    set_categories = {
+        'monitoring': EBPH_SETTINGS.MONITORING,
+        'log-sequences': EBPH_SETTINGS.LOG_SEQUENCES,
+        'normal-wait': EBPH_SETTINGS.NORMAL_WAIT,
+        'normal-factor': EBPH_SETTINGS.NORMAL_FACTOR,
+        'normal-factor-den': EBPH_SETTINGS.NORMAL_FACTOR_DEN,
+        'anomaly-limit': EBPH_SETTINGS.ANOMALY_LIMIT,
+    }
+
+    _set.add_argument(
+        'category',
+        metavar='category',
+        choices=set_categories.keys(),
+        action=MappingAction,
+        mapping=set_categories,
+        help='Option to change. Choices include: { %s }'
+        % (', '.join(set_categories.keys())),
+    )
+
+    _set.add_argument(
+        'value',
+        type=option_value,
+        help='Value to which the setting will be '
+        'changed. For T/F values, any positive integer is true and 0 is false.',
+    )
+
+    normalize = admin_commands.add_parser(
+        'normalize',
+        help='Normalize a process or profile.',
+    )
+    targets = normalize.add_mutually_exclusive_group(required=True)
+    targets.add_argument('--profile', type=str, help='String representing the profile to normalize.')
+    targets.add_argument('--pid', type=int, help='Integer representing the PID of the process to normalize.')
+
+    sensitize = admin_commands.add_parser(
+        'sensitize',
+        help='Normalize a process or profile.',
+    )
+    targets = sensitize.add_mutually_exclusive_group(required=True)
+    targets.add_argument('--profile', type=str, help='String representing the profile to sensitize.')
+    targets.add_argument('--pid', type=int, help='Integer representing the PID of the process to sensitize.')
+
+    tolerize = admin_commands.add_parser(
+        'tolerize',
+        help='Normalize a process or profile.',
+    )
+    targets = tolerize.add_mutually_exclusive_group(required=True)
+    targets.add_argument('--profile', type=str, help='String representing the profile to tolerize.')
+    targets.add_argument('--pid', type=int, help='Integer representing the PID of the process to tolerize.')
 
     args = parser.parse_args(sys_args)
 
@@ -79,12 +191,14 @@ def parse_args(sys_args: List[str]):
 @command('ps')
 def ps(args):
     from ebph.commands.ebph_ps import main
+
     main(args)
 
 
 @command('admin')
 def admin(args):
     from ebph.commands.ebph_admin import main
+
     main(args)
 
 

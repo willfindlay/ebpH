@@ -25,6 +25,8 @@ ANOMALY_LIMIT = 30
 NORMAL_WAIT = 1000000000 * 60 * 10 # 10 minutes
 #NORMAL_WAIT = 1000000000 * 30 # 30 seconds
 
+PATH_MAX = 4096
+
 # Compiler defines used in BPF program
 BPF_DEFINES = {
         # Maximum number of active profiles
@@ -57,7 +59,7 @@ LOGFILE = os.path.join(LOGDIR, 'ebph.log')
 
 PIDFILE = '/run/ebpH.pid'
 
-EBPH_DATA_DIR = '/var/log/ebpH'
+EBPH_DATA_DIR = '/var/lib/ebpH/profiles'
 
 EBPH_PORT = 1337
 

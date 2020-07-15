@@ -32,13 +32,13 @@ BPF_HASH(task_states, u32, struct ebph_task_state_t, EBPH_MAX_PROCESSES);
 /* Profile Key -> Profile */
 BPF_HASH(profiles, u64, struct ebph_profile_t, EBPH_MAX_PROFILES);
 
-/* {Profile Key, Curr Syscall} -> {Prev Syscall Flags} */
-BPF_F_TABLE("hash", struct ebph_flags_key_t, struct ebph_flags_t, training_data,
-            (EBPH_MAX_PROFILES * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
+/* Profile Key -> Syscall Flags */
+BPF_F_TABLE("hash", u64, struct ebph_flags_t, training_data,
+            EBPH_MAX_PROFILES, BPF_F_NO_PREALLOC);
 
-/* {Profile Key, Curr Syscall} -> {Prev Syscall Flags} */
-BPF_F_TABLE("hash", struct ebph_flags_key_t, struct ebph_flags_t, testing_data,
-            (EBPH_MAX_PROFILES * EBPH_NUM_SYSCALLS), BPF_F_NO_PREALLOC);
+/* Profile Key -> {Syscall Flags} */
+BPF_F_TABLE("hash", u64, struct ebph_flags_t, testing_data,
+            EBPH_MAX_PROFILES, BPF_F_NO_PREALLOC);
 
 /* {PID (Kernel), Stack Top} -> Sequence Stack */
 BPF_F_TABLE("hash", struct ebph_sequence_key_t, struct ebph_sequence_t,
@@ -444,8 +444,8 @@ static __always_inline u64 ebph_current_time()
 static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
                                                  u16 prev)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -453,18 +453,13 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
         return 0;
     }
 
-    struct ebph_flags_key_t key = {};
-
-    key.profile_key = profile_key;
-    key.curr        = curr;
-
-    flags = training_data.lookup_or_try_init(&key, flags);
+    flags = training_data.lookup_or_try_init(&profile_key, flags);
     if (!flags) {
         // TODO log error
         return 0;
     }
 
-    return flags->prev[prev];
+    return flags->flags[idx];
 }
 
 /* Look up and return a copy of testing data for profile @profile_key
@@ -472,8 +467,8 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
 static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -481,25 +476,20 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
         return 0;
     }
 
-    struct ebph_flags_key_t key = {};
-
-    key.profile_key = profile_key;
-    key.curr        = curr;
-
-    flags = testing_data.lookup_or_try_init(&key, flags);
+    flags = testing_data.lookup_or_try_init(&profile_key, flags);
     if (!flags) {
         // TODO log error
         return 0;
     }
 
-    return flags->prev[prev];
+    return flags->flags[idx];
 }
 
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag)
 {
-    curr &= EBPH_NUM_SYSCALLS - 1;
-    prev &= EBPH_NUM_SYSCALLS - 1;
+    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
+    idx &= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS - 1);
 
     struct ebph_flags_t *flags = ebph_new_flags();
     if (!flags) {
@@ -507,18 +497,13 @@ static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
         return 1;
     }
 
-    struct ebph_flags_key_t key = {};
-
-    key.profile_key = profile_key;
-    key.curr        = curr;
-
-    flags = training_data.lookup_or_try_init(&key, flags);
+    flags = training_data.lookup_or_try_init(&profile_key, flags);
     if (!flags) {
         // TODO log error
         return 1;
     }
 
-    flags->prev[prev] = new_flag;
+    flags->flags[idx] = new_flag;
 
     return 0;
 }
@@ -692,7 +677,9 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
 
         ebph_update_training_data(task_state, sequence);
 
-        ebph_log_new_sequence(task_state, profile, sequence);
+        if (ebph_get_setting(EBPH_SETTING_LOG_SEQUENCES)) {
+            ebph_log_new_sequence(task_state, profile, sequence);
+        }
     } else {
         lock_xadd(&profile->last_mod_count, 1);
 
@@ -734,22 +721,14 @@ static __always_inline void ebph_add_anomaly_count(
 static __always_inline void ebph_copy_train_to_test(
     struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
 {
-    struct ebph_flags_key_t key = {};
+    u64 profile_key = task_state->profile_key;
 
-    key.profile_key = task_state->profile_key;
-
-    for (u16 curr = 0; curr < EBPH_NUM_SYSCALLS; curr++) {
-        key.curr = curr;
-        if (!training_data.lookup(&key)) {
-            continue;
-        }
-
-        struct ebph_flags_t *training_flags = training_data.lookup(&key);
-        if (!training_flags) {
-            continue;
-        }
-        testing_data.update(&key, training_flags);
+    struct ebph_flags_t *training_flags = training_data.lookup(&profile_key);
+    if (!training_flags) {
+        return;
     }
+
+    testing_data.update(&profile_key, training_flags);
 }
 
 static __always_inline void ebph_start_normal(
