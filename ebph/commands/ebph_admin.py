@@ -14,8 +14,8 @@ header = False
 
 def main(args: Namespace):
     if args.admin_command == 'start':
-        subprocess.Popen(['ebphd', 'start'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(['ebphd', 'start']).wait()
     if args.admin_command == 'stop':
-        subprocess.Popen(['ebphd', 'stop'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(['ebphd', 'stop']).wait()
     if args.admin_command == 'restart':
-        subprocess.Popen(['ebphd', 'restart'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(['ebphd', 'restart']).wait()
