@@ -70,7 +70,7 @@ class BPFProgram:
         if rc < 0:
             logger.error(f'Failed to set {setting.name} to {value}: {err}')
         if rc == 1:
-            logger.warning(f'{setting.name} is already set to {value}.')
+            logger.info(f'{setting.name} is already set to {value}.')
         if rc == 0:
             logger.info(f'{setting.name} set to {value}.')
         return rc
@@ -88,7 +88,7 @@ class BPFProgram:
         if rc < 0:
             logger.error(f'Failed to start monitoring: {err}')
         if rc == 1:
-            logger.warning('System is already being monitored.')
+            logger.info('System is already being monitored.')
         if rc == 0:
             logger.info('Started monitoring the system.')
         return rc
@@ -99,7 +99,7 @@ class BPFProgram:
         if rc < 0:
             logger.error(f'Failed to stop monitoring: {err}')
         if rc == 1:
-            logger.warning('System is not being monitored.')
+            logger.info('System is not being monitored.')
         if rc == 0:
             logger.info('Stopped monitoring the system.')
         return rc

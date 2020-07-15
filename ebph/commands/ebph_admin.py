@@ -3,7 +3,6 @@ import json
 from argparse import Namespace
 from typing import Dict
 import subprocess
-from pprint import pformat
 
 import requests
 from requests.exceptions import ConnectionError
@@ -31,3 +30,9 @@ def main(args: Namespace):
             print(f'Failed to change {setting.name} to {value}!', file=sys.stderr)
             sys.exit(-1)
         print(f'Changed {setting.name} to {value}.')
+    if args.admin_command == 'normalize':
+        raise NotImplementedError()
+    if args.admin_command == 'sensitize':
+        raise NotImplementedError()
+    if args.admin_command == 'tolerize':
+        raise NotImplementedError()
