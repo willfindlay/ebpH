@@ -24,6 +24,7 @@ class EBPHDaemon(DaemonMixin):
         self.bpf_program = None
 
         self.debug = args.debug
+        self.log_sequences = args.log_sequences
 
         # Number of elapsed ticks
         self.tick_count = 0
@@ -42,7 +43,7 @@ class EBPHDaemon(DaemonMixin):
     def _init_bpf_program(self):
         assert self.bpf_program is None
         from ebph.bpf_program import BPFProgram
-        self.bpf_program = BPFProgram(debug=self.debug)
+        self.bpf_program = BPFProgram(debug=self.debug, log_sequences=self.log_sequences)
         global bpf_program
         bpf_program = self.bpf_program
 

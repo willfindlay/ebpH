@@ -133,10 +133,8 @@ def setup_logger(args):
     logger = get_logger()
     if args.debug:
         logger.setLevel(logging.DEBUG)
-    elif args.log_sequences:
-        logger.setLevel(EBPHLoggerClass.SEQUENCE)
     else:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(EBPHLoggerClass.SEQUENCE)
 
     # Create and add handler
     if args.nolog:

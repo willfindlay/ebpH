@@ -26,7 +26,7 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
     return _inner
 
 class BPFProgram:
-    def __init__(self, debug=False):
+    def __init__(self, debug:bool = False, log_sequences:bool = False):
         self.bpf = None
         self.usdt_contexts = []
         self.seqstack_inner_bpf = None
@@ -40,6 +40,8 @@ class BPFProgram:
         self._load_bpf()
         self._register_ring_buffers()
         self.load_profiles()
+
+        self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
@@ -58,8 +60,13 @@ class BPFProgram:
         if value < 0:
             logger.error('Value for {setting.name} must be a positive integer.')
             return -1
+
+        if setting == EBPH_SETTINGS.MONITORING:
+            return self.start_monitoring() if value > 0 else self.stop_monitoring()
+
         rc = Lib.set_setting(setting, value)
         err = os.strerror(ct.get_errno())
+
         if rc < 0:
             logger.error(f'Failed to set {setting.name} to {value}: {err}')
         if rc == 1:
@@ -161,8 +168,7 @@ class BPFProgram:
             task_count = event.task_count
 
             logger.debug(f'New sequence in PID {pid} ({exe}), task count = {task_count}, profile count = {profile_count}.')
-            logger.sequence(f'PID {pid} ({exe}): '
-                    + ', '.join(sequence))
+            logger.sequence(f'PID {pid} ({exe}): ' + ', '.join(sequence))
 
         @ringbuf_callback(self.bpf, 'start_normal_events')
         def start_normal_events(ctx, event, size):

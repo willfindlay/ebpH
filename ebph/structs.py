@@ -30,6 +30,7 @@ class EBPH_PROFILE_STATUS(IntFlag):
 @unique
 class EBPH_SETTINGS(IntEnum):
     MONITORING = 0
+    LOG_SEQUENCES = auto()
     NORMAL_WAIT = auto()
     NORMAL_FACTOR = auto()
     NORMAL_FACTOR_DEN = auto()

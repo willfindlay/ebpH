@@ -677,7 +677,9 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
 
         ebph_update_training_data(task_state, sequence);
 
-        ebph_log_new_sequence(task_state, profile, sequence);
+        if (ebph_get_setting(EBPH_SETTING_LOG_SEQUENCES)) {
+            ebph_log_new_sequence(task_state, profile, sequence);
+        }
     } else {
         lock_xadd(&profile->last_mod_count, 1);
 

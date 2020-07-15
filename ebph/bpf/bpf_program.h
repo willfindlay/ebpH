@@ -12,6 +12,7 @@
 /* Keys into settings map */
 enum ebph_setting_key_t : int {
     EBPH_SETTING_MONITORING = 0,
+    EBPH_SETTING_LOG_SEQUENCES,
     EBPH_SETTING_NORMAL_WAIT,
     EBPH_SETTING_NORMAL_FACTOR,
     EBPH_SETTING_NORMAL_FACTOR_DEN,
