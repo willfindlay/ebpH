@@ -2,7 +2,6 @@ import os
 import subprocess
 import ctypes as ct
 import time
-import logging
 
 from ebph.bpf_program import BPFProgram
 from ebph.utils import which, calculate_profile_key

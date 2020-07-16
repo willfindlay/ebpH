@@ -73,13 +73,6 @@ class BPFProgram:
             )
             return -1
 
-        if setting == EBPH_SETTINGS.MONITORING:
-            return (
-                self.start_monitoring()
-                if value > 0
-                else self.stop_monitoring()
-            )
-
         rc = Lib.set_setting(setting, value)
         err = os.strerror(ct.get_errno())
 
@@ -99,23 +92,25 @@ class BPFProgram:
         return None
 
     def start_monitoring(self, silent=False) -> int:
+        if self.get_setting(EBPH_SETTINGS.MONITORING) and not silent:
+            logger.info('System is already being monitored.')
+            return 1
         rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, True)
         err = os.strerror(ct.get_errno())
         if rc < 0 and not silent:
             logger.error(f'Failed to start monitoring: {err}')
-        if rc == 1 and not silent:
-            logger.info('System is already being monitored.')
         if rc == 0 and not silent:
             logger.info('Started monitoring the system.')
         return rc
 
     def stop_monitoring(self, silent=False) -> int:
+        if not self.get_setting(EBPH_SETTINGS.MONITORING) and not silent:
+            logger.info('System is not being monitored.')
+            return 1
         rc = Lib.set_setting(EBPH_SETTINGS.MONITORING, False)
         err = os.strerror(ct.get_errno())
         if rc < 0 and not silent:
             logger.error(f'Failed to stop monitoring: {err}')
-        if rc == 1 and not silent:
-            logger.info('System is not being monitored.')
         if rc == 0 and not silent:
             logger.info('Stopped monitoring the system.')
         return rc
