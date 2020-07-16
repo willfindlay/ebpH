@@ -1,4 +1,8 @@
-# ebpH v0.9.0
+# ebpH DEPRECATED
+
+## WARNING:
+
+This version of ebpH is deprecated. If you are running Linux 5.8+, consider using the new version on master.
 
 ## Description
 
