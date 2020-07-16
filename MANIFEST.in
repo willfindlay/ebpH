@@ -1,0 +1,2 @@
+recursive-include ebph/ *.c
+recursive-include ebph/ *.h
