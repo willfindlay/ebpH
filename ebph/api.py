@@ -9,7 +9,7 @@ import uvicorn
 from ebph import defs
 from ebph.ebphd import bpf_program
 from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
-from ebph.utils import ns_to_str
+from ebph.utils import ns_to_str, ns_to_delta_str
 from ebph.logger import get_logger
 
 app = FastAPI()
@@ -32,6 +32,46 @@ def serve_forever():
         log_level=logging.WARNING,
         log_config=LOGGING_CONFIG,
     )
+
+
+@app.get('/status')
+def get_status() -> Dict:
+    """
+    Returns the status of the BPF program.
+    """
+    try:
+        num_profiles = 0
+        num_training = 0
+        num_frozen = 0
+        num_normal = 0
+        for k, v in bpf_program.bpf['profiles'].iteritems():
+            num_profiles += 1
+            if v.status & EBPH_PROFILE_STATUS.TRAINING:
+                num_training += 1
+            if v.status & EBPH_PROFILE_STATUS.FROZEN:
+                num_frozen += 1
+            if v.status & EBPH_PROFILE_STATUS.NORMAL:
+                num_normal += 1
+
+        num_processes = 0
+        num_threads = 0
+        for k, v in bpf_program.bpf['task_states'].iteritems():
+            if v.pid == v.tgid:
+                num_processes += 1
+            num_threads += 1
+        res = {
+                'Monitoring': bool(bpf_program.get_setting(EBPH_SETTINGS.MONITORING)),
+                'Profiles': f'{num_profiles} ({num_training} training, {num_frozen} frozen, {num_normal} normal)',
+                'Processes': f'{num_processes} ({num_threads} threads)',
+                'Normal Wait': ns_to_delta_str(bpf_program.get_setting(EBPH_SETTINGS.NORMAL_WAIT)),
+                'Normal Factor': f'{bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR)}/'
+                                 f'{bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN)}',
+                'Anomaly Limit': bpf_program.get_setting(EBPH_SETTINGS.ANOMALY_LIMIT),
+                }
+        return res
+    except Exception as e:
+        logger.error('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Unable to get status.')
 
 
 @app.get('/profiles')
@@ -86,6 +126,53 @@ def get_profile_by_exe(exe: str) -> Dict:
         raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {exe}.')
 
 
+@app.put('/profiles/key/{key}/normalize')
+def normalize_profile_by_key(key: int) -> Dict:
+    """
+    Normalize a profile by its key.
+    """
+    try:
+        rc = bpf_program.normalize_profile(key)
+    except Exception as e:
+        logger.debug('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {key}.')
+    if rc < 0:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to normalize profile {key}.')
+    return get_profile_by_key(key)
+
+
+@app.put('/profiles/exe/{exe:path}/normalize')
+def normalize_profile_by_exe(exe: str) -> Dict:
+    """
+    Normalize a profile by its exe.
+    """
+    rev = {v: k for k, v in bpf_program.profile_key_to_exe.items()}
+    try:
+        return normalize_profile_by_key(rev[exe])
+    except KeyError as e:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
+    except Exception as e:
+        logger.debug('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {exe}.')
+
+@app.put('/profiles/save')
+def save_profiles() -> Dict:
+    """
+    Save profiles.
+    """
+    saved, error = bpf_program.save_profiles()
+    return {'saved': saved, 'error': error}
+
+
+@app.put('/profiles/load')
+def load_profiles() -> Dict:
+    """
+    Load profiles.
+    """
+    loaded, error = bpf_program.load_profiles()
+    return {'loaded': loaded, 'error': error}
+
+
 @app.get('/processes')
 def get_processes() -> List[Dict]:
     """
@@ -130,7 +217,6 @@ def get_process(pid: int) -> Dict:
             }
 
 
-# FIXME: change setting type to EBPH_SETTINGS
 @app.get('/settings/{setting}')
 def get_setting(setting: EBPH_SETTINGS) -> Dict:
     """
@@ -142,7 +228,6 @@ def get_setting(setting: EBPH_SETTINGS) -> Dict:
     return {'setting': setting, 'value': value}
 
 
-# FIXME: change setting type to EBPH_SETTINGS
 @app.put('/settings/{setting}/{value}')
 def change_setting(setting: EBPH_SETTINGS, value: int = Path(..., ge=0)) -> Dict:
     """

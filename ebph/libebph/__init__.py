@@ -46,3 +46,7 @@ class Lib:
     def set_setting(key: ct.c_int, value: ct.c_uint64) -> ct.c_int:
         pass
 
+    @command
+    def normalize_profile(profile_key: ct.c_uint64) -> ct.c_int:
+        pass
+

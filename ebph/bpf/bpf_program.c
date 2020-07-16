@@ -33,12 +33,12 @@ BPF_HASH(task_states, u32, struct ebph_task_state_t, EBPH_MAX_PROCESSES);
 BPF_HASH(profiles, u64, struct ebph_profile_t, EBPH_MAX_PROFILES);
 
 /* Profile Key -> Syscall Flags */
-BPF_F_TABLE("hash", u64, struct ebph_flags_t, training_data,
-            EBPH_MAX_PROFILES, BPF_F_NO_PREALLOC);
+BPF_F_TABLE("hash", u64, struct ebph_flags_t, training_data, EBPH_MAX_PROFILES,
+            BPF_F_NO_PREALLOC);
 
 /* Profile Key -> {Syscall Flags} */
-BPF_F_TABLE("hash", u64, struct ebph_flags_t, testing_data,
-            EBPH_MAX_PROFILES, BPF_F_NO_PREALLOC);
+BPF_F_TABLE("hash", u64, struct ebph_flags_t, testing_data, EBPH_MAX_PROFILES,
+            BPF_F_NO_PREALLOC);
 
 /* {PID (Kernel), Stack Top} -> Sequence Stack */
 BPF_F_TABLE("hash", struct ebph_sequence_key_t, struct ebph_sequence_t,
@@ -421,7 +421,35 @@ int command_set_setting(struct pt_regs *ctx)
         goto out;
     }
 
-    bpf_trace_printk("set %d to %lu\n", key, val);
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
+int command_normalize_profile(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u64 *profile_key_p;
+    bpf_usdt_readarg(2, ctx, &profile_key_p);
+
+    int rc = 0;
+
+    u64 profile_key;
+    if (bpf_probe_read(&profile_key, sizeof(profile_key), profile_key_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&profile_key);
+    if (!profile) {
+        rc = -ENOENT;
+        goto out;
+    }
+
+    ebph_start_normal(profile_key, NULL, profile);
 
 out:
     bpf_probe_write_user(rc_p, &rc, sizeof(rc));
@@ -531,7 +559,8 @@ static __always_inline struct ebph_task_state_t *ebph_new_task_state(
 /* Calculate normal time for a new profile. */
 static __always_inline void ebph_set_normal_time(struct ebph_profile_t *profile)
 {
-    profile->normal_time = ebph_current_time() + ebph_get_setting(EBPH_SETTING_NORMAL_WAIT);
+    profile->normal_time =
+        ebph_current_time() + ebph_get_setting(EBPH_SETTING_NORMAL_WAIT);
 };
 
 /* Create a new profile at @profile_key. */
@@ -718,11 +747,8 @@ static __always_inline void ebph_add_anomaly_count(
     }
 }
 
-static __always_inline void ebph_copy_train_to_test(
-    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+static __always_inline void ebph_copy_train_to_test(u64 profile_key)
 {
-    u64 profile_key = task_state->profile_key;
-
     struct ebph_flags_t *training_flags = training_data.lookup(&profile_key);
     if (!training_flags) {
         return;
@@ -732,11 +758,12 @@ static __always_inline void ebph_copy_train_to_test(
 }
 
 static __always_inline void ebph_start_normal(
-    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+    u64 profile_key, struct ebph_task_state_t *task_state,
+    struct ebph_profile_t *profile)
 {
-    ebph_copy_train_to_test(task_state, profile);
+    ebph_copy_train_to_test(profile_key);
 
-    ebph_log_start_normal(task_state->profile_key, task_state, profile);
+    ebph_log_start_normal(profile_key, task_state, profile);
 
     profile->status         = EBPH_PROFILE_STATUS_NORMAL;
     profile->anomaly_count  = 0;
@@ -745,9 +772,10 @@ static __always_inline void ebph_start_normal(
 }
 
 static __always_inline void ebph_stop_normal(
-    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile)
+    u64 profile_key, struct ebph_task_state_t *task_state,
+    struct ebph_profile_t *profile)
 {
-    ebph_log_stop_normal(task_state->profile_key, task_state, profile);
+    ebph_log_stop_normal(profile_key, task_state, profile);
 
     profile->status = EBPH_PROFILE_STATUS_TRAINING;
 
@@ -769,7 +797,7 @@ static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
 
         if (profile->anomaly_count >
             ebph_get_setting(EBPH_SETTING_ANOMALY_LIMIT)) {
-            ebph_stop_normal(task_state, profile);
+            ebph_stop_normal(task_state->profile_key, task_state, profile);
         }
     }
 
@@ -809,7 +837,7 @@ static __always_inline void ebph_handle_syscall(
     if ((profile->status & EBPH_PROFILE_STATUS_FROZEN) &&
         !(profile->status & EBPH_PROFILE_STATUS_NORMAL) &&
         ebph_current_time() > profile->normal_time) {
-        ebph_start_normal(task_state, profile);
+        ebph_start_normal(task_state->profile_key, task_state, profile);
     }
 
     ebph_do_normal(task_state, profile, sequence);

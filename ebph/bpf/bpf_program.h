@@ -64,31 +64,75 @@ struct ebph_profile_t {
  * Helper Functions
  * ========================================================================= */
 
+/* Calculate current epoch time in nanoseconds. */
 static __always_inline u64 ebph_current_time();
 
-/* Profile data helpers. */
+/* Look up and return a copy of training data for profile @profile_key
+ * at position {@curr, @prev}. */
 static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
                                                  u16 prev);
+
+/* Look up and return a copy of testing data for profile @profile_key
+ * at position {@curr, @prev}. */
 static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev);
+
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag);
 
-/* Profile creation. */
-static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key);
-
-/* Task state helpers. */
+/* Create a new task_state {@pid, @tgid, @profile_key} at @pid. */
 static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     u32 pid, u32 tgid, u64 profile_key);
 
-/* Sequence stack helpers. */
+/* Calculate normal time for a new profile. */
+static __always_inline void ebph_set_normal_time(
+    struct ebph_profile_t *profile);
+
+/* Create a new profile at @profile_key. */
+static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key);
+
+/* Push a new frame onto the sequence stack for @task_state. */
 static __always_inline struct ebph_sequence_t *ebph_push_seq(
     struct ebph_task_state_t *task_state);
+
+/* Pop a frame from the sequence stack for @task_state. */
 static __always_inline struct ebph_sequence_t *ebph_pop_seq(
     struct ebph_task_state_t *task_state);
+
+/* Peek a frame from the sequence stack for @task_state. */
 static __always_inline struct ebph_sequence_t *ebph_peek_seq(
     struct ebph_task_state_t *task_state);
 
+static __always_inline int ebph_test(struct ebph_task_state_t *task_state,
+                                     struct ebph_sequence_t *sequence,
+                                     bool use_testing_data);
+
+static __always_inline void ebph_update_training_data(
+    struct ebph_task_state_t *task_state, struct ebph_sequence_t *sequence);
+
+static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
+                                          struct ebph_profile_t *profile,
+                                          struct ebph_sequence_t *sequence);
+
+static __always_inline void ebph_add_anomaly_count(
+    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile,
+    int count);
+
+static __always_inline void ebph_copy_train_to_test(u64 profile_key);
+
+static __always_inline void ebph_start_normal(
+    u64 profile_key, struct ebph_task_state_t *task_state,
+    struct ebph_profile_t *profile);
+
+static __always_inline void ebph_stop_normal(
+    u64 profile_key, struct ebph_task_state_t *task_state,
+    struct ebph_profile_t *profile);
+
+static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
+                                           struct ebph_profile_t *profile,
+                                           struct ebph_sequence_t *sequence);
+
+/* Process a new syscall. */
 static __always_inline void ebph_handle_syscall(
     struct ebph_task_state_t *task_state, u16 syscall);
 
