@@ -2,6 +2,8 @@
 
 ## Description
 
+ebpH stands for Extended BPF Process Homeostasis.
+
 ebpH is a modern host-based intrusion detection system for Linux 5.8+ that
 leverages the power of Extended BPF (eBPF) to monitor processes and detect anomalous behavior.
 This effectively constitutes an eBPF implementation of [pH (Process Homeostasis)](https://people.scs.carleton.ca/~mvvelzen/pH/pH.html).
@@ -26,8 +28,8 @@ This product comes with no warranty, and is built as a research system. It shoul
 ## Prerequisites
 
 1. Linux 5.8+ compiled with at least `CONFIG_BPF=y`, `CONFIG_BPF_SYSCALL=y`, `CONFIG_BPF_JIT=y`, `CONFIG_TRACEPOINTS=y`
-1. The **latest version** of bcc and bcc-python from https://github.com/iovisor/bcc
-    - be sure to include `-DPYTHON_CMD=python3` in your build flags
+1. Either the latest version of bcc from https://github.com/iovisor/bcc or bcc version 0.16+.
+    - If building from source, be sure to include `-DPYTHON_CMD=python3` in your the cmake flags
 1. Python 3.6+
 
 ## Installation
@@ -39,5 +41,6 @@ This product comes with no warranty, and is built as a research system. It shoul
 ## How to Use / Examples
 
 1. Run `$ sudo ebphd start` to start the daemon.
+1. Run `$ ebph admin status` to check daemon status.
 1. Run `$ ebph ps` to check monitored processes.
 1. Run `$ ebph ps -p` to list all active profiles.
