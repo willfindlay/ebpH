@@ -376,3 +376,5 @@ class BPFProgram:
 
     def _cleanup(self) -> None:
         self.save_profiles()
+        del self.bpf
+        self.bpf = None

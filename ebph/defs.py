@@ -54,8 +54,7 @@ BPF_DEFINES = {
         'EBPH_ANOMALY_LIMIT': 30,
         }
 
-LOGDIR = '/var/log/ebpH'
-LOGFILE = os.path.join(LOGDIR, 'ebph.log')
+LOG_DIR = '/var/log/ebpH'
 
 PIDFILE = '/run/ebpH.pid'
 
@@ -72,6 +71,10 @@ def init(args):
     """
     Perform basic setup.
     """
+    # Set log file location
+    global LOGFILE
+    LOGFILE = os.path.join(LOG_DIR, 'ebph.log')
+
     # Make working_directory or set permissions of existing working_directory
     try:
         os.makedirs(EBPH_DATA_DIR, mode=0o700, exist_ok=True)
@@ -80,9 +83,9 @@ def init(args):
 
     # Make policy_directory or set permissions of existing policy_directory
     try:
-        os.makedirs(LOGDIR, mode=0o755, exist_ok=True)
+        os.makedirs(LOG_DIR, mode=0o755, exist_ok=True)
     except OSError:
-        os.chmod(LOGDIR, mode=0o755)
+        os.chmod(LOG_DIR, mode=0o755)
 
     from ebph.logger import setup_logger
     setup_logger(args)
