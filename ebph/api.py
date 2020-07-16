@@ -9,7 +9,7 @@ import uvicorn
 from ebph import defs
 from ebph.ebphd import bpf_program
 from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
-from ebph.utils import ns_to_str
+from ebph.utils import ns_to_str, ns_to_delta_str
 from ebph.logger import get_logger
 
 app = FastAPI()
@@ -32,6 +32,46 @@ def serve_forever():
         log_level=logging.WARNING,
         log_config=LOGGING_CONFIG,
     )
+
+
+@app.get('/status')
+def get_status() -> Dict:
+    """
+    Returns the status of the BPF program.
+    """
+    try:
+        num_profiles = 0
+        num_training = 0
+        num_frozen = 0
+        num_normal = 0
+        for k, v in bpf_program.bpf['profiles'].iteritems():
+            num_profiles += 1
+            if v.status & EBPH_PROFILE_STATUS.TRAINING:
+                num_training += 1
+            if v.status & EBPH_PROFILE_STATUS.FROZEN:
+                num_frozen += 1
+            if v.status & EBPH_PROFILE_STATUS.NORMAL:
+                num_normal += 1
+
+        num_processes = 0
+        num_threads = 0
+        for k, v in bpf_program.bpf['task_states'].iteritems():
+            if v.pid == v.tgid:
+                num_processes += 1
+            num_threads += 1
+        res = {
+                'Monitoring': bool(bpf_program.get_setting(EBPH_SETTINGS.MONITORING)),
+                'Profiles': f'{num_profiles} ({num_training} training, {num_frozen} frozen, {num_normal} normal)',
+                'Processes': f'{num_processes} ({num_threads} threads)',
+                'Normal Wait': ns_to_delta_str(bpf_program.get_setting(EBPH_SETTINGS.NORMAL_WAIT)),
+                'Normal Factor': f'{bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR)}/'
+                                 f'{bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN)}',
+                'Anomaly Limit': bpf_program.get_setting(EBPH_SETTINGS.ANOMALY_LIMIT),
+                }
+        return res
+    except Exception as e:
+        logger.error('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Unable to get status.')
 
 
 @app.get('/profiles')
@@ -98,7 +138,7 @@ def save_profiles() -> Dict:
 @app.put('/profiles/load')
 def load_profiles() -> Dict:
     """
-    Save profiles.
+    Load profiles.
     """
     loaded, error = bpf_program.load_profiles()
     return {'loaded': loaded, 'error': error}

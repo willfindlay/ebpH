@@ -59,7 +59,18 @@ def load(args: Namespace):
 
 @command('status')
 def status(args: Namespace):
-    raise NotImplementedError()
+    try:
+        res = requests.get(f'http://localhost:{defs.EBPH_PORT}/status')
+    except requests.ConnectionError:
+        print('Unable to connect to ebpH daemon!', file=sys.stderr)
+        sys.exit(-1)
+    if res.status_code != 200:
+        print('Unable to get status.', file=sys.stderr)
+        sys.exit(-1)
+    res = json.loads(res.content)
+    for k, v in res.items():
+        keystr = f'{k}:'
+        print(f'{keystr:<16} {v}')
 
 @command('set')
 def set(args: Namespace):

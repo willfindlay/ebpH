@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def project_path(f):
     """
@@ -25,3 +25,7 @@ def read_chunks(f, size=1024):
 def ns_to_str(ns: int):
     dt = datetime.fromtimestamp(ns // 1000000000)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+def ns_to_delta_str(ns: int):
+    td = timedelta(seconds=(ns // 1000000000))
+    return str(td)
