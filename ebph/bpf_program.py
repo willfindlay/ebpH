@@ -199,6 +199,10 @@ class BPFProgram:
         logger.info(f'Loaded {loaded} profiles successfully!')
         return loaded, error
 
+    def get_full_profile(self, key: int) -> ct.Structure:
+        exe = self.profile_key_to_exe[key]
+        return EBPHProfileStruct.from_bpf(self.bpf, exe.encode('ascii'), key)
+
     def get_profile(self, key: int) -> ct.Structure:
         return self.bpf['profiles'][ct.c_uint64(key)]
 

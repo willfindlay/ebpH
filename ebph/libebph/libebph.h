@@ -20,7 +20,7 @@
     }                                           \
                                                 \
     if (rc == MAGIC_RC) {                       \
-        return EPERM;                           \
+        return -EPERM;                           \
     }                                           \
                                                 \
     if (rc < 0) {                               \
