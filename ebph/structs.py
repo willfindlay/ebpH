@@ -71,6 +71,18 @@ class EBPHProfileDataStruct(ct.Structure):
         ),
     )
 
+    def __eq__(self, other):
+        try:
+            self_len = len(self.flags)
+            other_len = len(other.flags)
+            assert self_len == other_len
+            for i in range(self_len):
+                assert self.flags[i] == other.flags[i]
+        except Exception:
+            return False
+        return True
+
+
 class EBPHProfileStruct(ct.Structure):
     _fields_ = (
         ('magic', ct.c_uint64),
@@ -86,6 +98,22 @@ class EBPHProfileStruct(ct.Structure):
         ('test', EBPHProfileDataStruct),
         ('exe', ct.c_char * defs.PATH_MAX),
     )
+
+    def __eq__(self, other):
+        try:
+            assert self.profile_key == other.profile_key
+            assert self.status == other.status
+            assert self.anomaly_count == other.anomaly_count
+            assert self.train_count == other.train_count
+            assert self.last_mod_count == other.last_mod_count
+            assert self.sequences == other.sequences
+            assert self.normal_time == other.normal_time
+            assert self.count == other.count
+            assert self.exe == other.exe
+        except Exception:
+            return False
+        return True
+
 
     def _asdict(self) -> dict:
         return {field[0]: getattr(self, field[0]) for field in self._fields_}

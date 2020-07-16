@@ -1,3 +1,5 @@
+#! /bin/bash
+
 # ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
 # Copyright (C) 2019-2020  William Findlay
 #
@@ -17,8 +19,6 @@
 # A sample workload for unit tests.
 #
 # 2020-Jul-13  William Findlay  Created this.
-
-#! /bin/bash
 
 ls | wc -l
 ps aux

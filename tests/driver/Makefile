@@ -1,3 +1,15 @@
+CC     = gcc
+LDLAGS =
+CFLAGS = -O0
+
+EXES   = hello
+
 .PHONY: all
-all:
-	@echo "Nothing to do!"
+all: $(EXES)
+
+.PHONY: clean
+clean:
+	rm -f $(EXES) *.o
+
+hello: hello.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o hello hello.c
