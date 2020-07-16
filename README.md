@@ -33,8 +33,8 @@ This product comes with no warranty, and is built as a research system. It shoul
 ## Installation
 
 1. Install the prerequisites (see above).
-1. `git clone https://github.com/willfindlay/ebpH-v2`
-1. `cd ebpH-v2 && pip3 install -e . -r requirements.txt`
+1. `git clone https://github.com/willfindlay/ebpH`
+1. `cd ebpH && sudo make install`
 
 ## How to Use / Examples
 
