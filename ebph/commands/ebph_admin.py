@@ -88,7 +88,20 @@ def set(args: Namespace):
 
 @command('normalize')
 def normalize(args: Namespace):
-    raise NotImplementedError()
+    try:
+        if args.profile:
+            res = requests.put(f'http://localhost:{defs.EBPH_PORT}/profiles/exe/{args.profile}/normalize')
+        elif args.pid:
+            raise NotImplementedError()
+        else:
+            raise NotImplementedError('No PID or profile supplied.')
+    except requests.ConnectionError:
+        print('Unable to connect to ebpH daemon!', file=sys.stderr)
+        sys.exit(-1)
+    if res.status_code != 200:
+        print(f'{json.loads(res.content)["detail"]}', file=sys.stderr)
+        sys.exit(-1)
+    print(f'Normalized profile successfully.')
 
 @command('sensitize')
 def sensitize(args: Namespace):

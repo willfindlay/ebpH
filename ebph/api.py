@@ -126,6 +126,35 @@ def get_profile_by_exe(exe: str) -> Dict:
         raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {exe}.')
 
 
+@app.put('/profiles/key/{key}/normalize')
+def normalize_profile_by_key(key: int) -> Dict:
+    """
+    Normalize a profile by its key.
+    """
+    try:
+        rc = bpf_program.normalize_profile(key)
+    except Exception as e:
+        logger.debug('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {key}.')
+    if rc < 0:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to normalize profile {key}.')
+    return get_profile_by_key(key)
+
+
+@app.put('/profiles/exe/{exe:path}/normalize')
+def normalize_profile_by_exe(exe: str) -> Dict:
+    """
+    Normalize a profile by its exe.
+    """
+    rev = {v: k for k, v in bpf_program.profile_key_to_exe.items()}
+    try:
+        return normalize_profile_by_key(rev[exe])
+    except KeyError as e:
+        raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
+    except Exception as e:
+        logger.debug('', exc_info=e)
+        raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {exe}.')
+
 @app.put('/profiles/save')
 def save_profiles() -> Dict:
     """

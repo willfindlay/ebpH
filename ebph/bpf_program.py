@@ -187,6 +187,18 @@ class BPFProgram:
     def get_process(self, pid: int) -> ct.Structure:
         return self.bpf['task_states'][ct.c_uint32(pid)]
 
+    def normalize_profile(self, profile_key: int):
+        try:
+            rc = Lib.normalize_profile(profile_key)
+        except Exception as e:
+            logger.error(f'Unable to normalize profile.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to normalize profile: {os.strerror(ct.get_errno())}')
+        return rc
+
+
+
     def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')
 
