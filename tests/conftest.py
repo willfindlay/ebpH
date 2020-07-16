@@ -1,8 +1,9 @@
 import os
 import time
 import logging
-import pytest
 import threading
+
+import pytest
 
 from ebph.ebphd import parse_args
 from ebph.logger import EBPHLoggerClass

@@ -40,8 +40,9 @@ def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
     profiles_keys = [calculate_profile_key(loc) for loc in profile_locations]
     profiles_before = [bpf_program.get_full_profile(key) for key in profiles_keys]
 
-    assert len(bpf_program.bpf['profiles']) == 7
+    assert len(bpf_program.bpf['profiles']) >= 7
 
+    bpf_program.stop_monitoring()
     bpf_program.save_profiles()
 
     # Clear relevant profile data
@@ -55,8 +56,9 @@ def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
     assert len(bpf_program.bpf['testing_data']) == 0
 
     bpf_program.load_profiles()
+    bpf_program.start_monitoring()
 
-    assert len(bpf_program.bpf['profiles']) == 7
+    assert len(bpf_program.bpf['profiles']) >= 7
 
     profiles_after = [bpf_program.get_full_profile(key) for key in profiles_keys]
 
@@ -76,12 +78,13 @@ def test_save_then_load_hello(bpf_program: BPFProgram, caplog):
     subprocess.Popen(hello).wait()
     bpf_program.on_tick()
 
-    assert len(bpf_program.bpf['profiles']) == 1
+    assert len(bpf_program.bpf['profiles']) >= 1
 
     profile_key = calculate_profile_key(hello)
 
     profile_before = bpf_program.get_full_profile(profile_key)
 
+    bpf_program.stop_monitoring()
     bpf_program.save_profiles()
 
     # Clear relevant profile data
@@ -95,9 +98,10 @@ def test_save_then_load_hello(bpf_program: BPFProgram, caplog):
     assert len(bpf_program.bpf['testing_data']) == 0
 
     bpf_program.load_profiles()
+    bpf_program.start_monitoring()
     profile_key = calculate_profile_key(hello)
 
-    assert len(bpf_program.bpf['profiles']) == 1
+    assert len(bpf_program.bpf['profiles']) >= 1
 
     profile_after = bpf_program.get_full_profile(profile_key)
 

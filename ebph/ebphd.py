@@ -29,6 +29,7 @@ import threading
 
 from ebph.logger import get_logger, setup_logger, LoggerWriter
 from ebph.daemon_mixin import DaemonMixin
+from ebph.api import API
 from ebph import defs
 
 signal.signal(signal.SIGTERM, lambda _, __: sys.exit())
@@ -84,9 +85,10 @@ class EBPHDaemon(DaemonMixin):
         server_thread.daemon = True
         server_thread.start()
 
-        from ebph.api import serve_forever
+        from ebph.api import API
         logger.info('Starting ebpH server...')
-        serve_forever()
+        API.connect_bpf_program(self.bpf_program)
+        API.serve_forever()
 
 
     def stop_daemon(self):
