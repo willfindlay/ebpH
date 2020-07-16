@@ -48,7 +48,7 @@ class CTypes(Extension):
     pass
 
 
-libebph = CTypes('ebph/libebph/bin/libebph', sources=['ebph/libebph/libebph.c'], library_dirs=['/usr/local/lib'])
+libebph = CTypes('ebph/libebph/bin/libebph', sources=['ebph/libebph/libebph.c'])
 
 
 setup(
@@ -61,6 +61,7 @@ setup(
     packages=['ebph'],
     scripts=['bin/ebphd', 'bin/ebph'],
     include_package_data=True,
+    package_data={'': ['ebph/bpf/*', 'ebph/libebph/*']},
     ext_modules=[libebph],
     cmdclass={'build_ext': ct_build_ext},
 )
