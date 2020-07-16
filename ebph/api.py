@@ -86,6 +86,24 @@ def get_profile_by_exe(exe: str) -> Dict:
         raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {exe}.')
 
 
+@app.put('/profiles/save')
+def save_profiles() -> Dict:
+    """
+    Save profiles.
+    """
+    saved, error = bpf_program.save_profiles()
+    return {'saved': saved, 'error': error}
+
+
+@app.put('/profiles/load')
+def load_profiles() -> Dict:
+    """
+    Save profiles.
+    """
+    loaded, error = bpf_program.load_profiles()
+    return {'loaded': loaded, 'error': error}
+
+
 @app.get('/processes')
 def get_processes() -> List[Dict]:
     """
@@ -130,7 +148,6 @@ def get_process(pid: int) -> Dict:
             }
 
 
-# FIXME: change setting type to EBPH_SETTINGS
 @app.get('/settings/{setting}')
 def get_setting(setting: EBPH_SETTINGS) -> Dict:
     """
@@ -142,7 +159,6 @@ def get_setting(setting: EBPH_SETTINGS) -> Dict:
     return {'setting': setting, 'value': value}
 
 
-# FIXME: change setting type to EBPH_SETTINGS
 @app.put('/settings/{setting}/{value}')
 def change_setting(setting: EBPH_SETTINGS, value: int = Path(..., ge=0)) -> Dict:
     """

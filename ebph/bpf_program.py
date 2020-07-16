@@ -9,10 +9,15 @@ from bcc import BPF
 
 from ebph.libebph import Lib
 from ebph.logger import get_logger
-from ebph.structs import EBPHProfileStruct, EBPH_SETTINGS, calculate_profile_magic
+from ebph.structs import (
+    EBPHProfileStruct,
+    EBPH_SETTINGS,
+    calculate_profile_magic,
+)
 from ebph import defs
 
 logger = get_logger()
+
 
 def ringbuf_callback(bpf, map_name, infer_type=True):
     def _inner(func):
@@ -25,8 +30,9 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
 
     return _inner
 
+
 class BPFProgram:
-    def __init__(self, debug:bool = False, log_sequences:bool = False):
+    def __init__(self, debug: bool = False, log_sequences: bool = False):
         self.bpf = None
         self.usdt_contexts = []
         self.seqstack_inner_bpf = None
@@ -47,7 +53,9 @@ class BPFProgram:
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
-        self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN)
+        self.change_setting(
+            EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN
+        )
         self.change_setting(EBPH_SETTINGS.ANOMALY_LIMIT, defs.ANOMALY_LIMIT)
 
         self.start_monitoring()
@@ -60,11 +68,17 @@ class BPFProgram:
 
     def change_setting(self, setting: EBPH_SETTINGS, value: int) -> int:
         if value < 0:
-            logger.error('Value for {setting.name} must be a positive integer.')
+            logger.error(
+                'Value for {setting.name} must be a positive integer.'
+            )
             return -1
 
         if setting == EBPH_SETTINGS.MONITORING:
-            return self.start_monitoring() if value > 0 else self.stop_monitoring()
+            return (
+                self.start_monitoring()
+                if value > 0
+                else self.stop_monitoring()
+            )
 
         rc = Lib.set_setting(setting, value)
         err = os.strerror(ct.get_errno())
@@ -106,45 +120,66 @@ class BPFProgram:
             logger.info('Stopped monitoring the system.')
         return rc
 
-    def save_profiles(self) -> None:
+    def save_profiles(self) -> int:
+        saved = 0
+        error = 0
+
         logger.info('Saving profiles...')
+
         for k in self.bpf['profiles'].keys():
             key = k.value
             exe = self.profile_key_to_exe[key]
             fname = f'{key}'
             try:
-                profile = EBPHProfileStruct.from_bpf(self.bpf, exe.encode('ascii'), key)
+                profile = EBPHProfileStruct.from_bpf(
+                    self.bpf, exe.encode('ascii'), key
+                )
                 with open(os.path.join(defs.EBPH_DATA_DIR, fname), 'wb') as f:
                     f.write(profile)
                 logger.debug(f'Successfully saved profile {fname} ({exe}).')
             except Exception as e:
-                logger.error(f'Unable to save profile {fname} ({exe}).', exc_info=e)
-        logger.info('Saved profiles successfully!')
+                logger.error(
+                    f'Unable to save profile {fname} ({exe}).', exc_info=e
+                )
+                error += 1
+            saved += 1
+        logger.info(f'Saved {saved} profiles successfully!')
+        return saved, error
 
     def load_profiles(self) -> None:
+        loaded = 0
+        error = 0
+
         logger.info('Loading profiles...')
         # If we are monitoring, stop
         monitoring = self.get_setting(EBPH_SETTINGS.MONITORING)
+
         if monitoring:
             self.stop_monitoring()
 
         for fname in os.listdir(defs.EBPH_DATA_DIR):
-            profile = EBPHProfileStruct()
-            with open(os.path.join(defs.EBPH_DATA_DIR, fname), 'rb') as f:
-                f.readinto(profile)
-            # Wrong version
-            if profile.magic != calculate_profile_magic():
-                logger.debug(f'Wrong magic number for profile {fname}, skipping.')
-                continue
-            profile.load_into_bpf(self.bpf)
-            self.profile_key_to_exe[profile.profile_key] = profile.exe.decode('ascii')
-            exe = self.profile_key_to_exe[profile.profile_key]
-            logger.debug(f'Successfully loaded profile {fname} ({exe}).')
+            try:
+                profile = EBPHProfileStruct()
+                with open(os.path.join(defs.EBPH_DATA_DIR, fname), 'rb') as f:
+                    f.readinto(profile)
+                # Wrong version
+                if profile.magic != calculate_profile_magic():
+                    logger.debug(f'Wrong magic number for profile {fname}, skipping.')
+                    continue
+                profile.load_into_bpf(self.bpf)
+                self.profile_key_to_exe[profile.profile_key] = profile.exe.decode('ascii')
+                exe = self.profile_key_to_exe[profile.profile_key]
+                logger.debug(f'Successfully loaded profile {fname} ({exe}).')
+            except Exception as e:
+                logger.error(f'Unable to load profile {fname}.', exc_info=e)
+                error += 1
+            loaded += 1
 
         # If we were monitoring, resume
         if monitoring:
             self.start_monitoring()
-        logger.info('Loaded profiles successfully!')
+        logger.info(f'Loaded {loaded} profiles successfully!')
+        return loaded, error
 
     def get_profile(self, key: int) -> ct.Structure:
         return self.bpf['profiles'][ct.c_uint64(key)]
@@ -168,7 +203,9 @@ class BPFProgram:
             self.profile_key_to_exe[event.profile_key] = pathname
 
             if self.debug:
-                logger.info(f'Created new profile for {pathname} ({event.profile_key}).')
+                logger.info(
+                    f'Created new profile for {pathname} ({event.profile_key}).'
+                )
             else:
                 logger.info(f'Created new profile for {pathname}.')
 
@@ -186,8 +223,10 @@ class BPFProgram:
             pid = event.pid
             count = event.task_count
 
-            logger.audit(f'Anomalous {syscall_name} ({misses} misses) '
-                    f'in PID {pid} ({exe}) after {count} calls.')
+            logger.audit(
+                f'Anomalous {syscall_name} ({misses} misses) '
+                f'in PID {pid} ({exe}) after {count} calls.'
+            )
 
         @ringbuf_callback(self.bpf, 'new_sequence_events')
         def new_sequence_events(ctx, event, size):
@@ -197,13 +236,19 @@ class BPFProgram:
             Log new sequences.
             """
             exe = self.profile_key_to_exe[event.profile_key]
-            sequence = [self.syscall_number_to_name[call] for call in event.sequence if call != defs.BPF_DEFINES['EBPH_EMPTY']]
+            sequence = [
+                self.syscall_number_to_name[call]
+                for call in event.sequence
+                if call != defs.BPF_DEFINES['EBPH_EMPTY']
+            ]
             sequence = reversed(sequence)
             pid = event.pid
             profile_count = event.profile_count
             task_count = event.task_count
 
-            logger.debug(f'New sequence in PID {pid} ({exe}), task count = {task_count}, profile count = {profile_count}.')
+            logger.debug(
+                f'New sequence in PID {pid} ({exe}), task count = {task_count}, profile count = {profile_count}.'
+            )
             logger.sequence(f'PID {pid} ({exe}): ' + ', '.join(sequence))
 
         @ringbuf_callback(self.bpf, 'start_normal_events')
@@ -224,17 +269,25 @@ class BPFProgram:
             pid = event.pid
 
             if in_task:
-                logger.info(f'PID {pid} ({exe}) now has {train_count} '
-                        f'training calls and {last_mod_count} since last '
-                        f'change ({profile_count} total).')
-                logger.info(f'Starting normal monitoring in PID {pid} ({exe}) '
-                        f'after {task_count} calls ({sequences} sequences).')
+                logger.info(
+                    f'PID {pid} ({exe}) now has {train_count} '
+                    f'training calls and {last_mod_count} since last '
+                    f'change ({profile_count} total).'
+                )
+                logger.info(
+                    f'Starting normal monitoring in PID {pid} ({exe}) '
+                    f'after {task_count} calls ({sequences} sequences).'
+                )
             else:
-                logger.info(f'{exe} now has {train_count} '
-                        f'training calls and {last_mod_count} since last '
-                        f'change ({profile_count} total).')
-                logger.info(f'Starting normal monitoring for {exe} '
-                        f'with {sequences} sequences.')
+                logger.info(
+                    f'{exe} now has {train_count} '
+                    f'training calls and {last_mod_count} since last '
+                    f'change ({profile_count} total).'
+                )
+                logger.info(
+                    f'Starting normal monitoring for {exe} '
+                    f'with {sequences} sequences.'
+                )
 
         @ringbuf_callback(self.bpf, 'stop_normal_events')
         def stop_normal_events(ctx, event, size):
@@ -252,15 +305,20 @@ class BPFProgram:
             pid = event.pid
 
             if in_task:
-                logger.info(f'Stopped normal monitoring in PID {pid} ({exe}) '
-                        f'after {task_count} calls and {anomalies} anomalies '
-                        f'(limit {anomaly_limit}).')
+                logger.info(
+                    f'Stopped normal monitoring in PID {pid} ({exe}) '
+                    f'after {task_count} calls and {anomalies} anomalies '
+                    f'(limit {anomaly_limit}).'
+                )
             else:
-                logger.info(f'Stopped normal monitoring for {exe} '
-                        f'with {anomalies} anomalies (limit {anomaly_limit}).')
+                logger.info(
+                    f'Stopped normal monitoring for {exe} '
+                    f'with {anomalies} anomalies (limit {anomaly_limit}).'
+                )
 
     def _generate_syscall_defines(self, flags: List[str]) -> None:
         from bcc.syscall import syscalls
+
         for num, name in syscalls.items():
             name = name.decode('utf-8').upper()
             self.syscall_number_to_name[num] = name
@@ -285,7 +343,9 @@ class BPFProgram:
         for flag in self.cflags:
             logger.debug(f'Using {flag}...')
 
-        self.cflags.append(f'-DEBPH_BOOT_EPOCH=((u64){self._calculate_boot_epoch()})')
+        self.cflags.append(
+            f'-DEBPH_BOOT_EPOCH=((u64){self._calculate_boot_epoch()})'
+        )
         self._generate_syscall_defines(self.cflags)
 
     def _load_bpf(self) -> None:
@@ -295,11 +355,12 @@ class BPFProgram:
         with open(defs.BPF_PROGRAM_C, 'r') as f:
             bpf_text = f.read()
 
-        self.bpf = BPF(text=bpf_text, usdt_contexts=[Lib.usdt_context], cflags=self.cflags)
+        self.bpf = BPF(
+            text=bpf_text, usdt_contexts=[Lib.usdt_context], cflags=self.cflags
+        )
         # FIXME: BPF cleanup function is segfaulting, so unregister it for now.
         # It actually doesn't really do anything particularly useful.
         atexit.unregister(self.bpf.cleanup)
 
     def _cleanup(self) -> None:
         self.save_profiles()
-

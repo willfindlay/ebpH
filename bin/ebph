@@ -18,7 +18,6 @@ def command(name: str):
 
         global commands
         commands[name] = wrapper
-
     return inner
 
 
@@ -127,6 +126,11 @@ def parse_args(sys_args: List[str]):
         help='Force ebpH to load all profiles from disk. Warning: This will overwrite your currently active profiles.',
     )
 
+    status = admin_commands.add_parser(
+        'status',
+        help='Print basic information about ebpH\'s current state.',
+    )
+
     _set = admin_commands.add_parser('set', help='Change ebpH options.')
 
     set_categories = {
@@ -157,7 +161,7 @@ def parse_args(sys_args: List[str]):
 
     normalize = admin_commands.add_parser(
         'normalize',
-        help='Normalize a process or profile.',
+        help='Start normal monitoring in a process or profile.',
     )
     targets = normalize.add_mutually_exclusive_group(required=True)
     targets.add_argument('--profile', type=str, help='String representing the profile to normalize.')
@@ -165,7 +169,7 @@ def parse_args(sys_args: List[str]):
 
     sensitize = admin_commands.add_parser(
         'sensitize',
-        help='Normalize a process or profile.',
+        help='Forget recently learned behavior in a process or profile.',
     )
     targets = sensitize.add_mutually_exclusive_group(required=True)
     targets.add_argument('--profile', type=str, help='String representing the profile to sensitize.')
@@ -173,7 +177,7 @@ def parse_args(sys_args: List[str]):
 
     tolerize = admin_commands.add_parser(
         'tolerize',
-        help='Normalize a process or profile.',
+        help='Accept recently learned behavior in a process or profile.',
     )
     targets = tolerize.add_mutually_exclusive_group(required=True)
     targets.add_argument('--profile', type=str, help='String representing the profile to tolerize.')
