@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-    Test changing BPF program settings.
+    Test profile creation.
 
     2020-Jul-16  William Findlay  Created this.
 """
@@ -24,23 +24,23 @@ import os
 import subprocess
 import ctypes as ct
 import time
-from random import randint
 
+from ebph.structs import EBPH_SETTINGS, EBPH_PROFILE_STATUS
 from ebph.bpf_program import BPFProgram
-from ebph.utils import which, calculate_profile_key
-from ebph.structs import EBPH_SETTINGS
+from ebph.utils import which, calculate_profile_key, project_path, ns_to_str
 
-def test_change_settings(bpf_program: BPFProgram, caplog):
-    for setting in EBPH_SETTINGS:
-        for _ in range(100):
-            value = randint(0, 2 ** 64 - 1)
-            bpf_program.change_setting(setting, value)
-            assert bpf_program.get_setting(setting) == value
+def test_freeze(bpf_program: BPFProgram, caplog):
+    hello = project_path('tests/driver/hello')
 
-def test_invalid_settings(bpf_program: BPFProgram, caplog):
-    for setting in EBPH_SETTINGS:
-        for _ in range(100):
-            original_value = bpf_program.get_setting(setting)
-            value = randint(-(2 ** 64 - 1), -1)
-            assert bpf_program.change_setting(setting, value) < 0
-            assert bpf_program.get_setting(setting) == original_value
+    bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 2 ** 60)
+
+    for _ in range(1000):
+        subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
+        bpf_program.on_tick()
+
+    assert len(bpf_program.bpf['profiles']) >= 1
+
+    profile_key = calculate_profile_key(hello)
+    profile = bpf_program.get_profile(profile_key)
+
+    assert profile.status & EBPH_PROFILE_STATUS.FROZEN
