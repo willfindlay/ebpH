@@ -47,25 +47,21 @@ class EBPHDaemon(DaemonMixin):
 
         self.debug = args.debug
         self.log_sequences = args.log_sequences
-
-        # Number of elapsed ticks
-        self.tick_count = 0
+        self.auto_save = not args.nosave
+        self.auto_load = not args.noload
 
     def tick(self):
         """
         Invoked on every tick in the main event loop.
         """
-        self.tick_count += 1
-
-        if self.tick_count % defs.PROFILE_SAVE_INTERVAL == 0:
-            self.bpf_program.save_profiles()
-
         self.bpf_program.on_tick()
 
     def _init_bpf_program(self):
         assert self.bpf_program is None
         from ebph.bpf_program import BPFProgram
-        self.bpf_program = BPFProgram(debug=self.debug, log_sequences=self.log_sequences)
+        self.bpf_program = BPFProgram(debug=self.debug,
+                log_sequences=self.log_sequences, auto_save=self.auto_save,
+                auto_load=self.auto_load)
         global bpf_program
         bpf_program = self.bpf_program
 
