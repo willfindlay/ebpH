@@ -84,7 +84,7 @@ struct ebph_new_profile_event_t {
     char pathname[PATH_MAX];
 };
 
-BPF_RINGBUF_OUTPUT(new_profile_events, 8);
+BPF_RINGBUF_OUTPUT(new_profile_events, 16);
 
 static __always_inline void ebph_log_new_profile(u64 profile_key,
                                                  struct dentry *dentry)
