@@ -27,9 +27,8 @@ import os
 import signal
 import threading
 
-from ebph.logger import get_logger, setup_logger, LoggerWriter
+from ebph.logger import get_logger, LoggerWriter
 from ebph.daemon_mixin import DaemonMixin
-from ebph.api import API
 from ebph import defs
 
 signal.signal(signal.SIGTERM, lambda _, __: sys.exit())
