@@ -106,7 +106,7 @@ def parse_args(args: List[str] = []) -> argparse.Namespace:
     parser.add_argument('operation', metavar="Operation", type=lambda s: str(s).lower(),
             choices=OPERATIONS, nargs='?',
             help=f"Operation you want to perform. Not allowed with --nodaemon. "
-            "Choices are: {', '.join(OPERATIONS)}.")
+            f"Choices are: {', '.join(OPERATIONS)}.")
     parser.add_argument('--nodaemon', dest='nodaemon', action='store_true',
             help=f"Run this as a foreground process instead of a daemon.")
     parser.add_argument('--nolog', dest='nolog', action='store_true',
@@ -120,8 +120,9 @@ def parse_args(args: List[str] = []) -> argparse.Namespace:
             help=f"Don't load profiles.")
     parser.add_argument('--debug', action='store_true',
             help=f"Run in debug mode. Side effect: sets verbosity level to debug regardless of what is set in configuration options.")
+    # Quick testing mode. This option sets --nodaemon --nolog --nosave --noload flags.
     parser.add_argument('--testing', action='store_true',
-            help=f"Quick testing mode. This option sets --nodaemon --nolog --nosave --noload flags.")
+            help=argparse.SUPPRESS)
 
     args = parser.parse_args(args)
 
