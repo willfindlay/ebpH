@@ -30,14 +30,22 @@ from ebph.bpf_program import BPFProgram
 from ebph.utils import which, calculate_profile_key
 from ebph.structs import EBPH_SETTINGS
 
+
 def test_change_settings(bpf_program: BPFProgram, caplog):
+    """
+    Test getting and setting all ebpH settings.
+    """
     for setting in EBPH_SETTINGS:
         for _ in range(100):
             value = randint(0, 2 ** 64 - 1)
             bpf_program.change_setting(setting, value)
             assert bpf_program.get_setting(setting) == value
 
+
 def test_invalid_settings(bpf_program: BPFProgram, caplog):
+    """
+    Test getting and setting invalid ebpH settings.
+    """
     for setting in EBPH_SETTINGS:
         for _ in range(100):
             original_value = bpf_program.get_setting(setting)

@@ -29,8 +29,12 @@ from ebph.bpf_program import BPFProgram
 from ebph.utils import which, calculate_profile_key, project_path
 
 def test_one_profile(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that a single profile is created properly.
+    """
     ls = which('ls')
-    # There should be one profile after this
+
+    # There should be at least one profile after this
     subprocess.Popen(ls).wait()
 
     assert len(bpf_program.bpf['profiles']) >= 1
@@ -38,11 +42,17 @@ def test_one_profile(bpf_program: BPFProgram, caplog):
     # Make sure we can look up the profile by its key
     profile_key = calculate_profile_key(ls)
     bpf_program.bpf['profiles'][ct.c_uint64(profile_key)]
-    # Make sure the profile has the correct name associated with it
+
+    # Force a tick update here
     bpf_program.on_tick()
+
+    # Make sure the profile has the correct name associated with it
     assert bpf_program.profile_key_to_exe[profile_key] in ['ls', ls]
 
 def test_multiple_profiles(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that multiple profiles are created properly.
+    """
     ls = which('ls')
     ps = which('ps')
 
@@ -71,16 +81,21 @@ def test_multiple_profiles(bpf_program: BPFProgram, caplog):
     assert bpf_program.profile_key_to_exe[profile_key] in ['ps', ps]
 
 def test_sample_workload(bpf_program: BPFProgram, caplog):
+    """
+    Test profile creation for several processes executed within a shell script.
+    """
     sample_workload = project_path('tests/driver/sample_workload.sh')
     subprocess.Popen(sample_workload).wait()
 
-    # Profiles shold now include the following:
+    # Profiles should at least include the following:
     profile_names = ['bash', 'ls', 'wc', 'ps', 'cat', 'echo', 'grep']
     profile_locations = [which(n) for n in profile_names]
 
     assert len(bpf_program.bpf['profiles']) >= 7
 
+    # Force a tick update here
     bpf_program.on_tick()
+
     for n, p in zip(profile_names, profile_locations):
         # Make sure we can look up the profile by its key
         profile_key = calculate_profile_key(p)

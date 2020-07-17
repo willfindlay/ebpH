@@ -30,54 +30,82 @@ from ebph.bpf_program import BPFProgram
 from ebph.utils import which, calculate_profile_key, project_path, ns_to_str
 
 def test_freeze(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that profiles freeze properly.
+    """
     hello = project_path('tests/driver/hello')
 
+    # We want normal wait to be pretty high, but not so high that it wraps
+    # around when the BPF program adds it to the current time.
+    #
+    # FIXME: We probably want to add a hard limit for normal wait
+    # in the BPF program itself, since it probably doesn't make sense
+    # to have normal wait be super long regardless.
     bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 2 ** 60)
 
+    # Spawn several hello processes so that we can freeze
     for _ in range(50):
         subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
         bpf_program.on_tick()
 
     assert len(bpf_program.bpf['profiles']) >= 1
 
+    # Fetch the profile for hello
     profile_key = calculate_profile_key(hello)
     profile = bpf_program.get_profile(profile_key)
 
-    assert profile.status & EBPH_PROFILE_STATUS.FROZEN
+    # We should be frozen with zero anomalies
+    assert profile.status & (EBPH_PROFILE_STATUS.FROZEN | EBPH_PROFILE_STATUS.TRAINING)
+    assert not (profile.status & EBPH_PROFILE_STATUS.NORMAL)
     assert profile.anomaly_count == 0
 
 def test_normal(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that profiles normalize properly.
+    """
     hello = project_path('tests/driver/hello')
 
+    # Set normal wait so that we normalize right away
     bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 0)
 
+    # Spawn several hello processes so that we can freeze AND normalize
     for _ in range(50):
         subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
         bpf_program.on_tick()
 
     assert len(bpf_program.bpf['profiles']) >= 1
 
+    # Fetch the profile for hello
     profile_key = calculate_profile_key(hello)
     profile = bpf_program.get_profile(profile_key)
 
+    # We should now be normal
     assert profile.status & EBPH_PROFILE_STATUS.NORMAL
+    assert not (profile.status & (EBPH_PROFILE_STATUS.FROZEN | EBPH_PROFILE_STATUS.TRAINING))
+    assert profile.anomaly_count == 0
 
 def test_anomaly(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that anomalies in normal profiles are detected.
+    """
     hello = project_path('tests/driver/hello')
 
+    # Set normal wait so that we normalize right away
     bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 0)
 
+    # Spawn several hello processes so that we can freeze AND normalize
     for _ in range(50):
         subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
     bpf_program.on_tick()
 
     assert len(bpf_program.bpf['profiles']) >= 1
 
-    # Fetch profile
+    # Fetch the profile for hello
     profile_key = calculate_profile_key(hello)
     profile = bpf_program.get_profile(profile_key)
 
     assert profile.status & EBPH_PROFILE_STATUS.NORMAL
+    assert not (profile.status & (EBPH_PROFILE_STATUS.FROZEN | EBPH_PROFILE_STATUS.TRAINING))
     assert profile.anomaly_count == 0
 
     # This will cause an anomaly
@@ -87,6 +115,8 @@ def test_anomaly(bpf_program: BPFProgram, caplog):
     # Fetch profile again
     profile = bpf_program.get_profile(profile_key)
 
+    # We should have seen an anomaly for the write system call
+    # (as well as some others (e.g. EXIT_GROUP), but don't test for that)
     assert profile.anomaly_count > 0
     assert 'Anomalous WRITE' in caplog.text
 
