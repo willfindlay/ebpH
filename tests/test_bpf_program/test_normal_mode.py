@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-    Test profile creation.
+    Test frozen and normal modes.
 
     2020-Jul-16  William Findlay  Created this.
 """
@@ -34,7 +34,7 @@ def test_freeze(bpf_program: BPFProgram, caplog):
 
     bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 2 ** 60)
 
-    for _ in range(1000):
+    for _ in range(50):
         subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
         bpf_program.on_tick()
 
@@ -44,3 +44,50 @@ def test_freeze(bpf_program: BPFProgram, caplog):
     profile = bpf_program.get_profile(profile_key)
 
     assert profile.status & EBPH_PROFILE_STATUS.FROZEN
+    assert profile.anomaly_count == 0
+
+def test_normal(bpf_program: BPFProgram, caplog):
+    hello = project_path('tests/driver/hello')
+
+    bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 0)
+
+    for _ in range(50):
+        subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
+        bpf_program.on_tick()
+
+    assert len(bpf_program.bpf['profiles']) >= 1
+
+    profile_key = calculate_profile_key(hello)
+    profile = bpf_program.get_profile(profile_key)
+
+    assert profile.status & EBPH_PROFILE_STATUS.NORMAL
+
+def test_anomaly(bpf_program: BPFProgram, caplog):
+    hello = project_path('tests/driver/hello')
+
+    bpf_program.change_setting(EBPH_SETTINGS.NORMAL_WAIT, 0)
+
+    for _ in range(50):
+        subprocess.Popen(hello, stdout=subprocess.DEVNULL).wait()
+    bpf_program.on_tick()
+
+    assert len(bpf_program.bpf['profiles']) >= 1
+
+    # Fetch profile
+    profile_key = calculate_profile_key(hello)
+    profile = bpf_program.get_profile(profile_key)
+
+    assert profile.status & EBPH_PROFILE_STATUS.NORMAL
+    assert profile.anomaly_count == 0
+
+    # This will cause an anomaly
+    subprocess.Popen([hello, 'foo'], stdout=subprocess.DEVNULL).wait()
+    bpf_program.on_tick()
+
+    # Fetch profile again
+    profile = bpf_program.get_profile(profile_key)
+
+    assert profile.anomaly_count > 0
+    assert 'Anomalous WRITE' in caplog.text
+
+

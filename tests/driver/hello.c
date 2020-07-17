@@ -19,12 +19,12 @@
  *  2020-Jul-16  William Findlay  Created this.
  */
 
-#include <stdio.h>
+#include <unistd.h>
 
 int main(int argc, char **argv) {
-    printf("Hello, world!\n");
+    write(1, "Hello, world!\n", 14);
 
     if (argc > 1) {
-        printf("Hello again, world!\n");
+        write(1, "Hello again, world!\n", 20);
     }
 }
