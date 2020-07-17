@@ -29,19 +29,23 @@ from ebph.bpf_program import BPFProgram
 from ebph.utils import which, calculate_profile_key, project_path
 from ebph.structs import EBPHProfileStruct
 
-def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
-    sample_workload = project_path('tests/driver/sample_workload.sh')
-    subprocess.Popen(sample_workload).wait()
+
+def test_save_then_load_hello(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that saving, erasing, and then loading one profile
+    works as expected.
+    """
+    hello = project_path('tests/driver/hello')
+    subprocess.Popen(hello).wait()
     bpf_program.on_tick()
 
-    # Profiles shold now include the following:
-    profile_names = ['bash', 'ls', 'wc', 'ps', 'cat', 'echo', 'grep']
-    profile_locations = [which(n) for n in profile_names]
-    profiles_keys = [calculate_profile_key(loc) for loc in profile_locations]
-    profiles_before = [bpf_program.get_full_profile(key) for key in profiles_keys]
+    assert len(bpf_program.bpf['profiles']) >= 1
 
-    assert len(bpf_program.bpf['profiles']) == 7
+    profile_key = calculate_profile_key(hello)
 
+    profile_before = bpf_program.get_full_profile(profile_key)
+
+    bpf_program.stop_monitoring()
     bpf_program.save_profiles()
 
     # Clear relevant profile data
@@ -55,8 +59,50 @@ def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
     assert len(bpf_program.bpf['testing_data']) == 0
 
     bpf_program.load_profiles()
+    bpf_program.start_monitoring()
+    profile_key = calculate_profile_key(hello)
 
-    assert len(bpf_program.bpf['profiles']) == 7
+    assert len(bpf_program.bpf['profiles']) >= 1
+
+    profile_after = bpf_program.get_full_profile(profile_key)
+
+    assert profile_before == profile_after
+
+
+def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
+    """
+    Make sure that saving, erasing, and then loading several profiles
+    works as expected.
+    """
+    sample_workload = project_path('tests/driver/sample_workload.sh')
+    subprocess.Popen(sample_workload).wait()
+    bpf_program.on_tick()
+
+    # Profiles shold now include the following:
+    profile_names = ['bash', 'ls', 'wc', 'ps', 'cat', 'echo', 'grep']
+    profile_locations = [which(n) for n in profile_names]
+    profiles_keys = [calculate_profile_key(loc) for loc in profile_locations]
+    profiles_before = [bpf_program.get_full_profile(key) for key in profiles_keys]
+
+    assert len(bpf_program.bpf['profiles']) >= 7
+
+    bpf_program.stop_monitoring()
+    bpf_program.save_profiles()
+
+    # Clear relevant profile data
+    bpf_program.profile_key_to_exe.clear()
+    assert not bpf_program.profile_key_to_exe
+    bpf_program.bpf['profiles'].clear()
+    assert len(bpf_program.bpf['profiles']) == 0
+    bpf_program.bpf['training_data'].clear()
+    assert len(bpf_program.bpf['training_data']) == 0
+    bpf_program.bpf['testing_data'].clear()
+    assert len(bpf_program.bpf['testing_data']) == 0
+
+    bpf_program.load_profiles()
+    bpf_program.start_monitoring()
+
+    assert len(bpf_program.bpf['profiles']) >= 7
 
     profiles_after = [bpf_program.get_full_profile(key) for key in profiles_keys]
 
@@ -69,36 +115,3 @@ def test_save_then_load_sample_workload(bpf_program: BPFProgram, caplog):
         bpf_program.bpf['profiles'][ct.c_uint64(profile_key)]
         # Make sure the profile has the correct name associated with it
         assert bpf_program.profile_key_to_exe[profile_key] in [n, p]
-
-
-def test_save_then_load_hello(bpf_program: BPFProgram, caplog):
-    hello = project_path('tests/driver/hello')
-    subprocess.Popen(hello).wait()
-    bpf_program.on_tick()
-
-    assert len(bpf_program.bpf['profiles']) == 1
-
-    profile_key = calculate_profile_key(hello)
-
-    profile_before = bpf_program.get_full_profile(profile_key)
-
-    bpf_program.save_profiles()
-
-    # Clear relevant profile data
-    bpf_program.profile_key_to_exe.clear()
-    assert not bpf_program.profile_key_to_exe
-    bpf_program.bpf['profiles'].clear()
-    assert len(bpf_program.bpf['profiles']) == 0
-    bpf_program.bpf['training_data'].clear()
-    assert len(bpf_program.bpf['training_data']) == 0
-    bpf_program.bpf['testing_data'].clear()
-    assert len(bpf_program.bpf['testing_data']) == 0
-
-    bpf_program.load_profiles()
-    profile_key = calculate_profile_key(hello)
-
-    assert len(bpf_program.bpf['profiles']) == 1
-
-    profile_after = bpf_program.get_full_profile(profile_key)
-
-    assert profile_before == profile_after
