@@ -822,6 +822,8 @@ static __always_inline void ebph_start_normal(
 
     ebph_log_start_normal(profile_key, task_state, profile);
 
+    ebph_set_normal_time(profile);
+
     profile->status         = EBPH_PROFILE_STATUS_NORMAL;
     profile->anomaly_count  = 0;
     profile->last_mod_count = 0;
