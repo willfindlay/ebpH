@@ -27,6 +27,7 @@ from typing import Dict
 import requests
 from requests.exceptions import ConnectionError
 
+from ebph.structs import EBPH_PROFILE_STATUS
 from ebph.utils import request_or_die
 from ebph import defs
 
@@ -42,7 +43,11 @@ def print_profile_information(profile: Dict) -> None:
     anomalies = profile['anomaly_count']
     train_count = profile['train_count']
     last_mod_count = profile['last_mod_count']
-    normal_time = profile['normal_time']
+    # Don't show normal time if we are training
+    if 'NORMAL' in profile['status'] or 'FROZEN' in profile['status']:
+        normal_time = profile['normal_time']
+    else:
+        normal_time = ''
 
     global header
     if not header:
@@ -65,7 +70,11 @@ def print_process_information(process: Dict, show_tid: bool) -> None:
     anomalies = profile['anomaly_count']
     train_count = profile['train_count']
     last_mod_count = profile['last_mod_count']
-    normal_time = profile['normal_time']
+    # Don't show normal time if we are training
+    if 'NORMAL' in profile['status'] or 'FROZEN' in profile['status']:
+        normal_time = profile['normal_time']
+    else:
+        normal_time = ''
 
     if show_tid:
         process_part = f"{'PID':<8} {'TID':<8}"
