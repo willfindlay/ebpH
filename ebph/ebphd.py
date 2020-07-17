@@ -28,6 +28,7 @@ import signal
 import threading
 from typing import NoReturn, List
 
+
 from ebph.logger import get_logger
 from ebph.daemon_mixin import DaemonMixin
 from ebph import defs
