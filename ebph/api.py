@@ -22,7 +22,7 @@
 
 from http import HTTPStatus
 import logging
-from typing import List, Dict
+from typing import List, Dict, NoReturn
 
 from fastapi import FastAPI, HTTPException, Path, Query
 from uvicorn.config import LOGGING_CONFIG
@@ -48,11 +48,11 @@ class API:
     bpf_program = None
 
     @classmethod
-    def connect_bpf_program(cls, bpf_program: BPFProgram):
+    def connect_bpf_program(cls, bpf_program: BPFProgram) -> None:
         cls.bpf_program = bpf_program
 
     @staticmethod
-    def serve_forever():
+    def serve_forever() -> NoReturn:
         uvicorn.run(
             app,
             host='localhost',

@@ -23,8 +23,11 @@
 import os
 import sys
 from datetime import datetime, timedelta
+from typing import Callable, Iterator, Union
 
-def project_path(f):
+import requests
+
+def project_path(f: str) -> str:
     """
     Return the path of a file relative to the root dir of this project (parent directory of "src").
     """
@@ -33,7 +36,7 @@ def project_path(f):
     path = os.path.realpath(os.path.join(project_dir, f))
     return path
 
-def read_chunks(f, size=1024):
+def read_chunks(f: str, size: int = 1024) -> Iterator[str]:
     """
     Read a file in chunks.
     Default chunk size is 1024.
@@ -44,15 +47,15 @@ def read_chunks(f, size=1024):
             break
         yield data
 
-def ns_to_str(ns: int):
+def ns_to_str(ns: int) -> str:
     dt = datetime.fromtimestamp(ns // 1000000000)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
 
-def ns_to_delta_str(ns: int):
+def ns_to_delta_str(ns: int) -> str:
     td = timedelta(seconds=(ns // 1000000000))
     return str(td)
 
-def which(program):
+def which(program: str) -> Union[str, None]:
      import os
 
      def is_exe(fpath):
@@ -70,9 +73,32 @@ def which(program):
 
      return None
 
-def calculate_profile_key(fpath):
+def calculate_profile_key(fpath: str) -> int:
     s = os.stat(fpath)
     st_dev = s.st_dev
     st_ino = s.st_ino
     return st_dev << 32 | st_ino
 
+def fail_with(err: str) -> None:
+    print(err, file=sys.stderr)
+    sys.exit(-1)
+
+def request_or_die(req_method: Callable, url: str, fail_message:str = 'Operation failed',
+        data=None, json=None, **kwargs) -> requests.Response:
+    """
+    Either make a request, or die with an error message.
+    """
+    from ebph.defs import EBPH_PORT
+    try:
+        url = f'http://localhost:{EBPH_PORT}{url}'
+        res = req_method(url, data=data, json=json, **kwargs)
+        if res.status_code != 200:
+            try:
+                fail_with(f'{fail_message}: {res.json()["detail"]}')
+            except KeyError:
+                fail_with(fail_message)
+        return res
+    except requests.ConnectTimeout:
+        fail_with('Connection to ebpH daemon timed out during request!')
+    except requests.ConnectionError:
+        fail_with('Unable to connect to ebpH daemon!')

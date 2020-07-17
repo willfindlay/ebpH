@@ -1,19 +1,41 @@
+"""
+    ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
+    Copyright (C) 2019-2020  William Findlay
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+    Implements ebph ps.
+
+    2020-Jul-13  William Findlay  Created this.
+"""
+
 import sys
-import json
 from argparse import Namespace
 from typing import Dict
 
 import requests
 from requests.exceptions import ConnectionError
 
+from ebph.utils import request_or_die
 from ebph import defs
 
 header = False
 
-def format_comm(comm):
+def format_comm(comm: str) -> str:
     return comm if len(comm) < 20 else ''.join(['...', comm[-17:]])
 
-def print_profile_information(profile: Dict):
+def print_profile_information(profile: Dict) -> None:
     comm = format_comm(profile["exe"])
     status = profile['status']
     status = status.split('EBPH_PROFILE_STATUS.')[1].lower()
@@ -31,7 +53,7 @@ def print_profile_information(profile: Dict):
     print(f"{comm:<20} {status:<16} {train_count:>12} {last_mod_count:>12} "
             f"{anomalies:>12}   {normal_time:<16}")
 
-def print_process_information(process: Dict, show_tid: bool):
+def print_process_information(process: Dict, show_tid: bool) -> None:
     # Process stuff
     pid = process['pid']
     tid = process['tid']
@@ -65,28 +87,14 @@ def print_process_information(process: Dict, show_tid: bool):
             f"{anomalies:>12}   {normal_time:<16}")
 
 
-def main(args: Namespace):
+def main(args: Namespace) -> None:
     if args.profiles:
-        try:
-            res = requests.get(f'http://localhost:{defs.EBPH_PORT}/profiles')
-        except ConnectionError:
-            print('Unable to connect to ebpH daemon!', file=sys.stderr)
-            sys.exit(-1)
-        if res.status_code != 200:
-            print('Unable to get profiles!', file=sys.stderr)
-            sys.exit(-1)
-        for p in sorted(json.loads(res.content), key=lambda p: p['exe']):
+        res = request_or_die(requests.get, '/profiles', 'Unable to get profiles')
+        for p in sorted(res.json(), key=lambda p: p['exe']):
             print_profile_information(p)
     else:
-        try:
-            res = requests.get(f'http://localhost:{defs.EBPH_PORT}/processes')
-        except ConnectionError:
-            print('Unable to connect to ebpH daemon!', file=sys.stderr)
-            sys.exit(-1)
-        if res.status_code != 200:
-            print('Unable to get processes!', file=sys.stderr)
-            sys.exit(-1)
-        processes = json.loads(res.content)
+        res = request_or_die(requests.get, '/processes', 'Unable to get processes')
+        processes = res.json()
         if not args.threads:
             processes = [p for p in processes if p['pid'] == p['tid']]
         for p in sorted(processes, key=lambda p: (p['pid'], p['tid'])):

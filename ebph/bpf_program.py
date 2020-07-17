@@ -55,12 +55,18 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
 
 
 class BPFProgram:
-    def __init__(self, debug: bool = False, log_sequences: bool = False):
+    def __init__(self, debug: bool = False, log_sequences: bool = False, auto_save = True, auto_load = True):
         self.bpf = None
         self.usdt_contexts = []
         self.seqstack_inner_bpf = None
         self.cflags = []
+
+        # Number of elapsed ticks
+        self.tick_count = 0
+
         self.debug = debug
+        self.auto_save = auto_save
+        self.auto_load = auto_load
 
         self.profile_key_to_exe = defaultdict(lambda: '[unknown]')
         self.syscall_number_to_name = defaultdict(lambda: '[unknown]')
@@ -68,7 +74,8 @@ class BPFProgram:
         self._set_cflags()
         self._load_bpf()
         self._register_ring_buffers()
-        self.load_profiles()
+        if self.auto_load:
+            self.load_profiles()
 
         atexit.register(self._cleanup)
 
@@ -85,6 +92,11 @@ class BPFProgram:
 
     def on_tick(self) -> None:
         try:
+            self.tick_count += 1
+
+            if self.auto_save and self.tick_count % defs.PROFILE_SAVE_INTERVAL == 0:
+                self.save_profiles()
+
             self.bpf.ring_buffer_consume()
         except Exception:
             pass
@@ -92,7 +104,7 @@ class BPFProgram:
     def change_setting(self, setting: EBPH_SETTINGS, value: int) -> int:
         if value < 0:
             logger.error(
-                'Value for {setting.name} must be a positive integer.'
+                f'Value for {setting.name} must be a positive integer.'
             )
             return -1
 
@@ -397,6 +409,7 @@ class BPFProgram:
         atexit.unregister(self.bpf.cleanup)
 
     def _cleanup(self) -> None:
-        self.save_profiles()
+        if self.auto_save:
+            self.save_profiles()
         del self.bpf
         self.bpf = None

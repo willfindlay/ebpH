@@ -30,9 +30,9 @@ def command(func):
         return getattr(libebph, name)(*args, **kwargs)
     getattr(libebph, name).argtypes = argtypes
     getattr(libebph, name).restype = restype
-    usdt_context.enable_probe_or_bail(name, 'command_' + name)
     logger.info(f'Registering USDT probe {name} -> command_{name}...')
     logger.debug(f'name={name}, argtypes={argtypes}, restype={restype}')
+    usdt_context.enable_probe_or_bail(name, 'command_' + name)
     return wrapper
 
 class Lib:

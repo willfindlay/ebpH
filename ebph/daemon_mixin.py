@@ -23,6 +23,7 @@
 import time
 import os, sys
 import signal
+from typing import Union, NoReturn
 
 from daemon import DaemonContext, pidfile
 
@@ -35,7 +36,7 @@ class DaemonMixin:
     def loop_forever(self):
         raise NotImplementedError('Implement loop_forever(self) in the subclass.')
 
-    def get_pid(self):
+    def get_pid(self) -> Union[int, None]:
         """
         Get pid of the running daemon.
         """
@@ -45,27 +46,25 @@ class DaemonMixin:
         except:
             return None
 
-    def stop_daemon(self):
+    def stop_daemon(self, in_restart: bool = False) -> None:
         """
         Stop the daemon.
         """
-        print('Stopping ebpH daemon...')
         pid = self.get_pid()
         try:
             os.kill(pid, signal.SIGTERM)
         except TypeError:
-            logger.warn(f'Attempted to kill daemon with pid {pid}, but no such process exists')
-            print(f'Attempted to kill daemon with pid {pid}, but no such process exists')
+            if not in_restart:
+                logger.warn(f'Attempted to kill daemon with pid {pid}, but no such process exists')
+                sys.exit(-1)
 
-    def start_daemon(self):
+    def start_daemon(self) -> NoReturn:
         """
         Start the daemon.
         """
         if self.get_pid():
             logger.error(f'ebpH daemon is already running! If you believe this is an error, try deleting {defs.PIDFILE}.')
-            print(f'ebpH daemon is already running! If you believe this is an error, try deleting {defs.PIDFILE}.')
             sys.exit(-1)
-        print('Starting ebpH daemon...')
         logger.info('Starting ebpH daemon...')
         with DaemonContext(
                 umask=0o022,
@@ -77,10 +76,10 @@ class DaemonMixin:
             logger.info('ebpH daemon started successfully!')
             self.loop_forever()
 
-    def restart_daemon(self):
+    def restart_daemon(self) -> NoReturn:
         """
         Restart the daemon.
         """
-        self.stop_daemon()
+        self.stop_daemon(in_restart=True)
         time.sleep(1)
         self.start_daemon()

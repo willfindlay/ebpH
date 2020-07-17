@@ -26,10 +26,10 @@ import argparse
 import os
 import signal
 import threading
+from typing import NoReturn, List
 
-from ebph.logger import get_logger, setup_logger, LoggerWriter
+from ebph.logger import get_logger
 from ebph.daemon_mixin import DaemonMixin
-from ebph.api import API
 from ebph import defs
 
 signal.signal(signal.SIGTERM, lambda _, __: sys.exit())
@@ -42,67 +42,62 @@ class EBPHDaemon(DaemonMixin):
     This class provides the logic for the daemon and exposes methods for interacting with the
     underlying BPFProgram class.
     """
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace) -> 'EBPHDaemon':
         # BPF Program
         self.bpf_program = None
 
         self.debug = args.debug
         self.log_sequences = args.log_sequences
+        self.auto_save = not args.nosave
+        self.auto_load = not args.noload
 
-        # Number of elapsed ticks
-        self.tick_count = 0
-
-    def tick(self):
+    def tick(self) -> None:
         """
         Invoked on every tick in the main event loop.
         """
-        self.tick_count += 1
-
-        if self.tick_count % defs.PROFILE_SAVE_INTERVAL == 0:
-            self.bpf_program.save_profiles()
-
         self.bpf_program.on_tick()
 
-    def _init_bpf_program(self):
-        assert self.bpf_program is None
-        from ebph.bpf_program import BPFProgram
-        self.bpf_program = BPFProgram(debug=self.debug, log_sequences=self.log_sequences)
-        global bpf_program
-        bpf_program = self.bpf_program
-
-    def _bpf_work_loop(self):
-        while 1:
-            self.tick()
-            time.sleep(defs.TICK_SLEEP)
-
-    def loop_forever(self):
+    def loop_forever(self) -> NoReturn:
         """
         Main daemon setup + event loop.
         """
         self._init_bpf_program()
 
-        server_thread = threading.Thread(target=self._bpf_work_loop)
-        server_thread.daemon = True
-        server_thread.start()
+        bpf_thread = threading.Thread(target=self._bpf_work_loop)
+        bpf_thread.daemon = True
+        bpf_thread.start()
 
         from ebph.api import API
         logger.info('Starting ebpH server...')
         API.connect_bpf_program(self.bpf_program)
         API.serve_forever()
 
-
-    def stop_daemon(self):
+    def stop_daemon(self, in_restart: bool = False) -> None:
         """
         Stop the daemon. Overloaded from base daemon class to print log info.
         """
         logger.info("Stopping ebpH daemon...")
-        super().stop_daemon()
+        super().stop_daemon(in_restart=in_restart)
+
+    def _init_bpf_program(self) -> None:
+        assert self.bpf_program is None
+        from ebph.bpf_program import BPFProgram
+        self.bpf_program = BPFProgram(debug=self.debug,
+                log_sequences=self.log_sequences, auto_save=self.auto_save,
+                auto_load=self.auto_load)
+        global bpf_program
+        bpf_program = self.bpf_program
+
+    def _bpf_work_loop(self) -> NoReturn:
+        while 1:
+            self.tick()
+            time.sleep(defs.TICK_SLEEP)
 
 
 OPERATIONS = ["start", "stop", "restart"]
 
 
-def parse_args(args=[]):
+def parse_args(args: List[str] = []) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Daemon script for ebpH.",
             prog="ebphd", #epilog="Configuration file can be found at /etc/ebpH/ebpH.cfg",
             formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -149,8 +144,8 @@ def parse_args(args=[]):
     return args
 
 
-def main():
-    args = parse_args(sys.argv[1:])
+def main(sys_args: List[str] = sys.argv[1:]) -> NoReturn:
+    args = parse_args(sys_args)
     defs.init(args)
 
     global logger
@@ -159,10 +154,22 @@ def main():
     ebphd = EBPHDaemon(args)
 
     if args.operation == "start":
-        ebphd.start_daemon()
+        try:
+            ebphd.start_daemon()
+        except Exception as e:
+            logger.error('Unable to start daemon', exc_info=e)
+            sys.exit(-1)
     elif args.operation == "stop":
-        ebphd.stop_daemon()
+        try:
+            ebphd.stop_daemon()
+        except Exception as e:
+            logger.error('Unable to stop daemon', exc_info=e)
+            sys.exit(-1)
     elif args.operation == "restart":
-        ebphd.restart_daemon()
+        try:
+            ebphd.restart_daemon()
+        except Exception as e:
+            logger.error('Unable to restart daemon', exc_info=e)
+            sys.exit(-1)
     elif args.nodaemon:
         ebphd.loop_forever()
