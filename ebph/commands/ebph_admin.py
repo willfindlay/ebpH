@@ -24,6 +24,7 @@ import sys
 from argparse import Namespace
 from typing import Dict, Callable
 import subprocess
+from pprint import pprint
 
 import requests
 from requests.exceptions import ConnectionError
@@ -95,19 +96,22 @@ def status(args: Namespace) -> None:
 def set(args: Namespace) -> None:
     setting = EBPH_SETTINGS(args.category)
     value = args.value
-    res = request_or_die(requests.put, f'/settings/{setting}/{value}', 'Failed to change {setting.name} to {value}')
+    res = request_or_die(requests.put, f'/settings/{setting}/{value}', f'Failed to change {setting.name} to {value}')
     print(f'Changed {setting.name} to {value}.')
 
 @command('normalize')
 def normalize(args: Namespace) -> None:
     if args.profile:
-        res = request_or_die(requests.put, f'/profiles/exe/{args.profile}/normalize', 'Unable to normalize profile')
+        res = request_or_die(requests.put, f'/profiles/exe/{args.profile}/normalize', f'Unable to normalize profile at exe {args.profile}')
     elif args.pid:
-        res = request_or_die(requests.put, f'/processes/pid/{args.pid}/normalize')
+        res = request_or_die(requests.put, f'/processes/pid/{args.pid}/normalize', f'Unable to normalize profile at pid {args.pid}')
     else:
         raise NotImplementedError('No PID or profile supplied.')
     body = res.json()
-    print(f'Normalized profile {body.exe} successfully.')
+    if args.profile:
+        print(f'Normalized profile {body["exe"]} successfully.')
+    else:
+        print(f'Normalized PID {body["pid"]} ({body["profile"]["exe"]}) successfully.')
 
 @command('sensitize')
 def sensitize(args: Namespace) -> None:

@@ -117,7 +117,7 @@ class API:
     @app.get('/profiles/key/{key}')
     def get_profile_by_key(key: int) -> Dict:
         """
-        Returns a profile by key.
+        Returns a profile by @key.
         """
         try:
             profile = API.bpf_program.get_profile(key)
@@ -142,7 +142,7 @@ class API:
     @app.get('/profiles/exe/{exe:path}')
     def get_profile_by_exe(exe: str) -> Dict:
         """
-        Returns a profile by exe.
+        Returns a profile by @exe.
         """
         rev = {v: k for k, v in API.bpf_program.profile_key_to_exe.items()}
         try:
@@ -157,7 +157,7 @@ class API:
     @app.put('/profiles/key/{key}/normalize')
     def normalize_profile_by_key(key: int) -> Dict:
         """
-        Normalize a profile by its key.
+        Normalize a profile by its @key.
         """
         try:
             rc = API.bpf_program.normalize_profile(key)
@@ -172,7 +172,7 @@ class API:
     @app.put('/profiles/exe/{exe:path}/normalize')
     def normalize_profile_by_exe(exe: str) -> Dict:
         """
-        Normalize a profile by its exe.
+        Normalize a profile by its @exe.
         """
         rev = {v: k for k, v in API.bpf_program.profile_key_to_exe.items()}
         try:
@@ -182,6 +182,21 @@ class API:
         except Exception as e:
             logger.debug('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {exe}.')
+
+    @staticmethod
+    @app.put('/processes/pid/{pid}/normalize')
+    def normalize_process(pid: int) -> Dict:
+        """
+        Normalize a profile by its @pid.
+        """
+        try:
+            rc = API.bpf_program.normalize_process(pid)
+        except Exception as e:
+            logger.debug('', exc_info=e)
+            raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing process {pid}.')
+        if rc < 0:
+            raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to normalize process {pid}.')
+        return API.get_process(pid)
 
     @staticmethod
     @app.put('/profiles/save')

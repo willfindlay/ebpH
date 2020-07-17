@@ -26,7 +26,7 @@ import time
 import atexit
 import ctypes as ct
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from bcc import BPF
 
@@ -42,7 +42,16 @@ from ebph import defs
 logger = get_logger()
 
 
-def ringbuf_callback(bpf, map_name, infer_type=True):
+def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True):
+    """
+    Decorator that wraps a function in all of the logic
+    to associate it with a ringbuffer @map_name in BPF land.
+
+    If @infer_type is set, automatically get @bpf to cast
+    event data to the correct structure. Pretty neat!
+
+    TODO: Consider upstreaming this in bcc
+    """
     def _inner(func):
         def _wrapper(ctx, data, size):
             if infer_type:
@@ -55,6 +64,9 @@ def ringbuf_callback(bpf, map_name, infer_type=True):
 
 
 class BPFProgram:
+    """
+    Wraps the BPF program and exposes methods for interacting with it.
+    """
     def __init__(self, debug: bool = False, log_sequences: bool = False, auto_save = True, auto_load = True):
         self.bpf = None
         self.usdt_contexts = []
@@ -91,6 +103,9 @@ class BPFProgram:
         self.start_monitoring()
 
     def on_tick(self) -> None:
+        """
+        Perform this operation every time ebphd ticks.
+        """
         try:
             self.tick_count += 1
 
@@ -102,6 +117,9 @@ class BPFProgram:
             pass
 
     def change_setting(self, setting: EBPH_SETTINGS, value: int) -> int:
+        """
+        Change a @setting in the BPF program to @value if it is an integer >= 0.
+        """
         if value < 0:
             logger.error(
                 f'Value for {setting.name} must be a positive integer.'
@@ -120,6 +138,9 @@ class BPFProgram:
         return rc
 
     def get_setting(self, setting: EBPH_SETTINGS) -> Optional[int]:
+        """
+        Get @setting from the BPF program.
+        """
         try:
             return self.bpf['_ebph_settings'][ct.c_uint64(setting)].value
         except (KeyError, IndexError):
@@ -127,6 +148,9 @@ class BPFProgram:
         return None
 
     def start_monitoring(self, silent=False) -> int:
+        """
+        Start monitoring the system. (Equivalent to setting MONITORING to 1).
+        """
         if self.get_setting(EBPH_SETTINGS.MONITORING) and not silent:
             logger.info('System is already being monitored.')
             return 1
@@ -139,6 +163,9 @@ class BPFProgram:
         return rc
 
     def stop_monitoring(self, silent=False) -> int:
+        """
+        Stop monitoring the system. (Equivalent to setting MONITORING to 0).
+        """
         if not self.get_setting(EBPH_SETTINGS.MONITORING) and not silent:
             logger.info('System is not being monitored.')
             return 1
@@ -150,7 +177,10 @@ class BPFProgram:
             logger.info('Stopped monitoring the system.')
         return rc
 
-    def save_profiles(self) -> int:
+    def save_profiles(self) -> Tuple[int, int]:
+        """
+        Save all profiles.
+        """
         saved = 0
         error = 0
 
@@ -176,7 +206,10 @@ class BPFProgram:
         logger.info(f'Saved {saved} profiles successfully!')
         return saved, error
 
-    def load_profiles(self) -> None:
+    def load_profiles(self) -> Tuple[int, int]:
+        """
+        Load all profiles.
+        """
         loaded = 0
         error = 0
 
@@ -211,17 +244,30 @@ class BPFProgram:
         logger.info(f'Loaded {loaded} profiles successfully!')
         return loaded, error
 
-    def get_full_profile(self, key: int) -> ct.Structure:
+    def get_full_profile(self, key: int) -> EBPHProfileStruct:
+        """
+        Get a profile indexed by @key from the BPF program, INCLUDING its
+        flags and return it as an EBPHProfileStruct.
+        """
         exe = self.profile_key_to_exe[key]
         return EBPHProfileStruct.from_bpf(self.bpf, exe.encode('ascii'), key)
 
     def get_profile(self, key: int) -> ct.Structure:
+        """
+        Get just the profile struct indexed by @key from the BPF program.
+        """
         return self.bpf['profiles'][ct.c_uint64(key)]
 
     def get_process(self, pid: int) -> ct.Structure:
+        """
+        Get a task_state indexed by @pid from the BPF program.
+        """
         return self.bpf['task_states'][ct.c_uint32(pid)]
 
     def normalize_profile(self, profile_key: int):
+        """
+        Normalize the profile indexed by @profile_key.
+        """
         try:
             rc = Lib.normalize_profile(profile_key)
         except Exception as e:
@@ -231,7 +277,18 @@ class BPFProgram:
             logger.error(f'Unable to normalize profile: {os.strerror(ct.get_errno())}')
         return rc
 
-
+    def normalize_process(self, pid: int):
+        """
+        Normalize the process indexed by @pid.
+        """
+        try:
+            rc = Lib.normalize_process(pid)
+        except Exception as e:
+            logger.error(f'Unable to normalize process {pid}.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to normalize process {pid}: {os.strerror(ct.get_errno())}')
+        return rc
 
     def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')

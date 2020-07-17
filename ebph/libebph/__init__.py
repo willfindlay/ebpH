@@ -50,3 +50,7 @@ class Lib:
     def normalize_profile(profile_key: ct.c_uint64) -> ct.c_int:
         pass
 
+    @command
+    def normalize_process(pid: ct.c_uint32) -> ct.c_int:
+        pass
+

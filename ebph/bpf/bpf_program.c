@@ -478,6 +478,42 @@ out:
     return 0;
 }
 
+int command_normalize_process(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u32 *pid_p;
+    bpf_usdt_readarg(2, ctx, &pid_p);
+
+    int rc = 0;
+
+    u32 pid;
+    if (bpf_probe_read(&pid, sizeof(pid), pid_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_task_state_t *s = task_states.lookup(&pid);
+    if (!s) {
+        rc = -ENOENT;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&s->profile_key);
+    if (!profile) {
+        rc = -ENOENT;
+        goto out;
+    }
+
+    ebph_start_normal(s->profile_key, s, profile);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
 /* =========================================================================
  * Helper Functions
  * ========================================================================= */
