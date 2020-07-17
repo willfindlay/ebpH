@@ -21,6 +21,7 @@
 """
 
 import os
+from argparse import Namespace
 
 from ebph.utils import project_path
 
@@ -43,8 +44,8 @@ NORMAL_FACTOR_DEN = 32
 ANOMALY_LIMIT = 30
 
 # Time in nanoseconds that a profile must remain frozen in order to become normal
-#NORMAL_WAIT = 1000000000 * 60 * 60 * 24 * 7 # 1 week
-NORMAL_WAIT = 1000000000 * 60 * 10 # 10 minutes
+NORMAL_WAIT = 1000000000 * 60 * 60 * 24 * 7 # 1 week
+#NORMAL_WAIT = 1000000000 * 60 * 10 # 10 minutes
 #NORMAL_WAIT = 1000000000 * 30 # 30 seconds
 
 PATH_MAX = 4096
@@ -66,14 +67,6 @@ BPF_DEFINES = {
 
         # The empty system call
         'EBPH_EMPTY': 9999,
-
-        # Time in nanoseconds that a profile must remain frozen in order to
-        # become normal
-        #'EBPH_NORMAL_WAIT': (1000000000 * 60 * 60 * 24 * 7), # 1 week
-        #'EBPH_NORMAL_WAIT': (1000000000 * 60 * 10), # 10 minutes
-        'EBPH_NORMAL_WAIT': (1000000000 * 30), # 30 seconds
-
-        'EBPH_ANOMALY_LIMIT': 30,
         }
 
 LOG_DIR = '/var/log/ebpH'
@@ -89,7 +82,7 @@ PROFILE_SAVE_INTERVAL = 10000
 TICK_SLEEP = 0.1
 
 
-def init(args):
+def init(args: Namespace) -> None:
     """
     Perform basic setup.
     """

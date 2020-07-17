@@ -1,5 +1,26 @@
+"""
+    ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
+    Copyright (C) 2019-2020  William Findlay
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+    Implements ebph admin.
+
+    2020-Jul-13  William Findlay  Created this.
+"""
+
 import sys
-import json
 from argparse import Namespace
 from typing import Dict, Callable
 import subprocess
@@ -9,12 +30,16 @@ from requests.exceptions import ConnectionError
 
 from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
 from ebph import defs
+from ebph.utils import fail_with, request_or_die
 
 commands = {}
 
-def command(name: str):
-    def inner(func: Callable):
-        def wrapper(args):
+def command(name: str) -> Callable:
+    """
+    Register an ebph admin command.
+    """
+    def inner(func: Callable) -> Callable:
+        def wrapper(args) -> None:
             func(args)
 
         global commands
@@ -22,97 +47,77 @@ def command(name: str):
     return inner
 
 @command('start')
-def start(args: Namespace):
-    subprocess.Popen(['ebphd', 'start']).wait()
+def start(args: Namespace) -> None:
+    try:
+        subprocess.check_call(['ebphd', 'start'])
+    except subprocess.CalledProcessError:
+        fail_with('Failed to start the daemon. Check logs for more info.')
 
 @command('stop')
-def stop(args: Namespace):
-    subprocess.Popen(['ebphd', 'stop']).wait()
+def stop(args: Namespace) -> None:
+    try:
+        subprocess.check_call(['ebphd', 'stop'])
+    except subprocess.CalledProcessError:
+        fail_with('Failed to stop the daemon. Check logs for more info.')
 
 @command('restart')
-def restart(args: Namespace):
-    subprocess.Popen(['ebphd', 'restart']).wait()
+def restart(args: Namespace) -> None:
+    try:
+        subprocess.check_call(['ebphd', 'restart'])
+    except subprocess.CalledProcessError:
+        fail_with('Failed to restart the daemon. Check logs for more info.')
 
 @command('save')
-def save(args: Namespace):
-    try:
-        res = requests.put(f'http://localhost:{defs.EBPH_PORT}/profiles/save')
-    except requests.ConnectionError:
-        print('Unable to connect to ebpH daemon!', file=sys.stderr)
-        sys.exit(-1)
-    res = json.loads(res.content)
-    saved = res['saved']
-    err = res['error']
+def save(args: Namespace) -> None:
+    res = request_or_die(requests.put, f'/profiles/save', 'Unable to save profiles')
+    body = res.json()
+    saved = body['saved']
+    err = body['error']
     print(f'Saved {saved} profiles, with {err} errors.')
 
 @command('load')
-def load(args: Namespace):
-    try:
-        res = requests.put(f'http://localhost:{defs.EBPH_PORT}/profiles/load')
-    except requests.ConnectionError:
-        print('Unable to connect to ebpH daemon!', file=sys.stderr)
-        sys.exit(-1)
-    res = json.loads(res.content)
-    loaded = res['loaded']
-    err = res['error']
+def load(args: Namespace) -> None:
+    res = request_or_die(requests.put, f'/profiles/load', 'Unable to load profiles')
+    body = res.json()
+    loaded = body['loaded']
+    err = body['error']
     print(f'Loaded {loaded} profiles, with {err} errors.')
 
 @command('status')
-def status(args: Namespace):
-    try:
-        res = requests.get(f'http://localhost:{defs.EBPH_PORT}/status')
-    except requests.ConnectionError:
-        print('Unable to connect to ebpH daemon!', file=sys.stderr)
-        sys.exit(-1)
-    if res.status_code != 200:
-        print('Unable to get status.', file=sys.stderr)
-        sys.exit(-1)
-    res = json.loads(res.content)
-    for k, v in res.items():
+def status(args: Namespace) -> None:
+    res = request_or_die(requests.get, f'/status', 'Unable to get status')
+    body = res.json()
+    for k, v in body.items():
         keystr = f'{k}:'
         print(f'{keystr:<16} {v}')
 
 @command('set')
-def set(args: Namespace):
+def set(args: Namespace) -> None:
     setting = EBPH_SETTINGS(args.category)
     value = args.value
-    try:
-        res = requests.put(f'http://localhost:{defs.EBPH_PORT}/settings/{setting}/{value}')
-    except requests.ConnectionError:
-        print('Unable to connect to ebpH daemon!', file=sys.stderr)
-        sys.exit(-1)
-    if res.status_code != 200:
-        print(f'Failed to change {setting.name} to {value}!', file=sys.stderr)
-        sys.exit(-1)
+    res = request_or_die(requests.put, f'/settings/{setting}/{value}', 'Failed to change {setting.name} to {value}')
     print(f'Changed {setting.name} to {value}.')
 
 @command('normalize')
-def normalize(args: Namespace):
-    try:
-        if args.profile:
-            res = requests.put(f'http://localhost:{defs.EBPH_PORT}/profiles/exe/{args.profile}/normalize')
-        elif args.pid:
-            raise NotImplementedError()
-        else:
-            raise NotImplementedError('No PID or profile supplied.')
-    except requests.ConnectionError:
-        print('Unable to connect to ebpH daemon!', file=sys.stderr)
-        sys.exit(-1)
-    if res.status_code != 200:
-        print(f'{json.loads(res.content)["detail"]}', file=sys.stderr)
-        sys.exit(-1)
-    print(f'Normalized profile successfully.')
+def normalize(args: Namespace) -> None:
+    if args.profile:
+        res = request_or_die(requests.put, f'/profiles/exe/{args.profile}/normalize', 'Unable to normalize profile')
+    elif args.pid:
+        res = request_or_die(requests.put, f'/processes/pid/{args.pid}/normalize')
+    else:
+        raise NotImplementedError('No PID or profile supplied.')
+    body = res.json()
+    print(f'Normalized profile {body.exe} successfully.')
 
 @command('sensitize')
-def sensitize(args: Namespace):
+def sensitize(args: Namespace) -> None:
     raise NotImplementedError()
 
 @command('tolerize')
-def tolerize(args: Namespace):
+def tolerize(args: Namespace) -> None:
     raise NotImplementedError()
 
-def main(args: Namespace):
+def main(args: Namespace) -> None:
     if args.admin_command not in commands.keys():
-        print(f'Invalid command: {args.admin_command}!', file=sys.stderr)
-        sys.exit(-1)
+        fail_with(f'Invalid command: {args.admin_command}!')
     commands[args.admin_command](args)

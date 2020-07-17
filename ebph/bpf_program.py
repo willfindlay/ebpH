@@ -104,7 +104,7 @@ class BPFProgram:
     def change_setting(self, setting: EBPH_SETTINGS, value: int) -> int:
         if value < 0:
             logger.error(
-                'Value for {setting.name} must be a positive integer.'
+                f'Value for {setting.name} must be a positive integer.'
             )
             return -1
 

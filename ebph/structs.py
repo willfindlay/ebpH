@@ -34,7 +34,10 @@ from ebph import defs
 logger = get_logger()
 
 
-def calculate_profile_magic():
+def calculate_profile_magic() -> int:
+    """
+    Calculate the magic number that corresponds to ebpH profiles.
+    """
     from hashlib import sha256
     from ebph.version import __version__
 
@@ -47,6 +50,10 @@ def calculate_profile_magic():
 
 @unique
 class EBPH_PROFILE_STATUS(IntFlag):
+    """
+    The status of an ebpH profile.
+    Warning: Keep in sync with BPF program.
+    """
     TRAINING = 0x1
     FROZEN = 0x2
     NORMAL = 0x4
@@ -54,6 +61,10 @@ class EBPH_PROFILE_STATUS(IntFlag):
 
 @unique
 class EBPH_SETTINGS(IntEnum):
+    """
+    The various settings that may be changed within the BPF program.
+    Warning: Keep in sync with BPF program.
+    """
     MONITORING = 0
     LOG_SEQUENCES = auto()
     NORMAL_WAIT = auto()
@@ -63,6 +74,10 @@ class EBPH_SETTINGS(IntEnum):
 
 
 class EBPHProfileDataStruct(ct.Structure):
+    """
+    Represents userspace's view of profile data.
+    Warning: Keep in sync with BPF program.
+    """
     _fields_ = (
         (
             'flags',
@@ -84,6 +99,10 @@ class EBPHProfileDataStruct(ct.Structure):
 
 
 class EBPHProfileStruct(ct.Structure):
+    """
+    Represents userspace's view of the profile structure and its data.
+    Warning: Keep in sync with BPF program.
+    """
     _fields_ = (
         ('magic', ct.c_uint64),
         ('profile_key', ct.c_uint64),
@@ -99,7 +118,7 @@ class EBPHProfileStruct(ct.Structure):
         ('exe', ct.c_char * defs.PATH_MAX),
     )
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'EBPHProfileDataStruct') -> bool:
         try:
             assert self.profile_key == other.profile_key
             assert self.status == other.status
@@ -118,11 +137,15 @@ class EBPHProfileStruct(ct.Structure):
     def _asdict(self) -> dict:
         return {field[0]: getattr(self, field[0]) for field in self._fields_}
 
-    def __str__(self):
+    def __str__(self) -> str:
         return pformat((self.__class__.__name__, self._asdict()))
 
     @classmethod
     def from_bpf(cls, bpf: BPF, exe: bytes, profile_key: int,) -> 'EBPHProfileStruct':
+        """
+        Create a new profile structure from the BPF program, its exe name
+        (in bytes), and its key.
+        """
         profile = EBPHProfileStruct()
         profile.magic = calculate_profile_magic()
         profile.profile_key = profile_key
@@ -161,7 +184,10 @@ class EBPHProfileStruct(ct.Structure):
 
         return profile
 
-    def load_into_bpf(self, bpf: BPF):
+    def load_into_bpf(self, bpf: BPF) -> None:
+        """
+        Load a profile into the BPF program.
+        """
         # Get leaf
         bpf_profile = bpf['profiles'].Leaf()
         # Set values

@@ -24,45 +24,12 @@ import os, sys
 import stat
 import time
 import gzip
+from argparse import Namespace
 import logging
 from logging import handlers as handlers
 
 from ebph.utils import read_chunks
 from ebph import defs
-
-class LoggerWriter:
-    """
-    LoggerWriter
-
-    A helper class for redirecting stdout and stderr to loggers.
-    """
-    def __init__(self, level):
-        self.level = level
-        self.message = ""
-
-    def isatty(self):
-        return False
-
-    def fileno(self):
-        return -1
-
-    def write(self, message):
-        """
-        Write each line of the message to the log.
-        """
-        self.message = ''.join([self.message, message])
-        if message.endswith('\n'):
-            self.flush()
-
-    def flush(self):
-        """
-        Provide a dummy flush method.
-        """
-        for line in self.message.split('\n'):
-            if not line.strip():
-                continue
-            self.level(line)
-        self.message = ""
 
 class EBPHLoggerClass(logging.getLoggerClass()):
     """
@@ -71,13 +38,13 @@ class EBPHLoggerClass(logging.getLoggerClass()):
     AUDIT = logging.WARN - 5
     SEQUENCE = logging.INFO - 5
 
-    def __init__(self, name, level=logging.NOTSET):
+    def __init__(self, name, level: int = logging.NOTSET) -> 'EBPHLoggerClass':
         super().__init__(name, level)
 
         logging.addLevelName(EBPHLoggerClass.AUDIT, "AUDIT")
         logging.addLevelName(EBPHLoggerClass.SEQUENCE, "NEWSEQ")
 
-    def audit(self, msg, *args, **kwargs):
+    def audit(self, msg: str, *args, **kwargs) -> None:
         """
         Write a policy message to logs.
         This should be used to inform the user about policy decisions/enforcement.
@@ -85,7 +52,7 @@ class EBPHLoggerClass(logging.getLoggerClass()):
         if self.isEnabledFor(EBPHLoggerClass.AUDIT):
             self._log(EBPHLoggerClass.AUDIT, msg, args, **kwargs)
 
-    def sequence(self, msg, *args, **kwargs):
+    def sequence(self, msg: str, *args, **kwargs) -> None:
         """
         Write a policy message to logs.
         This should be used to inform the user about policy decisions/enforcement.
@@ -110,7 +77,7 @@ class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
         self.maxBytes = maxBytes
         self.suffix = "%Y-%m-%d_%H-%M-%S"
 
-        def rotator(source, dest):
+        def rotator(source: str, dest: str) -> None:
             dest = f'{dest}.gz'
             try:
                 os.unlink(dest)
@@ -126,7 +93,7 @@ class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
 
         self.rotator=rotator
 
-    def shouldRollover(self, record):
+    def shouldRollover(self, record: logging.LogRecord) -> int:
         """
         Overload shouldRollover method from base class.
 
@@ -144,7 +111,11 @@ class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
             return 1
         return 0
 
-def setup_logger(args):
+def setup_logger(args: Namespace) -> None:
+    """
+    Perform (most) logging setup. This function should be called
+    from defs.init().
+    """
     # Make logfile parent directory
     os.makedirs(os.path.dirname(defs.LOGFILE), exist_ok=True)
 
@@ -178,5 +149,8 @@ def setup_logger(args):
     # A little debug message to tell us the logger has started
     logger.debug('Logging initialized.')
 
-def get_logger(name='ebph'):
+def get_logger(name='ebph') -> logging.Logger:
+    """
+    Get the ebpH logger.
+    """
     return logging.getLogger(name)
