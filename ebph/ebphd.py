@@ -81,9 +81,9 @@ class EBPHDaemon(DaemonMixin):
         """
         self._init_bpf_program()
 
-        server_thread = threading.Thread(target=self._bpf_work_loop)
-        server_thread.daemon = True
-        server_thread.start()
+        bpf_thread = threading.Thread(target=self._bpf_work_loop)
+        bpf_thread.daemon = True
+        bpf_thread.start()
 
         from ebph.api import API
         logger.info('Starting ebpH server...')
@@ -159,10 +159,19 @@ def main():
     ebphd = EBPHDaemon(args)
 
     if args.operation == "start":
-        ebphd.start_daemon()
+        try:
+            ebphd.start_daemon()
+        except Exception as e:
+            logger.error('Unable to start daemon', exc_info=e)
     elif args.operation == "stop":
-        ebphd.stop_daemon()
+        try:
+            ebphd.stop_daemon()
+        except Exception as e:
+            logger.error('Unable to stop daemon', exc_info=e)
     elif args.operation == "restart":
-        ebphd.restart_daemon()
+        try:
+            ebphd.restart_daemon()
+        except Exception as e:
+            logger.error('Unable to restart daemon', exc_info=e)
     elif args.nodaemon:
         ebphd.loop_forever()
