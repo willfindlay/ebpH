@@ -466,7 +466,7 @@ int command_normalize_profile(struct pt_regs *ctx)
 
     struct ebph_profile_t *profile = profiles.lookup(&profile_key);
     if (!profile) {
-        rc = -ENOENT;
+        rc = -ESRCH;
         goto out;
     }
 
@@ -496,17 +496,149 @@ int command_normalize_process(struct pt_regs *ctx)
 
     struct ebph_task_state_t *s = task_states.lookup(&pid);
     if (!s) {
-        rc = -ENOENT;
+        rc = -ESRCH;
         goto out;
     }
 
     struct ebph_profile_t *profile = profiles.lookup(&s->profile_key);
     if (!profile) {
-        rc = -ENOENT;
+        rc = -ESRCH;
         goto out;
     }
 
     ebph_start_normal(s->profile_key, s, profile);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
+int command_sensitize_profile(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u64 *profile_key_p;
+    bpf_usdt_readarg(2, ctx, &profile_key_p);
+
+    int rc = 0;
+
+    u64 profile_key;
+    if (bpf_probe_read(&profile_key, sizeof(profile_key), profile_key_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&profile_key);
+    if (!profile) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    ebph_reset_training_data(profile_key, NULL, profile);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
+int command_sensitize_process(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u32 *pid_p;
+    bpf_usdt_readarg(2, ctx, &pid_p);
+
+    int rc = 0;
+
+    u32 pid;
+    if (bpf_probe_read(&pid, sizeof(pid), pid_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_task_state_t *s = task_states.lookup(&pid);
+    if (!s) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&s->profile_key);
+    if (!profile) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    ebph_reset_training_data(s->profile_key, s, profile);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
+int command_tolerize_profile(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u64 *profile_key_p;
+    bpf_usdt_readarg(2, ctx, &profile_key_p);
+
+    int rc = 0;
+
+    u64 profile_key;
+    if (bpf_probe_read(&profile_key, sizeof(profile_key), profile_key_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&profile_key);
+    if (!profile) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    ebph_stop_normal(profile_key, NULL, profile);
+
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
+int command_tolerize_process(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u32 *pid_p;
+    bpf_usdt_readarg(2, ctx, &pid_p);
+
+    int rc = 0;
+
+    u32 pid;
+    if (bpf_probe_read(&pid, sizeof(pid), pid_p) < 0) {
+        rc = -ENOMEM;
+        goto out;
+    }
+
+    struct ebph_task_state_t *s = task_states.lookup(&pid);
+    if (!s) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    struct ebph_profile_t *profile = profiles.lookup(&s->profile_key);
+    if (!profile) {
+        rc = -ESRCH;
+        goto out;
+    }
+
+    ebph_stop_normal(s->profile_key, s, profile);
 
 out:
     bpf_probe_write_user(rc_p, &rc, sizeof(rc));
@@ -591,6 +723,17 @@ static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
     flags->flags[idx] = new_flag;
 
     return 0;
+}
+
+static __always_inline void ebph_reset_training_data(
+    u64 profile_key, struct ebph_task_state_t *s, struct ebph_profile_t *p)
+{
+    training_data.delete(&profile_key);
+    p->anomaly_count  = 0;
+    p->train_count    = 0;
+    p->last_mod_count = 0;
+
+    // TODO ebph_log_reset
 }
 
 /* Create a new task_state {@pid, @tgid, @profile_key} at @pid. */

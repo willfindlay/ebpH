@@ -115,11 +115,31 @@ def normalize(args: Namespace) -> None:
 
 @command('sensitize')
 def sensitize(args: Namespace) -> None:
-    raise NotImplementedError()
+    if args.profile:
+        res = request_or_die(requests.put, f'/profiles/exe/{args.profile}/sensitize', f'Unable to sensitize profile at exe {args.profile}')
+    elif args.pid:
+        res = request_or_die(requests.put, f'/processes/pid/{args.pid}/sensitize', f'Unable to sensitize profile at pid {args.pid}')
+    else:
+        raise NotImplementedError('No PID or profile supplied.')
+    body = res.json()
+    if args.profile:
+        print(f'Sensitized profile {body["exe"]} successfully.')
+    else:
+        print(f'Sensitized PID {body["pid"]} ({body["profile"]["exe"]}) successfully.')
 
 @command('tolerize')
 def tolerize(args: Namespace) -> None:
-    raise NotImplementedError()
+    if args.profile:
+        res = request_or_die(requests.put, f'/profiles/exe/{args.profile}/tolerize', f'Unable to tolerize profile at exe {args.profile}')
+    elif args.pid:
+        res = request_or_die(requests.put, f'/processes/pid/{args.pid}/tolerize', f'Unable to tolerize profile at pid {args.pid}')
+    else:
+        raise NotImplementedError('No PID or profile supplied.')
+    body = res.json()
+    if args.profile:
+        print(f'Tolerized profile {body["exe"]} successfully.')
+    else:
+        print(f'Tolerized PID {body["pid"]} ({body["profile"]["exe"]}) successfully.')
 
 def main(args: Namespace) -> None:
     if args.admin_command not in commands.keys():

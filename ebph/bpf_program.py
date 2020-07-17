@@ -290,6 +290,78 @@ class BPFProgram:
             logger.error(f'Unable to normalize process {pid}: {os.strerror(ct.get_errno())}')
         return rc
 
+    def sensitize_profile(self, profile_key: int):
+        """
+        Sensitize the profile indexed by @profile_key.
+        """
+        try:
+            rc = Lib.sensitize_profile(profile_key)
+        except Exception as e:
+            logger.error(f'Unable to sensitize profile.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to sensitize profile: {os.strerror(ct.get_errno())}')
+            return rc
+        exe = self.profile_key_to_exe[profile_key]
+        logger.info(f'Sensitized profile {exe}. Training data reset.')
+        return rc
+
+    def sensitize_process(self, pid: int):
+        """
+        Sensitize the process indexed by @pid.
+        """
+        try:
+            rc = Lib.sensitize_process(pid)
+        except Exception as e:
+            logger.error(f'Unable to sensitize process {pid}.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to sensitize process {pid}: {os.strerror(ct.get_errno())}')
+            return rc
+        try:
+            process = self.get_process(pid)
+            exe = self.profile_key_to_exe[process.profile_key]
+        except (KeyError, IndexError):
+            exe = '[unknown]'
+        logger.info(f'Sensitized PID {pid} ({exe}). Training data reset.')
+        return rc
+
+    def tolerize_profile(self, profile_key: int):
+        """
+        Tolerize the profile indexed by @profile_key.
+        """
+        try:
+            rc = Lib.tolerize_profile(profile_key)
+        except Exception as e:
+            logger.error(f'Unable to tolerize profile.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to tolerize profile: {os.strerror(ct.get_errno())}')
+            return rc
+        exe = self.profile_key_to_exe[profile_key]
+        logger.info(f'Tolerized profile {exe}. Stopped normal monitoring.')
+        return rc
+
+    def tolerize_process(self, pid: int):
+        """
+        Tolerize the process indexed by @pid.
+        """
+        try:
+            rc = Lib.tolerize_process(pid)
+        except Exception as e:
+            logger.error(f'Unable to tolerize process {pid}.', exc_info=e)
+            return -1
+        if rc < 0:
+            logger.error(f'Unable to tolerize process {pid}: {os.strerror(ct.get_errno())}')
+            return rc
+        try:
+            process = self.get_process(pid)
+            exe = self.profile_key_to_exe[process.profile_key]
+        except (KeyError, IndexError):
+            exe = '[unknown]'
+        logger.info(f'Tolerized PID {pid} ({exe}). Stopped normal monitoring.')
+        return rc
+
     def _register_ring_buffers(self) -> None:
         logger.info('Registering ring buffers...')
 

@@ -54,3 +54,19 @@ class Lib:
     def normalize_process(pid: ct.c_uint32) -> ct.c_int:
         pass
 
+    @command
+    def sensitize_profile(profile_key: ct.c_uint64) -> ct.c_int:
+        pass
+
+    @command
+    def sensitize_process(pid: ct.c_uint32) -> ct.c_int:
+        pass
+
+    @command
+    def tolerize_profile(profile_key: ct.c_uint64) -> ct.c_int:
+        pass
+
+    @command
+    def tolerize_process(pid: ct.c_uint32) -> ct.c_int:
+        pass
+

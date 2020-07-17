@@ -101,6 +101,9 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag);
 
+static __always_inline void ebph_reset_training_data(
+    u64 profile_key, struct ebph_task_state_t *s, struct ebph_profile_t *p);
+
 /* Create a new task_state {@pid, @tgid, @profile_key} at @pid. */
 static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     u32 pid, u32 tgid, u64 profile_key);
