@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,8 @@ from datetime import datetime, timedelta
 from typing import Callable, Iterator, Union
 
 import requests
+import requests_unixsocket
+requests_unixsocket.monkeypatch()
 
 def project_path(f: str) -> str:
     """
@@ -89,9 +91,10 @@ def request_or_die(req_method: Callable, url: str, fail_message:str = 'Operation
     """
     Either make a request, or die with an error message.
     """
-    from ebph.defs import EBPH_PORT
+    from ebph.defs import EBPH_PORT, EBPH_SOCK
+    sock = EBPH_SOCK.replace('/', '%2F')
     try:
-        url = f'http://localhost:{EBPH_PORT}{url}'
+        url = f'http+unix://{sock}{url}'
         res = req_method(url, data=data, json=json, **kwargs)
         if res.status_code != 200:
             try:

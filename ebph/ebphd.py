@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -63,6 +63,8 @@ class EBPHDaemon(DaemonMixin):
         """
         Main daemon setup + event loop.
         """
+        self.bind_socket()
+
         self._init_bpf_program()
 
         bpf_thread = threading.Thread(target=self._bpf_work_loop)

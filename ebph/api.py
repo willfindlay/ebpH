@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -56,8 +56,9 @@ class API:
     def serve_forever() -> NoReturn:
         uvicorn.run(
             app,
-            host='localhost',
-            port=defs.EBPH_PORT,
+            #host='localhost',
+            #port=defs.EBPH_PORT,
+            uds=defs.EBPH_SOCK,
             log_level=logging.WARNING,
             log_config=LOGGING_CONFIG,
         )

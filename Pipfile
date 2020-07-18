@@ -16,6 +16,7 @@ fastapi = "*"
 uvicorn = "*"
 requests = "*"
 ratelimit = "*"
+requests-unixsocket = "*"
 
 [requires]
 python_version = "3.8"
