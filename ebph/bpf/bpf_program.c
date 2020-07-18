@@ -1,5 +1,5 @@
 /*  ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
- *  ebpH Copyright (C) 2019-2020  William Findlay 
+ *  ebpH Copyright (C) 2019-2020  William Findlay
  *  pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -1135,7 +1135,8 @@ static __always_inline void ebph_handle_syscall(struct ebph_task_state_t *s,
 
     // If the process has exceeded the tolerize limit, reset its training state
     int lfc = s->total_lfc;
-    if (lfc > ebph_get_setting(EBPH_SETTING_TOLERIZE_LIMIT)) {
+    if ((p->status & EBPH_PROFILE_STATUS_NORMAL) &&
+        lfc > ebph_get_setting(EBPH_SETTING_TOLERIZE_LIMIT)) {
         ebph_reset_training_data(s->profile_key, s, p);
         ebph_log_tolerize_limit(s, alf);
     }
