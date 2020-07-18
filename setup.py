@@ -61,7 +61,7 @@ setup(
     packages=['ebph'],
     scripts=['bin/ebphd', 'bin/ebph'],
     include_package_data=True,
-    package_data={'': ['ebph/bpf/*', 'ebph/libebph/*']},
+    package_data={'': ['ebph/bpf/*', 'ebph/libebph/*', 'ebph/commands/*']},
     ext_modules=[libebph],
     cmdclass={'build_ext': ct_build_ext},
 )
