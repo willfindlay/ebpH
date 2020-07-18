@@ -25,7 +25,7 @@ import re
 from distutils.core import setup, Extension
 from distutils.command.build_ext import build_ext
 
-version = '0.2.2'
+version = '0.3.0'
 
 
 class ct_build_ext(build_ext):
