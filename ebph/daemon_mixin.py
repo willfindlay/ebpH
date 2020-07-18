@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,8 @@
 import time
 import os, sys
 import signal
+import atexit
+import socket
 from typing import Union, NoReturn
 
 from daemon import DaemonContext, pidfile
@@ -36,6 +38,34 @@ logger = get_logger()
 class DaemonMixin:
     def loop_forever(self):
         raise NotImplementedError('Implement loop_forever(self) in the subclass.')
+
+    def bind_socket(self):
+        """
+        Bind ebpH UDS.
+        """
+        if os.path.exists(defs.EBPH_SOCK):
+            logger.error(f'Unable to start daemon because {defs.EBPH_SOCK} exists in filesystem. If this is a mistake, delete the file manually.')
+            sys.exit(-1)
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            old_umask = os.umask(0o177)
+            sock.bind(defs.EBPH_SOCK)
+            os.umask(old_umask)
+            atexit.register(lambda: self._cleanup_socket(sock))
+        except Exception as e:
+            logger.error(f'Failed to bind {defs.EBPH_SOCK}!')
+            raise e
+
+    def _cleanup_socket(self, sock: socket.socket):
+        try:
+            sock.close()
+        except:
+            logger.warning('Failed to close ebpH socket.')
+        try:
+            os.unlink(defs.EBPH_SOCK)
+        except OSError as e:
+            if os.path.exists(self.server_address):
+                logger.error(f'Failed to unlink {defs.EBPH_SOCK}!', exc_info=e)
 
     def get_pid(self) -> Union[int, None]:
         """

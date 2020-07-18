@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -84,6 +84,8 @@ EBPH_DATA_DIR = '/var/lib/ebpH/profiles'
 
 EBPH_PORT = 1337
 
+EBPH_SOCK = '/var/run/ebpH.sock'
+
 PROFILE_SAVE_INTERVAL = 10000
 
 TICK_SLEEP = 0.1
@@ -114,3 +116,4 @@ def init(args: Namespace) -> None:
 
     # Make pidfile parent directory
     os.makedirs(os.path.dirname(PIDFILE), exist_ok=True)
+    os.makedirs(os.path.dirname(EBPH_SOCK), exist_ok=True)
