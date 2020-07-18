@@ -15,6 +15,7 @@ ebph = {editable = true, path = "."}
 fastapi = "*"
 uvicorn = "*"
 requests = "*"
+ratelimit = "*"
 
 [requires]
 python_version = "3.8"

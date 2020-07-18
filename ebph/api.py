@@ -135,7 +135,7 @@ class API:
         except KeyError:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {key} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {key}.')
 
     @staticmethod
@@ -150,7 +150,7 @@ class API:
         except KeyError as e:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile {exe}.')
 
     @staticmethod
@@ -162,7 +162,7 @@ class API:
         try:
             rc = API.bpf_program.normalize_profile(key)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {key}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to normalize profile {key}.')
@@ -180,7 +180,7 @@ class API:
         except KeyError as e:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {exe}.')
 
     @staticmethod
@@ -192,7 +192,7 @@ class API:
         try:
             rc = API.bpf_program.normalize_process(pid)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing process {pid}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to normalize process {pid}.')
@@ -207,7 +207,7 @@ class API:
         try:
             rc = API.bpf_program.sensitize_profile(key)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error normalizing profile {key}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to sensitize profile {key}.')
@@ -225,7 +225,7 @@ class API:
         except KeyError as e:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error sensitizing profile {exe}.')
 
     @staticmethod
@@ -237,7 +237,7 @@ class API:
         try:
             rc = API.bpf_program.sensitize_process(pid)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error sensitizing process {pid}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to sensitize process {pid}.')
@@ -252,7 +252,7 @@ class API:
         try:
             rc = API.bpf_program.tolerize_profile(key)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error tolerizing profile {key}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to tolerize profile {key}.')
@@ -270,7 +270,7 @@ class API:
         except KeyError as e:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile {exe} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error tolerizing profile {exe}.')
 
     @staticmethod
@@ -282,7 +282,7 @@ class API:
         try:
             rc = API.bpf_program.tolerize_process(pid)
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error tolerizing process {pid}.')
         if rc < 0:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Unable to tolerize process {pid}.')
@@ -316,10 +316,10 @@ class API:
         for k in API.bpf_program.bpf['task_states'].keys():
             try:
                 processes.append(API.get_process(k.value))
-            except KeyError:
+            except (KeyError, HTTPException):
                 continue
             except Exception as e:
-                logger.debug('', exc_info=e)
+                logger.error('', exc_info=e)
                 continue
         return processes
 
@@ -334,19 +334,21 @@ class API:
         except KeyError:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Process {pid} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting process {pid}.')
         try:
             profile = API.get_profile_by_key(process.profile_key)
         except KeyError:
             raise HTTPException(HTTPStatus.NOT_FOUND, f'Profile for {pid} does not exist.')
         except Exception as e:
-            logger.debug('', exc_info=e)
+            logger.error('', exc_info=e)
             raise HTTPException(HTTPStatus.BAD_REQUEST, f'Error getting profile for process {pid}.')
         return {
                 'pid': process.tgid,
                 'tid': process.pid,
                 'count': process.count,
+                'total_lfc': process.total_lfc,
+                'max_lfc': process.max_lfc,
                 'profile': profile,
                 }
 

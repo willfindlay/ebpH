@@ -29,6 +29,7 @@ from collections import defaultdict
 from typing import List, Optional, Tuple
 
 from bcc import BPF
+from ratelimit import limits
 
 from ebph.libebph import Lib
 from ebph.logger import get_logger
@@ -43,7 +44,7 @@ logger = get_logger()
 
 
 # FIXME: add rate limiting to this
-def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True):
+def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True, ratelimit_per_sec = 9999999999):
     """
     Decorator that wraps a function in all of the logic
     to associate it with a ringbuffer @map_name in BPF land.
@@ -54,6 +55,7 @@ def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True):
     TODO: Consider upstreaming this in bcc
     """
     def _inner(func):
+        @limits(calls=ratelimit_per_sec, period=1, raise_on_limit=False)
         def _wrapper(ctx, data, size):
             if infer_type:
                 data = bpf[map_name].event(data)
@@ -491,7 +493,7 @@ class BPFProgram:
                     f'with {anomalies} anomalies (limit {anomaly_limit}).'
                 )
 
-        @ringbuf_callback(self.bpf, 'tolerize_limit_events')
+        @ringbuf_callback(self.bpf, 'tolerize_limit_events', ratelimit_per_sec=10)
         def tolerize_limit_events(ctx, event, size):
             """
             tolerize_limit_events.
