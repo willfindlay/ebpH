@@ -42,6 +42,7 @@ from ebph import defs
 logger = get_logger()
 
 
+# FIXME: add rate limiting to this
 def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True):
     """
     Decorator that wraps a function in all of the logic
@@ -95,10 +96,9 @@ class BPFProgram:
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
-        self.change_setting(
-            EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN
-        )
+        self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN)
         self.change_setting(EBPH_SETTINGS.ANOMALY_LIMIT, defs.ANOMALY_LIMIT)
+        self.change_setting(EBPH_SETTINGS.TOLERIZE_LIMIT, defs.TOLERIZE_LIMIT)
 
         self.start_monitoring()
 
@@ -490,6 +490,20 @@ class BPFProgram:
                     f'Stopped normal monitoring for {exe} '
                     f'with {anomalies} anomalies (limit {anomaly_limit}).'
                 )
+
+        @ringbuf_callback(self.bpf, 'tolerize_limit_events')
+        def tolerize_limit_events(ctx, event, size):
+            """
+            tolerize_limit_events.
+
+            Callback for when a process exceeds its tolerize limit.
+            """
+            profile_key = event.profile_key
+            pid = event.pid
+            lfc = event.lfc
+            exe = self.profile_key_to_exe[profile_key]
+
+            logger.info(f'Tolerize limit exceeded for PID {pid} ({exe}), LFC is {lfc}. Training data reset.')
 
     def _generate_syscall_defines(self, flags: List[str]) -> None:
         from bcc.syscall import syscalls

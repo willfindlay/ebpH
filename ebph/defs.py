@@ -43,6 +43,9 @@ NORMAL_FACTOR_DEN = 32
 # Number of allowed anomalies before a profile is no longer normal
 ANOMALY_LIMIT = 30
 
+# Allowed LFC count before resetting training data
+TOLERIZE_LIMIT = 12
+
 # Time in nanoseconds that a profile must remain frozen in order to become normal
 NORMAL_WAIT = 1000000000 * 60 * 60 * 24 * 7 # 1 week
 #NORMAL_WAIT = 1000000000 * 60 * 10 # 10 minutes
@@ -64,6 +67,9 @@ BPF_DEFINES = {
         'EBPH_SEQLEN': 9,
         # Number of frames in sequence stack
         'EBPH_SEQSTACK_FRAMES': 2,
+
+        # Length of ALF
+        'EBPH_LOCALITY_WIN': 128,
 
         # The empty system call
         'EBPH_EMPTY': 9999,
