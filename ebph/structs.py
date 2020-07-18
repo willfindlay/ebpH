@@ -71,6 +71,7 @@ class EBPH_SETTINGS(IntEnum):
     NORMAL_FACTOR = auto()
     NORMAL_FACTOR_DEN = auto()
     ANOMALY_LIMIT = auto()
+    TOLERIZE_LIMIT = auto()
 
 
 class EBPHProfileDataStruct(ct.Structure):

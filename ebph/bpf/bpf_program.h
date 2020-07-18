@@ -17,6 +17,7 @@
  *  Data structes for BPF program.
  *
  *  2020-Jul-13  William Findlay  Created this.
+ *  2020-Jul-17  William Findlay  Added support for ALF window.
  */
 
 #ifndef BPF_PROGRAM_H
@@ -38,7 +39,15 @@ enum ebph_setting_key_t : int {
     EBPH_SETTING_NORMAL_FACTOR,
     EBPH_SETTING_NORMAL_FACTOR_DEN,
     EBPH_SETTING_ANOMALY_LIMIT,
+    EBPH_SETTING_TOLERIZE_LIMIT,
     EBPH_SETTING__END,  // This must be the last entry
+};
+
+struct ebph_alf_t {
+    u8 win[EBPH_LOCALITY_WIN];
+    u8 first;
+    u8 total;
+    u8 max;
 };
 
 struct ebph_task_state_t {
@@ -107,6 +116,8 @@ static __always_inline void ebph_reset_training_data(
 /* Create a new task_state {@pid, @tgid, @profile_key} at @pid. */
 static __always_inline struct ebph_task_state_t *ebph_new_task_state(
     u32 pid, u32 tgid, u64 profile_key);
+
+static __always_inline int ebph_reset_alf(struct ebph_task_state_t *s);
 
 /* Calculate normal time for a new profile. */
 static __always_inline void ebph_set_normal_time(
