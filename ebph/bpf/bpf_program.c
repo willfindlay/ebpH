@@ -258,7 +258,7 @@ static __always_inline void ebph_log_tolerize_limit(struct ebph_task_state_t *s,
     if (event) {
         event->profile_key = s->profile_key;
         event->pid         = s->pid;
-        event->lfc         = a->total;
+        event->lfc         = s->total_lfc;
         tolerize_limit_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
 }
@@ -994,11 +994,11 @@ static __always_inline void ebph_do_train(struct ebph_task_state_t *task_state,
     }
 }
 
-static __always_inline void ebph_add_anomaly_count(
-    struct ebph_task_state_t *task_state, struct ebph_profile_t *profile,
-    int count)
+static __always_inline void ebph_add_anomaly_count(struct ebph_task_state_t *s,
+                                                   struct ebph_profile_t *p,
+                                                   int count)
 {
-    struct ebph_alf_t *alf = locality_frames.lookup(&task_state->pid);
+    struct ebph_alf_t *alf = locality_frames.lookup(&s->pid);
     if (!alf) {
         // TODO log error
         return;
@@ -1007,17 +1007,17 @@ static __always_inline void ebph_add_anomaly_count(
     u8 i = (alf->first + 1) % EBPH_LOCALITY_WIN;
 
     if (count > 0) {
-        lock_xadd(&profile->anomaly_count, 1);
+        lock_xadd(&p->anomaly_count, 1);
         if (alf->win[i] == 0) {
             alf->win[i] = 1;
-            alf->total++;
-            if (alf->total > alf->max) {
-                alf->max = alf->total;
+            s->total_lfc++;
+            if (s->total_lfc > s->max_lfc) {
+                s->max_lfc = s->total_lfc;
             }
         }
     } else if (alf->win[i] > 0) {
         alf->win[i] = 0;
-        alf->total--;
+        s->total_lfc--;
     }
 
     alf->first = i;
@@ -1089,25 +1089,25 @@ static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
 }
 
 /* Process a new syscall. */
-static __always_inline void ebph_handle_syscall(
-    struct ebph_task_state_t *task_state, u16 syscall)
+static __always_inline void ebph_handle_syscall(struct ebph_task_state_t *s,
+                                                u16 syscall)
 {
     // Look up profile
-    struct ebph_profile_t *profile = profiles.lookup(&task_state->profile_key);
-    if (!profile) {
+    struct ebph_profile_t *p = profiles.lookup(&s->profile_key);
+    if (!p) {
         // TODO log error
         return;
     }
 
     // Look up current sequence
-    struct ebph_sequence_t *sequence = ebph_peek_seq(task_state);
+    struct ebph_sequence_t *sequence = ebph_peek_seq(s);
     if (!sequence) {
         // TODO log error
         return;
     }
 
-    lock_xadd(&profile->count, 1);
-    lock_xadd(&task_state->count, 1);
+    lock_xadd(&p->count, 1);
+    lock_xadd(&s->count, 1);
 
     // Insert syscall into sequence
     for (int i = EBPH_SEQLEN - 1; i > 0; i--) {
@@ -1115,27 +1115,27 @@ static __always_inline void ebph_handle_syscall(
     }
     sequence->calls[0] = syscall;
 
-    ebph_do_train(task_state, profile, sequence);
+    ebph_do_train(s, p, sequence);
 
     // Update normal status if we are frozen and have reached normal_time
-    if ((profile->status & EBPH_PROFILE_STATUS_FROZEN) &&
-        !(profile->status & EBPH_PROFILE_STATUS_NORMAL) &&
-        ebph_current_time() > profile->normal_time) {
-        ebph_start_normal(task_state->profile_key, task_state, profile);
+    if ((p->status & EBPH_PROFILE_STATUS_FROZEN) &&
+        !(p->status & EBPH_PROFILE_STATUS_NORMAL) &&
+        ebph_current_time() > p->normal_time) {
+        ebph_start_normal(s->profile_key, s, p);
     }
 
-    ebph_do_normal(task_state, profile, sequence);
+    ebph_do_normal(s, p, sequence);
 
-    struct ebph_alf_t *alf = locality_frames.lookup(&task_state->pid);
+    struct ebph_alf_t *alf = locality_frames.lookup(&s->pid);
     if (!alf) {
         // TODO log error
         return;
     }
 
     // If the process has exceeded the tolerize limit, reset its training state
-    int lfc = alf->total;
+    int lfc = s->total_lfc;
     if (lfc > ebph_get_setting(EBPH_SETTING_TOLERIZE_LIMIT)) {
-        ebph_reset_training_data(task_state->profile_key, task_state, profile);
-        ebph_log_tolerize_limit(task_state, alf);
+        ebph_reset_training_data(s->profile_key, s, p);
+        ebph_log_tolerize_limit(s, alf);
     }
 }

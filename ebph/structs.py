@@ -41,8 +41,6 @@ def calculate_profile_magic() -> int:
     from hashlib import sha256
     from ebph.version import __version__
 
-    __version__ = '0.2.0'
-
     version = __version__.encode('ascii')
 
     return int(sha256(version).hexdigest(), 16) & 0xFFFF_FFFF_FFFF_FFFF

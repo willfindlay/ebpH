@@ -62,6 +62,8 @@ def print_process_information(process: Dict, show_tid: bool) -> None:
     # Process stuff
     pid = process['pid']
     tid = process['tid']
+    total_lfc = process['total_lfc']
+    max_lfc = process['max_lfc']
     # Profile stuff
     profile = process['profile']
     comm = format_comm(profile["exe"])
@@ -84,7 +86,7 @@ def print_process_information(process: Dict, show_tid: bool) -> None:
     global header
     if not header:
         print(f"{process_part} {'COMM':<20} {'STATUS':<16} {'TRAIN_COUNT':>12} "
-                f"{'LAST_MOD':>12} {'ANOMALIES':>12}   {'NORMAL TIME':<16}")
+                f"{'LAST_MOD':>12} {'LOCAL ANOMALIES':>16} {'ANOMALIES':>12}   {'NORMAL TIME':<16}")
         header = True
 
     if show_tid:
@@ -92,8 +94,10 @@ def print_process_information(process: Dict, show_tid: bool) -> None:
     else:
         process_part = f"{pid:<8}"
 
+    lfc_part = f'{total_lfc} ({max_lfc} max)'
+
     print(f"{process_part} {comm:<20} {status:<16} {train_count:>12} {last_mod_count:>12} "
-            f"{anomalies:>12}   {normal_time:<16}")
+            f"{lfc_part:>16} {anomalies:>12}   {normal_time:<16}")
 
 
 def main(args: Namespace) -> None:

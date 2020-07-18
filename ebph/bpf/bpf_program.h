@@ -46,8 +46,6 @@ enum ebph_setting_key_t : int {
 struct ebph_alf_t {
     u8 win[EBPH_LOCALITY_WIN];
     u8 first;
-    u8 total;
-    u8 max;
 };
 
 struct ebph_task_state_t {
@@ -56,6 +54,9 @@ struct ebph_task_state_t {
     u64 profile_key;
     char seqstack_top;
     u64 count;
+    // ALF stats
+    u8 total_lfc;
+    u8 max_lfc;
 };
 
 struct ebph_sequence_key_t {
