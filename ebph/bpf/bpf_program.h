@@ -1,5 +1,6 @@
 /*  ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
- *  Copyright (C) 2019-2020  William Findlay
+ *  ebpH Copyright (C) 2019-2020  William Findlay 
+ *  pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

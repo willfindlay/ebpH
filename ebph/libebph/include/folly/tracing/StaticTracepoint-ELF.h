@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Facebook, Inc.
+ * ebpH Copyright 2017 Facebook, Inc. 
+ * pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
