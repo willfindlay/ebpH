@@ -163,6 +163,7 @@ def parse_args(sys_args: List[str]):
         'normal-factor': EBPH_SETTINGS.NORMAL_FACTOR,
         'normal-factor-den': EBPH_SETTINGS.NORMAL_FACTOR_DEN,
         'anomaly-limit': EBPH_SETTINGS.ANOMALY_LIMIT,
+        'tolerize-limit': EBPH_SETTINGS.TOLERIZE_LIMIT,
     }
 
     _set.add_argument(

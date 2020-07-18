@@ -95,6 +95,7 @@ class API:
                     'Normal Factor': f'{API.bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR)}/'
                                      f'{API.bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN)}',
                     'Anomaly Limit': API.bpf_program.get_setting(EBPH_SETTINGS.ANOMALY_LIMIT),
+                    'Tolerize Limit': API.bpf_program.get_setting(EBPH_SETTINGS.TOLERIZE_LIMIT),
                     }
             return res
         except Exception as e:
