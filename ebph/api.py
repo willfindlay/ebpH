@@ -33,6 +33,7 @@ from ebph import defs
 from ebph.bpf_program import BPFProgram
 from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
 from ebph.utils import ns_to_str, ns_to_delta_str
+from ebph.version import __version__
 from ebph.logger import get_logger
 
 app = FastAPI()
@@ -90,8 +91,10 @@ class API:
                     num_processes += 1
                 num_threads += 1
             res = {
+                    'ebpH Version': __version__,
                     'Monitoring': bool(API.bpf_program.get_setting(EBPH_SETTINGS.MONITORING)),
-                    'Profiles': f'{num_profiles} ({num_training} training, {num_frozen} frozen, {num_normal} normal)',
+                    'Logging New Seq': bool(API.bpf_program.get_setting(EBPH_SETTINGS.LOG_SEQUENCES)),
+                    'Profiles': f'{num_profiles} ({num_training} training ({num_frozen} frozen), {num_normal} normal)',
                     'Processes': f'{num_processes} ({num_threads} threads)',
                     'Normal Wait': ns_to_delta_str(API.bpf_program.get_setting(EBPH_SETTINGS.NORMAL_WAIT)),
                     'Normal Factor': f'{API.bpf_program.get_setting(EBPH_SETTINGS.NORMAL_FACTOR)}/'

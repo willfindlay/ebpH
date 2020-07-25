@@ -51,16 +51,12 @@ class DaemonMixin:
             old_umask = os.umask(0o177)
             sock.bind(defs.EBPH_SOCK)
             os.umask(old_umask)
-            atexit.register(lambda: self._cleanup_socket(sock))
+            atexit.register(self._cleanup_socket)
         except Exception as e:
             logger.error(f'Failed to bind {defs.EBPH_SOCK}!')
             raise e
 
-    def _cleanup_socket(self, sock: socket.socket):
-        try:
-            sock.close()
-        except:
-            logger.warning('Failed to close ebpH socket.')
+    def _cleanup_socket(self):
         try:
             os.unlink(defs.EBPH_SOCK)
         except OSError as e:
