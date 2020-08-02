@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@ import os, sys
 import stat
 import time
 import gzip
+import datetime as dt
 from argparse import Namespace
 import logging
 from logging import handlers as handlers
@@ -112,6 +113,21 @@ class EBPHRotatingFileHandler(handlers.TimedRotatingFileHandler):
             return 1
         return 0
 
+class EBPHFormatter(logging.Formatter):
+    converter=dt.datetime.fromtimestamp
+    def formatTime(self, record, datefmt=None):
+        ct = self.converter(record.created)
+        if datefmt:
+            s = ct.strftime(datefmt)
+        else:
+            t = ct.strftime("%Y-%m-%d %H:%M:%S")
+            s = "%s.%03d" % (t, record.msecs)
+        return s
+
+    def format(self, record):
+        record.levelname = record.levelname.lower()
+        return logging.Formatter.format(self, record)
+
 def setup_logger(args: Namespace) -> None:
     """
     Perform (most) logging setup. This function should be called
@@ -121,8 +137,7 @@ def setup_logger(args: Namespace) -> None:
     os.makedirs(os.path.dirname(defs.LOGFILE), exist_ok=True)
 
     # Configure logging
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
-    formatter.datefmt = '%Y-%m-%d %H:%M:%S'
+    formatter = EBPHFormatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 
     logger = get_logger()
     if args.debug:
@@ -150,7 +165,7 @@ def setup_logger(args: Namespace) -> None:
     # A little debug message to tell us the logger has started
     logger.debug('Logging initialized.')
 
-def get_logger(name='ebph') -> logging.Logger:
+def get_logger(name='ebphd') -> logging.Logger:
     """
     Get the ebpH logger.
     """
