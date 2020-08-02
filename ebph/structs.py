@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,8 @@ def calculate_profile_magic() -> int:
     from hashlib import sha256
     from ebph.version import __version__
 
-    version = __version__.encode('ascii')
+    # take x.x part of version
+    version = '.'.join(__version__.split('.')[:2]).encode('ascii')
 
     return int(sha256(version).hexdigest(), 16) & 0xFFFF_FFFF_FFFF_FFFF
 

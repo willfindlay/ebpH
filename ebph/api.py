@@ -57,8 +57,6 @@ class API:
     def serve_forever() -> NoReturn:
         uvicorn.run(
             app,
-            #host='localhost',
-            #port=defs.EBPH_PORT,
             uds=defs.EBPH_SOCK,
             log_level=logging.WARNING,
             log_config=LOGGING_CONFIG,
