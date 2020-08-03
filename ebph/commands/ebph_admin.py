@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
     2020-Jul-13  William Findlay  Created this.
 """
 
+import os
 import sys
 from argparse import Namespace
 from typing import Dict, Callable
@@ -32,7 +33,7 @@ from requests.exceptions import ConnectionError
 
 from ebph.structs import EBPH_PROFILE_STATUS, EBPH_SETTINGS
 from ebph import defs
-from ebph.utils import fail_with, request_or_die
+from ebph.utils import fail_with, request_or_die, which
 
 commands = {}
 
@@ -142,7 +143,10 @@ def tolerize(args: Namespace) -> None:
     else:
         print(f'Tolerized PID {body["pid"]} ({body["profile"]["exe"]}) successfully.')
 
+
 def main(args: Namespace) -> None:
     if args.admin_command not in commands.keys():
         fail_with(f'Invalid command: {args.admin_command}!')
+    if not (os.geteuid() == 0):
+        fail_with("This script must be run with root privileges! Exiting.")
     commands[args.admin_command](args)

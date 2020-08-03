@@ -24,11 +24,14 @@
 import os, sys
 import stat
 import time
+import re
 import gzip
 import datetime as dt
 from argparse import Namespace
 import logging
 from logging import handlers as handlers
+
+from colorama import Fore, Back, Style
 
 from ebph.utils import read_chunks
 from ebph import defs
@@ -128,6 +131,11 @@ class EBPHFormatter(logging.Formatter):
         record.levelname = record.levelname.lower()
         return logging.Formatter.format(self, record)
 
+class EBPHColoredFormatter(EBPHFormatter):
+    def format(self, record):
+        formatted = EBPHFormatter.format(self, record)
+        return color_log(formatted)
+
 def setup_logger(args: Namespace) -> None:
     """
     Perform (most) logging setup. This function should be called
@@ -137,7 +145,8 @@ def setup_logger(args: Namespace) -> None:
     os.makedirs(os.path.dirname(defs.LOGFILE), exist_ok=True)
 
     # Configure logging
-    formatter = EBPHFormatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
+    formatter_class = EBPHColoredFormatter if args.nolog else EBPHFormatter
+    formatter = formatter_class('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 
     logger = get_logger()
     if args.debug:
@@ -170,3 +179,32 @@ def get_logger(name='ebphd') -> logging.Logger:
     Get the ebpH logger.
     """
     return logging.getLogger(name)
+
+def color_time(time: str):
+    return Fore.GREEN + time
+
+def color_logger(logger: str):
+    return Fore.MAGENTA + logger
+
+def color_category(category: str):
+    if 'info' in category:
+        color = Fore.BLUE
+    elif 'debug' in category:
+        color = Fore.CYAN
+    elif 'warn' in category:
+        color = Fore.YELLOW
+    elif 'audit' in category:
+        color = Fore.LIGHTYELLOW_EX
+    elif 'error' in category:
+        color = Fore.RED
+    else:
+        color = Fore.RESET
+    return color + category
+
+line_re = re.compile(r'(\[.*\]\s+)(\[.*\]\s+)(\[.*\])(.*)')
+def color_log(line: str):
+    match = line_re.match(line)
+    if not match:
+        raise IOError('Log message does not match pattern!')
+    line = color_time(match[1]) + color_logger(match[2]) + color_category(match[3]) + Style.RESET_ALL + match[4]
+    return line
