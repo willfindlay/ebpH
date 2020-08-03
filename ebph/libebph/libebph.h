@@ -6,6 +6,11 @@
 
 #include "include/folly/tracing/StaticTracepoint.h"
 
+struct timespec sleepy_time = {
+    .tv_sec  = 0,
+    .tv_nsec = (long)1e7,
+};
+
 #define MAGIC_RC -1337
 
 #define DO_COMMAND_START          \
@@ -15,12 +20,12 @@
 
 #define DO_COMMAND_END                          \
     while (rc == MAGIC_RC && start < timeout) { \
-        sleep(0.01);                            \
+        nanosleep(&sleepy_time, NULL);          \
         start = time(NULL);                     \
     }                                           \
                                                 \
     if (rc == MAGIC_RC) {                       \
-        return -EPERM;                           \
+        return -EPERM;                          \
     }                                           \
                                                 \
     if (rc < 0) {                               \

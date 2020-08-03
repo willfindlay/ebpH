@@ -70,3 +70,7 @@ class Lib:
     def tolerize_process(pid: ct.c_uint32) -> ct.c_int:
         pass
 
+    @command
+    def bootstrap_process(profile_key: ct.c_uint64, pid: ct.c_uint32, tgid: ct.c_uint32, pathname: ct.c_char_p) -> ct.c_int:
+        pass
+

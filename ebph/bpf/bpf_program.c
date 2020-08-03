@@ -104,14 +104,12 @@ struct ebph_new_profile_event_t {
 BPF_RINGBUF_OUTPUT(new_profile_events, 16);
 
 static __always_inline void ebph_log_new_profile(u64 profile_key,
-                                                 struct dentry *dentry)
+                                                 const char *pathname)
 {
     struct ebph_new_profile_event_t *event = new_profile_events.ringbuf_reserve(
         sizeof(struct ebph_new_profile_event_t));
     if (event) {
-        // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
-        bpf_probe_read_str(event->pathname, sizeof(event->pathname),
-                           dentry->d_name.name);
+        bpf_probe_read_str(event->pathname, sizeof(event->pathname), pathname);
         event->profile_key = profile_key;
         new_profile_events.ringbuf_submit(event, BPF_RB_FORCE_WAKEUP);
     }
@@ -330,26 +328,9 @@ RAW_TRACEPOINT_PROBE(sched_process_fork)
     return 0;
 }
 
-RAW_TRACEPOINT_PROBE(sched_process_exec)
+static __always_inline int ebph_do_exec_common(u64 profile_key, u32 pid,
+                                               u32 tgid, const char *pathname)
 {
-    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
-    if (!monitoring) {
-        return 0;
-    }
-
-    /* Yoink the linux_binprm */
-    struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
-
-    /* Calculate profile_key by taking inode number and filesystem device
-     * number together */
-    u64 profile_key =
-        (u64)bprm->file->f_path.dentry->d_inode->i_ino |
-        ((u64)new_encode_dev(bprm->file->f_path.dentry->d_inode->i_sb->s_dev)
-         << 32);
-
-    u32 pid  = bpf_get_current_pid_tgid();
-    u32 tgid = bpf_get_current_pid_tgid() >> 32;
-
     /* Create or look up task_state. */
     struct ebph_task_state_t *task_state =
         ebph_new_task_state(pid, tgid, profile_key);
@@ -361,14 +342,10 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     // Does the profile already exist? Important for logging purposes
     u8 profile_exists = profiles.lookup(&profile_key) ? 1 : 0;
 
-    struct ebph_profile_t *profile = ebph_new_profile(profile_key);
+    struct ebph_profile_t *profile = ebph_new_profile(profile_key, pathname);
     if (!profile) {
         // TODO: log error
         return 1;
-    }
-
-    if (!profile_exists) {
-        ebph_log_new_profile(profile_key, bprm->file->f_path.dentry);
     }
 
     // Reset sequence stack
@@ -390,6 +367,32 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     task_state->profile_key = profile_key;
 
     return 0;
+}
+
+RAW_TRACEPOINT_PROBE(sched_process_exec)
+{
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
+    /* Yoink the linux_binprm */
+    struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
+
+    /* Calculate profile_key by taking inode number and filesystem device
+     * number together */
+    u64 profile_key =
+        (u64)bprm->file->f_path.dentry->d_inode->i_ino |
+        ((u64)new_encode_dev(bprm->file->f_path.dentry->d_inode->i_sb->s_dev)
+         << 32);
+
+    u32 pid  = bpf_get_current_pid_tgid();
+    u32 tgid = bpf_get_current_pid_tgid() >> 32;
+
+    // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
+    const char *pathname = bprm->file->f_path.dentry->d_name.name;
+
+    return ebph_do_exec_common(profile_key, pid, tgid, pathname);
 }
 
 /* When a task exits */
@@ -686,6 +689,54 @@ out:
     return 0;
 }
 
+int command_bootstrap_process(struct pt_regs *ctx)
+{
+    /* USDT arguments */
+    int *rc_p;
+    bpf_usdt_readarg(1, ctx, &rc_p);
+    u64 *profile_key_p;
+    bpf_usdt_readarg(2, ctx, &profile_key_p);
+    u32 *pid_p;
+    bpf_usdt_readarg(3, ctx, &pid_p);
+    u32 *tgid_p;
+    bpf_usdt_readarg(4, ctx, &tgid_p);
+    char **pathname_p;
+    bpf_usdt_readarg(5, ctx, &pathname_p);
+
+    int rc = 0;
+
+    u64 profile_key;
+    u32 pid;
+    u32 tgid;
+    char *pathname;
+
+    if (bpf_probe_read(&profile_key, sizeof(profile_key), profile_key_p) < 0) {
+        rc = -EINVAL;
+        goto out;
+    }
+
+    if (bpf_probe_read(&pid, sizeof(pid), pid_p) < 0) {
+        rc = -EINVAL;
+        goto out;
+    }
+
+    if (bpf_probe_read(&tgid, sizeof(tgid), tgid_p) < 0) {
+        rc = -EINVAL;
+        goto out;
+    }
+
+    if (bpf_probe_read(&pathname, sizeof(pathname), pathname_p) < 0) {
+        rc = -EINVAL;
+        goto out;
+    }
+
+    ebph_do_exec_common(profile_key, pid, tgid, pathname);
+out:
+    bpf_probe_write_user(rc_p, &rc, sizeof(rc));
+
+    return 0;
+}
+
 /* =========================================================================
  * Helper Functions
  * ========================================================================= */
@@ -826,8 +877,13 @@ static __always_inline void ebph_set_normal_time(struct ebph_profile_t *profile)
 };
 
 /* Create a new profile at @profile_key. */
-static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
+static __always_inline struct ebph_profile_t *ebph_new_profile(
+    u64 profile_key, const char *pathname)
 {
+    struct ebph_profile_t *existing_profile = profiles.lookup(&profile_key);
+    if (existing_profile)
+        return existing_profile;
+
     struct ebph_profile_t profile = {};
 
     profile.status         = EBPH_PROFILE_STATUS_TRAINING;
@@ -838,6 +894,8 @@ static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key)
     profile.count          = 0;
 
     ebph_set_normal_time(&profile);
+
+    ebph_log_new_profile(profile_key, pathname);
 
     return profiles.lookup_or_try_init(&profile_key, &profile);
 }
