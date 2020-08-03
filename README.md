@@ -36,7 +36,8 @@ This product comes with no warranty, and is built as a research system. It shoul
 
 1. Install the prerequisites (see above).
 1. `git clone https://github.com/willfindlay/ebpH`
-1. `cd ebpH && sudo make install`
+1. `cd ebpH && make install` (You will be asked for your password)
+1. To install the systemd unit: `make systemd` (You will be asked for your password)
 
 ## How to Use / Examples
 
@@ -44,3 +45,7 @@ This product comes with no warranty, and is built as a research system. It shoul
 1. Run `$ ebph admin status` to check daemon status.
 1. Run `$ ebph ps` to check monitored processes.
 1. Run `$ ebph ps -p` to list all active profiles.
+
+Or, with systemd:
+
+1. Run `$ sudo systemctl start ebphd` to start the daemon if not already running.
