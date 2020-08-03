@@ -111,9 +111,8 @@ def request_or_die(req_method: Callable, url: str, fail_message:str = 'Operation
 def running_processes() -> Iterator[Tuple[int, str, int, int]]:
     """
     Returns an interator of all processes running on the
-    system. Iterator contains tupes of [@profile_key, @exe, @pid, @tid]
+    system. Iterator contains tuples of [@profile_key, @exe, @pid, @tid]
     """
-    processes = []
     for p in find_processes():
         exe = p.exe
         pid = p.pgrp
@@ -121,5 +120,4 @@ def running_processes() -> Iterator[Tuple[int, str, int, int]]:
         if not exe:
             continue
         profile_key = calculate_profile_key(exe)
-        processes.append((profile_key, exe, pid, tid))
-    return processes
+        yield (profile_key, exe, pid, tid)
