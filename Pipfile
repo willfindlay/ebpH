@@ -18,6 +18,7 @@ requests = "*"
 ratelimit = "*"
 requests-unixsocket = "*"
 proc = "*"
+colorama = "*"
 
 [requires]
 python_version = "3.8"

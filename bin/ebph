@@ -2,7 +2,7 @@
 
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -208,13 +208,9 @@ def parse_args(sys_args: List[str]):
     targets.add_argument('--profile', type=str, help='String representing the profile to tolerize.')
     targets.add_argument('--pid', type=int, help='Integer representing the PID of the process to tolerize.')
 
-    args = parser.parse_args(sys_args)
+    logs = commands.add_parser('logs', help='Interact with the ebpH logs.')
 
-    # Check for root
-    if not (os.geteuid() == 0):
-        parser.error("This script must be run with root privileges! Exiting.")
-
-    return args
+    return parser.parse_args(sys_args)
 
 
 @command('ps')
@@ -227,6 +223,12 @@ def ps(args):
 @command('admin')
 def admin(args):
     from ebph.commands.ebph_admin import main
+
+    main(args)
+
+@command('logs')
+def logs(args):
+    from ebph.commands.ebph_logs import main
 
     main(args)
 
