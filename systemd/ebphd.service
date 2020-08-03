@@ -1,0 +1,14 @@
+[Unit]
+Description=ebpH daemon service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/bin/ebphd start
+ExecStop=/bin/ebphd stop
+ExecReload=/bin/ebphd restart
+
+[Install]
+WantedBy=multi-user.target

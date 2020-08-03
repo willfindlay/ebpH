@@ -27,7 +27,6 @@ from distutils.command.build_ext import build_ext
 
 version = '0.3.0'
 
-
 class ct_build_ext(build_ext):
     def build_extension(self, ext):
         self._ctypes = isinstance(ext, CTypes)
