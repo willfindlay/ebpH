@@ -119,5 +119,8 @@ def running_processes() -> Iterator[Tuple[int, str, int, int]]:
         tid = p.pid
         if not exe:
             continue
-        profile_key = calculate_profile_key(exe)
+        try:
+            profile_key = calculate_profile_key(exe)
+        except Exception:
+            continue
         yield (profile_key, exe, pid, tid)
