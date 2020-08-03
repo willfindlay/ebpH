@@ -7,3 +7,5 @@ COMMAND1(sensitize_profile, u_int64_t, profile_key)
 COMMAND1(sensitize_process, u_int32_t, pid)
 COMMAND1(tolerize_profile, u_int64_t, profile_key)
 COMMAND1(tolerize_process, u_int32_t, pid)
+COMMAND4(bootstrap_process, u_int64_t, profile_key, u_int32_t, pid, u_int32_t,
+         tgid, char *, pathname)

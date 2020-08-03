@@ -1,5 +1,5 @@
 /*  ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
- *  ebpH Copyright (C) 2019-2020  William Findlay 
+ *  ebpH Copyright (C) 2019-2020  William Findlay
  *  pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -125,8 +125,10 @@ static __always_inline int ebph_reset_alf(struct ebph_task_state_t *s);
 static __always_inline void ebph_set_normal_time(
     struct ebph_profile_t *profile);
 
-/* Create a new profile at @profile_key. */
-static __always_inline struct ebph_profile_t *ebph_new_profile(u64 profile_key);
+/* Create a new profile at @profile_key and log @pathname association to
+ * userspace. */
+static __always_inline struct ebph_profile_t *ebph_new_profile(
+    u64 profile_key, const char *pathname);
 
 /* Push a new frame onto the sequence stack for @task_state. */
 static __always_inline struct ebph_sequence_t *ebph_push_seq(

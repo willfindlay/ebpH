@@ -24,8 +24,9 @@
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Callable, Iterator, Union
+from typing import Callable, Iterator, Union, Tuple
 
+from proc.core import find_processes
 import requests
 import requests_unixsocket
 requests_unixsocket.monkeypatch()
@@ -106,3 +107,19 @@ def request_or_die(req_method: Callable, url: str, fail_message:str = 'Operation
         fail_with('Connection to ebpH daemon timed out during request!')
     except requests.ConnectionError:
         fail_with('Unable to connect to ebpH daemon!')
+
+def running_processes() -> Iterator[Tuple[int, str, int, int]]:
+    """
+    Returns an interator of all processes running on the
+    system. Iterator contains tupes of [@profile_key, @exe, @pid, @tid]
+    """
+    processes = []
+    for p in find_processes():
+        exe = p.exe
+        pid = p.pgrp
+        tid = p.pid
+        if not exe:
+            continue
+        profile_key = calculate_profile_key(exe)
+        processes.append((profile_key, exe, pid, tid))
+    return processes

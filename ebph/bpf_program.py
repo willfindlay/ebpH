@@ -1,6 +1,6 @@
 """
     ebpH (Extended BPF Process Homeostasis)  A host-based IDS written in eBPF.
-    ebpH Copyright (C) 2019-2020  William Findlay 
+    ebpH Copyright (C) 2019-2020  William Findlay
     pH   Copyright (C) 1999-2003 Anil Somayaji and (C) 2008 Mario Van Velzen
 
     This program is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@ from ratelimit import limits
 
 from ebph.libebph import Lib
 from ebph.logger import get_logger
+from ebph.utils import running_processes
 from ebph.structs import (
     EBPHProfileStruct,
     EBPH_SETTINGS,
@@ -44,7 +45,6 @@ from ebph import defs
 logger = get_logger()
 
 
-# FIXME: add rate limiting to this
 def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True, ratelimit_per_sec = 9999999999):
     """
     Decorator that wraps a function in all of the logic
@@ -102,6 +102,8 @@ class BPFProgram:
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR_DEN, defs.NORMAL_FACTOR_DEN)
         self.change_setting(EBPH_SETTINGS.ANOMALY_LIMIT, defs.ANOMALY_LIMIT)
         self.change_setting(EBPH_SETTINGS.TOLERIZE_LIMIT, defs.TOLERIZE_LIMIT)
+
+        self._bootstrap_processes()
 
         self.start_monitoring()
 
@@ -521,6 +523,12 @@ class BPFProgram:
         boot_time = time.monotonic() * int(1e9)
         boot_epoch = time.time() * int(1e9) - boot_time
         return int(boot_epoch)
+
+    def _bootstrap_processes(self):
+        for profile_key, exe, pid, tid in running_processes():
+            logger.debug(f'Found process {pid},{tid} running {exe} ({profile_key})')
+            Lib.bootstrap_process(profile_key, tid, pid, exe.encode('ascii'))
+            self.bpf.ring_buffer_consume()
 
     def _set_cflags(self) -> None:
         logger.info('Setting cflags...')
