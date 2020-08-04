@@ -28,6 +28,8 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 
+#include "lsm.h"
+
 /* =========================================================================
  * Data Structures and Types
  * ========================================================================= */
@@ -41,6 +43,7 @@ enum ebph_setting_key_t : int {
     EBPH_SETTING_NORMAL_FACTOR_DEN,
     EBPH_SETTING_ANOMALY_LIMIT,
     EBPH_SETTING_TOLERIZE_LIMIT,
+    EBPH_SETTING_ENFORCING,
     EBPH_SETTING__END,  // This must be the last entry
 };
 
@@ -70,7 +73,7 @@ struct ebph_sequence_t {
 };
 
 struct ebph_flags_t {
-    u8 flags[EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS];
+    u8 flags[EBPH_LSM_MAX * EBPH_LSM_MAX];
 };
 
 /* Current status of the ebpH profile.

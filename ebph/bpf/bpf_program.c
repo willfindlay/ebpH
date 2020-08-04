@@ -263,70 +263,8 @@ static __always_inline void ebph_log_tolerize_limit(struct ebph_task_state_t *s,
 }
 
 /* =========================================================================
- * BPF Programs
+ * LSM Programs
  * ========================================================================= */
-
-TRACEPOINT_PROBE(raw_syscalls, sys_enter)
-{
-    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
-    if (!monitoring) {
-        return 0;
-    }
-
-    if (args->id < 0) {
-        return 0;
-    }
-
-    u32 pid = bpf_get_current_pid_tgid();
-
-    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
-    if (!task_state) {
-        return 0;
-    }
-
-    if (args->id == EBPH_SYS_RT_SIGRETURN) {
-        if (!ebph_pop_seq(task_state)) {
-            // TODO: log warning
-        }
-    }
-
-    ebph_handle_syscall(task_state, (u16)args->id);
-
-    return 0;
-}
-
-RAW_TRACEPOINT_PROBE(sched_process_fork)
-{
-    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
-    if (!monitoring) {
-        return 0;
-    }
-
-    struct ebph_task_state_t *parent_state;
-    struct ebph_task_state_t *child_state;
-
-    struct task_struct *p = (struct task_struct *)ctx->args[0];
-    struct task_struct *c = (struct task_struct *)ctx->args[1];
-
-    u32 ppid = p->pid;
-
-    // Look up parent task state if it exists
-    parent_state = task_states.lookup(&ppid);
-    if (!parent_state) {
-        return 0;
-    }
-
-    u32 cpid  = c->pid;
-    u32 ctgid = c->tgid;
-
-    child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
-    if (!child_state) {
-        // TODO: log error
-        return 1;
-    }
-
-    return 0;
-}
 
 static __always_inline int ebph_do_exec_common(u64 profile_key, u32 pid,
                                                u32 tgid, const char *pathname)
@@ -369,15 +307,111 @@ static __always_inline int ebph_do_exec_common(u64 profile_key, u32 pid,
     return 0;
 }
 
-RAW_TRACEPOINT_PROBE(sched_process_exec)
+static __always_inline int ebph_do_lsm_common(enum ebph_lsm_id_t lsm,
+                                              unsigned int tolerance_threshold)
 {
+    // If we are not monitoring, get out
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
     if (!monitoring) {
         return 0;
     }
 
-    /* Yoink the linux_binprm */
-    struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
+    u32 pid = bpf_get_current_pid_tgid();
+
+    // Look up task state
+    struct ebph_task_state_t *s = task_states.lookup(&pid);
+    if (!s) {
+        return 0;
+    }
+
+    // Look up profile
+    struct ebph_profile_t *p = profiles.lookup(&s->profile_key);
+    if (!p) {
+        // TODO log error
+        return 0;
+    }
+
+    // Look up current sequence
+    struct ebph_sequence_t *sequence = ebph_peek_seq(s);
+    if (!sequence) {
+        // TODO log error
+        return 0;
+    }
+
+    lock_xadd(&p->count, 1);
+    lock_xadd(&s->count, 1);
+
+    // Insert lsm id into sequence
+    for (int i = EBPH_SEQLEN - 1; i > 0; i--) {
+        sequence->calls[i] = sequence->calls[i - 1];
+    }
+    sequence->calls[0] = lsm;
+
+    ebph_do_train(s, p, sequence);
+
+    // Update normal status if we are frozen and have reached normal_time
+    if ((p->status & EBPH_PROFILE_STATUS_FROZEN) &&
+        !(p->status & EBPH_PROFILE_STATUS_NORMAL) &&
+        ebph_current_time() > p->normal_time) {
+        ebph_start_normal(s->profile_key, s, p);
+    }
+
+    ebph_do_normal(s, p, sequence);
+
+    struct ebph_alf_t *alf = locality_frames.lookup(&s->pid);
+    if (!alf) {
+        // TODO log error
+        return 0;
+    }
+
+    // If the process has exceeded the tolerize limit, reset its training state
+    int lfc = s->total_lfc;
+    if ((p->status & EBPH_PROFILE_STATUS_NORMAL) &&
+        lfc > ebph_get_setting(EBPH_SETTING_TOLERIZE_LIMIT)) {
+        ebph_reset_training_data(s->profile_key, s, p);
+        ebph_log_tolerize_limit(s, alf);
+    }
+
+    if (tolerance_threshold == 0) {
+        return 0;
+    }
+
+    if (!ebph_get_setting(EBPH_SETTING_ENFORCING)) {
+        return 0;
+    }
+
+    return lfc > tolerance_threshold ? -EPERM : 0;
+}
+
+// TRACEPOINT_PROBE(raw_syscalls, sys_enter)
+//{
+//    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+//    if (!monitoring) {
+//        return 0;
+//    }
+//
+//    if (args->id < 0) {
+//        return 0;
+//    }
+//
+//    u32 pid = bpf_get_current_pid_tgid();
+//
+//    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
+//    if (!task_state) {
+//        return 0;
+//    }
+//
+//    ebph_handle_syscall(task_state, (u16)args->id);
+//
+//    return 0;
+//}
+
+LSM_PROBE(bprm_check_security, struct linux_binprm *bprm)
+{
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
 
     /* Calculate profile_key by taking inode number and filesystem device
      * number together */
@@ -392,18 +426,47 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
     const char *pathname = bprm->file->f_path.dentry->d_name.name;
 
-    return ebph_do_exec_common(profile_key, pid, tgid, pathname);
+    ebph_do_exec_common(profile_key, pid, tgid, pathname);
+
+    return ebph_do_lsm_common(EBPH_BPRM_CHECK_SECURITY, EBPH_TOLERANCE_LOW);
 }
 
-/* When a task exits */
-RAW_TRACEPOINT_PROBE(sched_process_exit)
+LSM_PROBE(task_alloc, struct task_struct *task, unsigned long clone_flags)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
     if (!monitoring) {
         return 0;
     }
 
-    u32 pid = bpf_get_current_pid_tgid();
+    struct ebph_task_state_t *parent_state;
+    struct ebph_task_state_t *child_state;
+
+    struct task_struct *p = task;
+    struct task_struct *c = task->parent;
+
+    u32 ppid = p->pid;
+
+    // Look up parent task state if it exists
+    parent_state = task_states.lookup(&ppid);
+    if (!parent_state) {
+        return 0;
+    }
+
+    u32 cpid  = c->pid;
+    u32 ctgid = c->tgid;
+
+    child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
+    if (!child_state) {
+        // TODO: log error
+        return 0;
+    }
+
+    return ebph_do_lsm_common(EBPH_TASK_ALLOC, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_free, struct task_struct *task)
+{
+    u32 pid = task->pid;
     task_states.delete(&pid);
     locality_frames.delete(&pid);
 
@@ -416,9 +479,484 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
         sequences.delete(&key);
     }
 
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
+    }
+
+    // We do NOT want to call ebph_do_lsm_common here
     return 0;
 }
 
+LSM_PROBE(task_setpgid, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_SETPGID, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_getpgid, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_GETPGID, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_getsid, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_GETSID, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_setnice, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_SETNICE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_setioprio, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_SETIOPRIO, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_getioprio, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_GETIOPRIO, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_prlimit, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_PRLIMIT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_setrlimit, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_SETRLIMIT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_setscheduler, int unused)
+{
+    // TODO probably need to treat this as a special case
+    // to reduce non-determinism
+    return ebph_do_lsm_common(EBPH_TASK_SETSCHEDULER, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_getscheduler, int unused)
+{
+    // TODO probably need to treat this as a special case
+    // to reduce non-determinism
+    return ebph_do_lsm_common(EBPH_TASK_GETSCHEDULER, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_movememory, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_MOVEMEMORY, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_kill, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_KILL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(task_prctl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TASK_PRCTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(sb_statfs, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SB_STATFS, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(sb_mount, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SB_MOUNT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(sb_remount, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SB_REMOUNT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(sb_umount, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SB_UMOUNT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(sb_pivotroot, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SB_PIVOTROOT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(move_mount, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MOVE_MOUNT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_create, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_CREATE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_link, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_LINK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_symlink, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_SYMLINK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_mkdir, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_MKDIR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_rmdir, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_RMDIR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_mknod, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_MKNOD, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_rename, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_RENAME, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_readlink, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_READLINK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_follow_link, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_FOLLOW_LINK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_permission, int unused)
+{
+    // TODO: split this into READ, WRITE, APPEND, EXEC
+    return ebph_do_lsm_common(EBPH_INODE_PERMISSION, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_setattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_SETATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_getattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_GETATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_setxattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_SETXATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_getxattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_GETXATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_listxattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_LISTXATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(inode_removexattr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_INODE_REMOVEXATTR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_permission, int unused)
+{
+    // TODO: split this into READ, WRITE, APPEND, EXEC
+    return ebph_do_lsm_common(EBPH_FILE_PERMISSION, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_ioctl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_IOCTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(mmap_addr, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MMAP_ADDR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(mmap_file, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MMAP_FILE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_mprotect, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_MPROTECT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_lock, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_LOCK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_fcntl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_FCNTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_send_sigiotask, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_SEND_SIGIOTASK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(file_receive, int unused)
+{
+    return ebph_do_lsm_common(EBPH_FILE_RECEIVE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(unix_stream_connect, int unused)
+{
+    // TODO consider moving this to a common socket id
+    return ebph_do_lsm_common(EBPH_UNIX_STREAM_CONNECT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(unix_may_send, int unused)
+{
+    // TODO consider moving this to a common socket id
+    return ebph_do_lsm_common(EBPH_UNIX_MAY_SEND, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_create, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_CREATE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_socketpair, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_SOCKETPAIR, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_bind, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_BIND, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_connect, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_CONNECT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_listen, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_LISTEN, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_accept, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_ACCEPT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_sendmsg, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_SENDMSG, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_recvmsg, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_RECVMSG, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_getsockname, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_GETSOCKNAME, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_getpeername, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_GETPEERNAME, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_getsockopt, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_GETSOCKOPT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_setsockopt, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_SETSOCKOPT, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(socket_shutdown, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SOCKET_SHUTDOWN, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(tun_dev_create, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TUN_DEV_CREATE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(tun_dev_attach, int unused)
+{
+    return ebph_do_lsm_common(EBPH_TUN_DEV_ATTACH, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(key_alloc, int unused)
+{
+    return ebph_do_lsm_common(EBPH_KEY_ALLOC, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(key_free, int unused)
+{
+    return ebph_do_lsm_common(EBPH_KEY_FREE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(key_permission, int unused)
+{
+    return ebph_do_lsm_common(EBPH_KEY_PERMISSION, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(ipc_permission, int unused)
+{
+    return ebph_do_lsm_common(EBPH_IPC_PERMISSION, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(msg_queue_associate, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MSG_QUEUE_ASSOCIATE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(msg_queue_msgctl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MSG_QUEUE_MSGCTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(msg_queue_msgsnd, int unused)
+{
+    return ebph_do_lsm_common(EBPH_MSG_QUEUE_MSGSND, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(shm_associate, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SHM_ASSOCIATE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(shm_shmctl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SHM_SHMCTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(shm_shmat, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SHM_SHMAT, EBPH_TOLERANCE_HIGH);
+}
+
+/* TODO: maybe add hooks for system V semaphores... need to check if this can
+ * cause a deadlock with our runtime allocated maps */
+
+/* TODO: maybe add binder hooks here */
+
+LSM_PROBE(ptrace_access_check, int unused)
+{
+    return ebph_do_lsm_common(EBPH_PTRACE_ACCESS_CHECK, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(ptrace_traceme, int unused)
+{
+    return ebph_do_lsm_common(EBPH_PTRACE_TRACEME, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(capget, int unused)
+{
+    // TODO: maybe split this by capabilities
+    return ebph_do_lsm_common(EBPH_CAPGET, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(capset, int unused)
+{
+    // TODO: maybe split this by capabilities
+    return ebph_do_lsm_common(EBPH_CAPSET, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(capable, int unused)
+{
+    // TODO: maybe split this by capabilities
+    return ebph_do_lsm_common(EBPH_CAPABLE, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(quotactl, int unused)
+{
+    return ebph_do_lsm_common(EBPH_QUOTACTL, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(quota_on, int unused)
+{
+    return ebph_do_lsm_common(EBPH_QUOTA_ON, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(syslog, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SYSLOG, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(settime, int unused)
+{
+    return ebph_do_lsm_common(EBPH_SETTIME, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(vm_enough_memory, int unused)
+{
+    return ebph_do_lsm_common(EBPH_VM_ENOUGH_MEMORY, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(bpf, int unused)
+{
+    // TODO: treat ebpH as a special case
+    return ebph_do_lsm_common(EBPH_BPF, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(bpf_map, int unused)
+{
+    // TODO: treat ebpH as a special case
+    return ebph_do_lsm_common(EBPH_BPF_MAP, EBPH_TOLERANCE_HIGH);
+}
+
+LSM_PROBE(bpf_prog, int unused)
+{
+    // TODO: treat ebpH as a special case
+    return ebph_do_lsm_common(EBPH_BPF_PROG, EBPH_TOLERANCE_HIGH);
+}
+
+/* TODO: maybe add locked_down hook */
+
+LSM_PROBE(perf_event_open, int unused)
+{
+    // TODO: treat ebpH as a special case
+    return ebph_do_lsm_common(EBPH_PERF_EVENT_OPEN, EBPH_TOLERANCE_HIGH);
+}
+
+/* =========================================================================
+ * Signal Tracepoints
+ * ========================================================================= */
+
+/* Signal bookkeeping */
+TRACEPOINT_PROBE(syscalls, sys_exit_rt_sigreturn)
+{
+    u32 pid = bpf_get_current_pid_tgid();
+
+    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
+    if (!task_state) {
+        return 0;
+    }
+
+    if (!ebph_pop_seq(task_state)) {
+        // TODO: log warning
+    }
+
+    return 0;
+}
+
+/* Signal bookkeeping */
 TRACEPOINT_PROBE(signal, signal_deliver)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
@@ -752,8 +1290,8 @@ static __always_inline u64 ebph_current_time()
 static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
                                                  u16 prev)
 {
-    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
-    if (idx >= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)) {
+    u32 idx = (curr * EBPH_LSM_MAX) + prev;
+    if (idx >= (EBPH_LSM_MAX * EBPH_LSM_MAX)) {
         // TODO log error
         return 0;
     }
@@ -778,8 +1316,8 @@ static __always_inline u8 ebph_get_training_data(u64 profile_key, u16 curr,
 static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
                                                 u16 prev)
 {
-    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
-    if (idx >= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)) {
+    u32 idx = (curr * EBPH_LSM_MAX) + prev;
+    if (idx >= (EBPH_LSM_MAX * EBPH_LSM_MAX)) {
         // TODO log error
         return 0;
     }
@@ -802,8 +1340,8 @@ static __always_inline u8 ebph_get_testing_data(u64 profile_key, u16 curr,
 static __always_inline int ebph_set_training_data(u64 profile_key, u16 curr,
                                                   u16 prev, u8 new_flag)
 {
-    u32 idx = (curr * EBPH_NUM_SYSCALLS) + prev;
-    if (idx >= (EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS)) {
+    u32 idx = (curr * EBPH_LSM_MAX) + prev;
+    if (idx >= (EBPH_LSM_MAX * EBPH_LSM_MAX)) {
         // TODO log error
         return -1;
     }
@@ -1145,57 +1683,4 @@ static __always_inline void ebph_do_normal(struct ebph_task_state_t *task_state,
     }
 
     ebph_add_anomaly_count(task_state, profile, anomalies);
-}
-
-/* Process a new syscall. */
-static __always_inline void ebph_handle_syscall(struct ebph_task_state_t *s,
-                                                u16 syscall)
-{
-    // Look up profile
-    struct ebph_profile_t *p = profiles.lookup(&s->profile_key);
-    if (!p) {
-        // TODO log error
-        return;
-    }
-
-    // Look up current sequence
-    struct ebph_sequence_t *sequence = ebph_peek_seq(s);
-    if (!sequence) {
-        // TODO log error
-        return;
-    }
-
-    lock_xadd(&p->count, 1);
-    lock_xadd(&s->count, 1);
-
-    // Insert syscall into sequence
-    for (int i = EBPH_SEQLEN - 1; i > 0; i--) {
-        sequence->calls[i] = sequence->calls[i - 1];
-    }
-    sequence->calls[0] = syscall;
-
-    ebph_do_train(s, p, sequence);
-
-    // Update normal status if we are frozen and have reached normal_time
-    if ((p->status & EBPH_PROFILE_STATUS_FROZEN) &&
-        !(p->status & EBPH_PROFILE_STATUS_NORMAL) &&
-        ebph_current_time() > p->normal_time) {
-        ebph_start_normal(s->profile_key, s, p);
-    }
-
-    ebph_do_normal(s, p, sequence);
-
-    struct ebph_alf_t *alf = locality_frames.lookup(&s->pid);
-    if (!alf) {
-        // TODO log error
-        return;
-    }
-
-    // If the process has exceeded the tolerize limit, reset its training state
-    int lfc = s->total_lfc;
-    if ((p->status & EBPH_PROFILE_STATUS_NORMAL) &&
-        lfc > ebph_get_setting(EBPH_SETTING_TOLERIZE_LIMIT)) {
-        ebph_reset_training_data(s->profile_key, s, p);
-        ebph_log_tolerize_limit(s, alf);
-    }
 }

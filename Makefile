@@ -16,4 +16,4 @@ systemd:
 	sudo su -c "/bin/sh systemd/create_service.sh"
 
 test: dev
-	$(MAKE) -C tests
+	sudo su -c "$(MAKE) -C tests"
