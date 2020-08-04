@@ -39,6 +39,7 @@ from ebph.structs import (
     EBPHProfileStruct,
     EBPH_SETTINGS,
     calculate_profile_magic,
+    EBPH_LSM,
 )
 from ebph import defs
 
@@ -95,7 +96,11 @@ class BPFProgram:
 
         atexit.register(self._cleanup)
 
-        self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
+        if log_sequences:
+            self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
+
+        if defs.ENFORCING:
+            self.change_setting(EBPH_SETTINGS.ENFORCING, defs.ENFORCING)
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)
@@ -380,6 +385,10 @@ class BPFProgram:
             for later use.
             """
             pathname = event.pathname.decode('utf-8')
+            try:
+                pass
+            except Exception:
+                pass
             self.profile_key_to_exe[event.profile_key] = pathname
 
             if self.debug:
@@ -397,14 +406,14 @@ class BPFProgram:
             Log anomalies.
             """
             exe = self.profile_key_to_exe[event.profile_key]
-            syscall_number = event.syscall
-            syscall_name = self.syscall_number_to_name[syscall_number]
+            number = event.syscall
+            name = EBPH_LSM.get_name(number)
             misses = event.misses
             pid = event.pid
             count = event.task_count
 
             logger.audit(
-                f'Anomalous {syscall_name} ({misses} misses) '
+                f'Anomalous {name} ({misses} misses) '
                 f'in PID {pid} ({exe}) after {count} calls.'
             )
 
@@ -416,8 +425,10 @@ class BPFProgram:
             Log new sequences.
             """
             exe = self.profile_key_to_exe[event.profile_key]
+            if not exe:
+                exe = event.profile_key
             sequence = [
-                self.syscall_number_to_name[call]
+                EBPH_LSM.get_name(call)
                 for call in event.sequence
                 if call != defs.BPF_DEFINES['EBPH_EMPTY']
             ]

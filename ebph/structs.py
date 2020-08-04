@@ -22,6 +22,7 @@
 """
 
 import os
+import sys
 from pprint import pformat
 import ctypes as ct
 from enum import IntEnum, IntFlag, unique, auto
@@ -72,7 +73,114 @@ class EBPH_SETTINGS(IntEnum):
     NORMAL_FACTOR_DEN = auto()
     ANOMALY_LIMIT = auto()
     TOLERIZE_LIMIT = auto()
+    ENFORCING = auto()
 
+@unique
+class EBPH_LSM(IntEnum):
+    """
+    The various LSM programs that ebpH tracks.
+    Warning: Keep in sync with BPF program.
+    """
+    BPRM_CHECK_SECURITY = 0
+    TASK_ALLOC = auto()
+    TASK_FREE = auto()
+    TASK_SETPGID = auto()
+    TASK_GETPGID = auto()
+    TASK_GETSID = auto()
+    TASK_SETNICE = auto()
+    TASK_SETIOPRIO = auto()
+    TASK_GETIOPRIO = auto()
+    TASK_PRLIMIT = auto()
+    TASK_SETRLIMIT = auto()
+    TASK_SETSCHEDULER = auto()
+    TASK_GETSCHEDULER = auto()
+    TASK_MOVEMEMORY = auto()
+    TASK_KILL = auto()  # TODO: split this into coarse signal categories
+    TASK_PRCTL = auto()
+    SB_STATFS = auto()
+    SB_MOUNT = auto()
+    SB_REMOUNT = auto()
+    SB_UMOUNT = auto()
+    SB_PIVOTROOT = auto()
+    MOVE_MOUNT = auto()
+    INODE_CREATE = auto()
+    INODE_LINK = auto()
+    INODE_SYMLINK = auto()
+    INODE_MKDIR = auto()
+    INODE_RMDIR = auto()
+    INODE_MKNOD = auto()
+    INODE_RENAME = auto()
+    INODE_READLINK = auto()
+    INODE_FOLLOW_LINK = auto()
+    INODE_PERMISSION = auto()  # TODO: split this into READ, WRITE, APPEND, EXEC
+    INODE_SETATTR = auto()
+    INODE_GETATTR = auto()
+    INODE_SETXATTR = auto()
+    INODE_GETXATTR = auto()
+    INODE_LISTXATTR = auto()
+    INODE_REMOVEXATTR = auto()
+    FILE_PERMISSION = auto()  # TODO: split this into READ, WRITE, APPEND, EXEC
+    FILE_IOCTL = auto()
+    MMAP_ADDR = auto()
+    MMAP_FILE = auto()
+    FILE_MPROTECT = auto()
+    FILE_LOCK = auto()
+    FILE_FCNTL = auto()
+    FILE_SEND_SIGIOTASK = auto()
+    FILE_RECEIVE = auto()
+    UNIX_STREAM_CONNECT = auto()
+    UNIX_MAY_SEND = auto()
+    SOCKET_CREATE = auto()
+    SOCKET_SOCKETPAIR = auto()
+    SOCKET_BIND = auto()
+    SOCKET_CONNECT = auto()
+    SOCKET_LISTEN = auto()
+    SOCKET_ACCEPT = auto()
+    SOCKET_SENDMSG = auto()
+    SOCKET_RECVMSG = auto()
+    SOCKET_GETSOCKNAME = auto()
+    SOCKET_GETPEERNAME = auto()
+    SOCKET_GETSOCKOPT = auto()
+    SOCKET_SETSOCKOPT = auto()
+    SOCKET_SHUTDOWN = auto()
+    TUN_DEV_CREATE = auto()
+    TUN_DEV_ATTACH = auto()
+    KEY_ALLOC = auto()
+    KEY_FREE = auto()
+    KEY_PERMISSION = auto()  # TODO: maybe split this into operations
+    IPC_PERMISSION = auto()
+    MSG_QUEUE_ASSOCIATE = auto()
+    MSG_QUEUE_MSGCTL = auto()
+    MSG_QUEUE_MSGSND = auto()
+    MSG_QUEUE_MSGRCV = auto()
+    SHM_ASSOCIATE = auto()
+    SHM_SHMCTL = auto()
+    SHM_SHMAT = auto()
+    PTRACE_ACCESS_CHECK = auto()
+    PTRACE_TRACEME = auto()
+    CAPGET = auto()
+    CAPSET = auto()
+    CAPABLE = auto()
+    QUOTACTL = auto()
+    QUOTA_ON = auto()
+    SYSLOG = auto()
+    SETTIME = auto()
+    VM_ENOUGH_MEMORY = auto()
+    BPF = auto()
+    BPF_MAP = auto()
+    BPF_PROG = auto()
+    PERF_EVENT_OPEN = auto()
+    LSM_MAX = auto()  # This must always be the last entry
+
+    @staticmethod
+    def get_name(num: int) -> str:
+        try:
+            return EBPH_LSM(num).name.lower()
+        except ValueError:
+            return 'empty'
+
+
+NUM_LSM = int(EBPH_LSM.LSM_MAX)
 
 class EBPHProfileDataStruct(ct.Structure):
     """
@@ -82,8 +190,7 @@ class EBPHProfileDataStruct(ct.Structure):
     _fields_ = (
         (
             'flags',
-            ct.c_uint8 * (defs.BPF_DEFINES['EBPH_NUM_SYSCALLS']
-            * defs.BPF_DEFINES['EBPH_NUM_SYSCALLS']),
+            ct.c_uint8 * ((NUM_LSM * NUM_LSM) & sys.maxsize),
         ),
     )
 
