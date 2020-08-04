@@ -23,6 +23,7 @@
 """
 
 import os
+import sys
 import time
 import atexit
 import ctypes as ct
@@ -89,8 +90,16 @@ class BPFProgram:
         self.syscall_number_to_name = defaultdict(lambda: '[unknown]')
 
         self._set_cflags()
-        self._load_bpf()
-        self._register_ring_buffers()
+        try:
+            self._load_bpf()
+        except Exception as e:
+            logger.error('Unable to load BPF program', exc_info=e)
+            sys.exit(1)
+        try:
+            self._register_ring_buffers()
+        except Exception as e:
+            logger.error('Unable to register ring buffers', exc_info=e)
+            sys.exit(1)
         if self.auto_load:
             self.load_profiles()
 
@@ -108,7 +117,10 @@ class BPFProgram:
         self.change_setting(EBPH_SETTINGS.ANOMALY_LIMIT, defs.ANOMALY_LIMIT)
         self.change_setting(EBPH_SETTINGS.TOLERIZE_LIMIT, defs.TOLERIZE_LIMIT)
 
-        self._bootstrap_processes()
+        try:
+            self._bootstrap_processes()
+        except Exception as e:
+            logger.error('Unable to bootstrap processes', exc_info=e)
 
         self.start_monitoring()
 
