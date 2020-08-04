@@ -171,6 +171,13 @@ class EBPH_LSM(IntEnum):
     PERF_EVENT_OPEN = auto()
     LSM_MAX = auto()  # This must always be the last entry
 
+    @staticmethod
+    def get_name(num: int) -> str:
+        try:
+            return EBPH_LSM(num).name
+        except ValueError:
+            return 'EMPTY'
+
 
 NUM_LSM = int(EBPH_LSM.LSM_MAX)
 

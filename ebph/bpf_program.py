@@ -403,7 +403,7 @@ class BPFProgram:
             """
             exe = self.profile_key_to_exe[event.profile_key]
             number = event.syscall
-            name = EBPH_LSM(number).name
+            name = EBPH_LSM.get_name(number)
             misses = event.misses
             pid = event.pid
             count = event.task_count
@@ -424,7 +424,7 @@ class BPFProgram:
             if not exe:
                 exe = event.profile_key
             sequence = [
-                EBPH_LSM(call).name
+                EBPH_LSM.get_name(call)
                 for call in event.sequence
                 if call != defs.BPF_DEFINES['EBPH_EMPTY']
             ]
