@@ -61,9 +61,6 @@ BPF_DEFINES = {
         # Maximum number of active processes at a given time
         'EBPH_MAX_PROCESSES': 10240,
 
-        # Number of system calls
-        'EBPH_NUM_SYSCALLS': 450,
-
         # Length of a sequence
         'EBPH_SEQLEN': 9,
         # Number of frames in sequence stack

@@ -28,6 +28,8 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 
+#include "lsm.h"
+
 /* =========================================================================
  * Data Structures and Types
  * ========================================================================= */
@@ -70,7 +72,7 @@ struct ebph_sequence_t {
 };
 
 struct ebph_flags_t {
-    u8 flags[EBPH_NUM_SYSCALLS * EBPH_NUM_SYSCALLS];
+    u8 flags[EBPH_LSM_MAX * EBPH_LSM_MAX];
 };
 
 /* Current status of the ebpH profile.

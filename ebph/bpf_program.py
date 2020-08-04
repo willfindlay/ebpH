@@ -39,6 +39,7 @@ from ebph.structs import (
     EBPHProfileStruct,
     EBPH_SETTINGS,
     calculate_profile_magic,
+    EBPH_LSM,
 )
 from ebph import defs
 
@@ -401,14 +402,14 @@ class BPFProgram:
             Log anomalies.
             """
             exe = self.profile_key_to_exe[event.profile_key]
-            syscall_number = event.syscall
-            syscall_name = self.syscall_number_to_name[syscall_number]
+            number = event.syscall
+            name = EBPH_LSM(number).name
             misses = event.misses
             pid = event.pid
             count = event.task_count
 
             logger.audit(
-                f'Anomalous {syscall_name} ({misses} misses) '
+                f'Anomalous {name} ({misses} misses) '
                 f'in PID {pid} ({exe}) after {count} calls.'
             )
 
@@ -420,8 +421,10 @@ class BPFProgram:
             Log new sequences.
             """
             exe = self.profile_key_to_exe[event.profile_key]
+            if not exe:
+                exe = event.profile_key
             sequence = [
-                self.syscall_number_to_name[call]
+                EBPH_LSM(call).name
                 for call in event.sequence
                 if call != defs.BPF_DEFINES['EBPH_EMPTY']
             ]
