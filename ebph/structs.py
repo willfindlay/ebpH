@@ -73,6 +73,7 @@ class EBPH_SETTINGS(IntEnum):
     NORMAL_FACTOR_DEN = auto()
     ANOMALY_LIMIT = auto()
     TOLERIZE_LIMIT = auto()
+    ENFORCING = auto()
 
 @unique
 class EBPH_LSM(IntEnum):

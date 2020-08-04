@@ -43,6 +43,7 @@ enum ebph_setting_key_t : int {
     EBPH_SETTING_NORMAL_FACTOR_DEN,
     EBPH_SETTING_ANOMALY_LIMIT,
     EBPH_SETTING_TOLERIZE_LIMIT,
+    EBPH_SETTING_ENFORCING,
     EBPH_SETTING__END,  // This must be the last entry
 };
 

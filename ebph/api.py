@@ -92,6 +92,7 @@ class API:
                     'ebpH Version': __version__,
                     'Monitoring': bool(API.bpf_program.get_setting(EBPH_SETTINGS.MONITORING)),
                     'Logging New Seq': bool(API.bpf_program.get_setting(EBPH_SETTINGS.LOG_SEQUENCES)),
+                    'Enforcing': bool(API.bpf_program.get_setting(EBPH_SETTINGS.ENFORCING)),
                     'Profiles': f'{num_profiles} ({num_training} training ({num_frozen} frozen), {num_normal} normal)',
                     'Processes': f'{num_processes} ({num_threads} threads)',
                     'Normal Wait': ns_to_delta_str(API.bpf_program.get_setting(EBPH_SETTINGS.NORMAL_WAIT)),

@@ -96,7 +96,11 @@ class BPFProgram:
 
         atexit.register(self._cleanup)
 
-        self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
+        if log_sequences:
+            self.change_setting(EBPH_SETTINGS.LOG_SEQUENCES, log_sequences)
+
+        if defs.ENFORCING:
+            self.change_setting(EBPH_SETTINGS.ENFORCING, defs.ENFORCING)
 
         self.change_setting(EBPH_SETTINGS.NORMAL_WAIT, defs.NORMAL_WAIT)
         self.change_setting(EBPH_SETTINGS.NORMAL_FACTOR, defs.NORMAL_FACTOR)

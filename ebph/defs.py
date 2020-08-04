@@ -52,6 +52,9 @@ NORMAL_WAIT = 1000000000 * 60 * 60 * 24 * 7 # 1 week
 #NORMAL_WAIT = 1000000000 * 60 * 10 # 10 minutes
 #NORMAL_WAIT = 1000000000 * 30 # 30 seconds
 
+# Start in enforcing mode
+ENFORCING = False
+
 PATH_MAX = 4096
 
 # Compiler defines used in BPF program
@@ -69,8 +72,14 @@ BPF_DEFINES = {
         # Length of ALF
         'EBPH_LOCALITY_WIN': 128,
 
-        # The empty system call
+        # The empty lsm call
         'EBPH_EMPTY': 9999,
+
+        # TODO: tweak these to sensible values
+        'EBPH_TOLERANCE_LOW': 3,
+        'EBPH_TOLERANCE_MEDIUM': 10,
+        'EBPH_TOLERANCE_HIGH': 30,
+        'EBPH_TOLERANCE_ALWAYS': 0,
         }
 
 LOG_DIR = '/var/log/ebpH'

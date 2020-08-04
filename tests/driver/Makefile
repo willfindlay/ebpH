@@ -2,7 +2,7 @@ CC     = gcc
 LDLAGS =
 CFLAGS = -O0
 
-EXES   = hello
+EXES   = hello malicious
 
 .PHONY: all
 all: $(EXES)
@@ -13,3 +13,6 @@ clean:
 
 hello: hello.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o hello hello.c
+
+malicious: malicious.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o malicious malicious.c
