@@ -184,7 +184,7 @@ def color_time(time: str):
     return Fore.GREEN + time
 
 def color_logger(logger: str):
-    return Fore.MAGENTA + logger
+    return Fore.LIGHTBLACK_EX + logger
 
 def color_category(category: str):
     if 'info' in category:
@@ -195,6 +195,8 @@ def color_category(category: str):
         color = Fore.YELLOW
     elif 'audit' in category:
         color = Fore.LIGHTYELLOW_EX
+    elif 'newseq' in category:
+        color = Fore.LIGHTMAGENTA_EX
     elif 'error' in category:
         color = Fore.RED
     else:
