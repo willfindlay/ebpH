@@ -266,6 +266,22 @@ static __always_inline void ebph_log_tolerize_limit(struct ebph_task_state_t *s,
  * BPF Programs
  * ========================================================================= */
 
+TRACEPOINT_PROBE(syscalls, sys_exit_rt_sigreturn)
+{
+    u32 pid = bpf_get_current_pid_tgid();
+
+    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
+    if (!task_state) {
+        return 0;
+    }
+
+    if (!ebph_pop_seq(task_state)) {
+        // TODO: log warning
+    }
+
+    return 0;
+}
+
 TRACEPOINT_PROBE(raw_syscalls, sys_enter)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
@@ -284,46 +300,7 @@ TRACEPOINT_PROBE(raw_syscalls, sys_enter)
         return 0;
     }
 
-    if (args->id == EBPH_SYS_RT_SIGRETURN) {
-        if (!ebph_pop_seq(task_state)) {
-            // TODO: log warning
-        }
-    }
-
     ebph_handle_syscall(task_state, (u16)args->id);
-
-    return 0;
-}
-
-RAW_TRACEPOINT_PROBE(sched_process_fork)
-{
-    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
-    if (!monitoring) {
-        return 0;
-    }
-
-    struct ebph_task_state_t *parent_state;
-    struct ebph_task_state_t *child_state;
-
-    struct task_struct *p = (struct task_struct *)ctx->args[0];
-    struct task_struct *c = (struct task_struct *)ctx->args[1];
-
-    u32 ppid = p->pid;
-
-    // Look up parent task state if it exists
-    parent_state = task_states.lookup(&ppid);
-    if (!parent_state) {
-        return 0;
-    }
-
-    u32 cpid  = c->pid;
-    u32 ctgid = c->tgid;
-
-    child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
-    if (!child_state) {
-        // TODO: log error
-        return 1;
-    }
 
     return 0;
 }
@@ -369,15 +346,12 @@ static __always_inline int ebph_do_exec_common(u64 profile_key, u32 pid,
     return 0;
 }
 
-RAW_TRACEPOINT_PROBE(sched_process_exec)
+LSM_PROBE(bprm_committed_creds, struct linux_binprm *bprm)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
     if (!monitoring) {
         return 0;
     }
-
-    /* Yoink the linux_binprm */
-    struct linux_binprm *bprm = (struct linux_binprm *)ctx->args[2];
 
     /* Calculate profile_key by taking inode number and filesystem device
      * number together */
@@ -392,18 +366,47 @@ RAW_TRACEPOINT_PROBE(sched_process_exec)
     // TODO: change this to bpf_d_path when it comes out (Linux 5.9?)
     const char *pathname = bprm->file->f_path.dentry->d_name.name;
 
-    return ebph_do_exec_common(profile_key, pid, tgid, pathname);
+    ebph_do_exec_common(profile_key, pid, tgid, pathname);
+
+    return 0;
 }
 
-/* When a task exits */
-RAW_TRACEPOINT_PROBE(sched_process_exit)
+LSM_PROBE(task_alloc, struct task_struct *task, unsigned long clone_flags)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
     if (!monitoring) {
         return 0;
     }
 
-    u32 pid = bpf_get_current_pid_tgid();
+    struct ebph_task_state_t *parent_state;
+    struct ebph_task_state_t *child_state;
+
+    struct task_struct *p = task;
+    struct task_struct *c = task->parent;
+
+    u32 ppid = p->pid;
+
+    // Look up parent task state if it exists
+    parent_state = task_states.lookup(&ppid);
+    if (!parent_state) {
+        return 0;
+    }
+
+    u32 cpid  = c->pid;
+    u32 ctgid = c->tgid;
+
+    child_state = ebph_new_task_state(cpid, ctgid, parent_state->profile_key);
+    if (!child_state) {
+        // TODO: log error
+        return 1;
+    }
+
+    return 0;
+}
+
+LSM_PROBE(task_free, struct task_struct *task)
+{
+    u32 pid = task->pid;
     task_states.delete(&pid);
     locality_frames.delete(&pid);
 
@@ -414,6 +417,11 @@ RAW_TRACEPOINT_PROBE(sched_process_exit)
     for (int i = 0; i < EBPH_SEQSTACK_FRAMES; i++) {
         key.seqstack_top = i;
         sequences.delete(&key);
+    }
+
+    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
+    if (!monitoring) {
+        return 0;
     }
 
     return 0;

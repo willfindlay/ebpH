@@ -380,6 +380,10 @@ class BPFProgram:
             for later use.
             """
             pathname = event.pathname.decode('utf-8')
+            try:
+                pass
+            except Exception:
+                pass
             self.profile_key_to_exe[event.profile_key] = pathname
 
             if self.debug:
