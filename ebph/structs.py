@@ -174,9 +174,9 @@ class EBPH_LSM(IntEnum):
     @staticmethod
     def get_name(num: int) -> str:
         try:
-            return EBPH_LSM(num).name
+            return EBPH_LSM(num).name.lower()
         except ValueError:
-            return 'EMPTY'
+            return 'empty'
 
 
 NUM_LSM = int(EBPH_LSM.LSM_MAX)
