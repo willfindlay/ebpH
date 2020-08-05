@@ -27,10 +27,10 @@ This product comes with no warranty, and is built as a research system. It shoul
 
 ## Prerequisites
 
-1. Linux 5.8+ compiled with at least `CONFIG_BPF=y`, `CONFIG_BPF_SYSCALL=y`, `CONFIG_BPF_JIT=y`, `CONFIG_TRACEPOINTS=y`
+1. Linux 5.8+ compiled with at least `CONFIG_BPF=y`, `CONFIG_BPF_SYSCALL=y`, `CONFIG_BPF_JIT=y`, `CONFIG_TRACEPOINTS=y`, `CONFIG_BPF_LSM=y`, `CONFIG_DEBUG_INFO=y`, `CONFIG_DEBUG_INFO_BTF=y`, `CONFIG_LSM="bpf"`. pahole >= 0.16 must be installed for the kernel to be built with BTF info.
 1. Either the latest version of bcc from https://github.com/iovisor/bcc or bcc version 0.16+.
     - If building from source, be sure to include `-DPYTHON_CMD=python3` in your the cmake flags
-1. Python 3.6+
+1. Python 3.8+
 
 ## Installation
 
@@ -42,9 +42,9 @@ This product comes with no warranty, and is built as a research system. It shoul
 ## How to Use / Examples
 
 1. Run `$ sudo ebphd start` to start the daemon.
-1. Run `$ ebph admin status` to check daemon status.
-1. Run `$ ebph ps` to check monitored processes.
-1. Run `$ ebph ps -p` to list all active profiles.
+1. Run `$ sudo ebph admin status` to check daemon status.
+1. Run `$ sudo ebph ps` to check monitored processes.
+1. Run `$ sudo ebph ps -p` to list all active profiles.
 
 Or, with systemd:
 
