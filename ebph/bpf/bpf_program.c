@@ -383,29 +383,6 @@ static __always_inline int ebph_do_lsm_common(enum ebph_lsm_id_t lsm,
     return lfc > tolerance_threshold ? -EPERM : 0;
 }
 
-// TRACEPOINT_PROBE(raw_syscalls, sys_enter)
-//{
-//    bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
-//    if (!monitoring) {
-//        return 0;
-//    }
-//
-//    if (args->id < 0) {
-//        return 0;
-//    }
-//
-//    u32 pid = bpf_get_current_pid_tgid();
-//
-//    struct ebph_task_state_t *task_state = task_states.lookup(&pid);
-//    if (!task_state) {
-//        return 0;
-//    }
-//
-//    ebph_handle_syscall(task_state, (u16)args->id);
-//
-//    return 0;
-//}
-
 LSM_PROBE(bprm_check_security, struct linux_binprm *bprm)
 {
     bool monitoring = ebph_get_setting(EBPH_SETTING_MONITORING);
