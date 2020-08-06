@@ -20,7 +20,7 @@
  *  2020-Aug-04  William Findlay  Created this.
  */
 
-enum ebph_lsm_id_t : u16 {
+enum ebph_lsm_id_t {
     EBPH_BPRM_CHECK_SECURITY = 0,
     EBPH_TASK_ALLOC,
     EBPH_TASK_FREE,
