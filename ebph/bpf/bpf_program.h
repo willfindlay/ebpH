@@ -35,7 +35,7 @@
  * ========================================================================= */
 
 /* Keys into settings map */
-enum ebph_setting_key_t : int {
+enum ebph_setting_key_t {
     EBPH_SETTING_MONITORING = 0,
     EBPH_SETTING_LOG_SEQUENCES,
     EBPH_SETTING_NORMAL_WAIT,
@@ -78,7 +78,7 @@ struct ebph_flags_t {
 
 /* Current status of the ebpH profile.
  * Possible values: training, frozen, and normal. */
-enum ebph_profile_status_t : u8 {
+enum ebph_profile_status_t {
     EBPH_PROFILE_STATUS_TRAINING = 0x1,
     EBPH_PROFILE_STATUS_FROZEN   = 0x2,
     EBPH_PROFILE_STATUS_NORMAL   = 0x4,
@@ -86,7 +86,7 @@ enum ebph_profile_status_t : u8 {
 
 /* An ebpH profile. */
 struct ebph_profile_t {
-    enum ebph_profile_status_t status;
+    u8 status;
     u64 anomaly_count;
     u64 train_count;
     u64 last_mod_count;
