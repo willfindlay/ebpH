@@ -24,11 +24,16 @@
 #ifndef BPF_PROGRAM_H
 #define BPF_PROGRAM_H
 
-#include <linux/binfmts.h>
-#include <linux/fs.h>
-#include <linux/sched.h>
-
+#include "defs.h"
 #include "lsm.h"
+#include "pybpf.bpf.h"
+
+static inline u32 new_encode_dev(dev_t dev)
+{
+    unsigned major = MAJOR(dev);
+    unsigned minor = MINOR(dev);
+    return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
+}
 
 /* =========================================================================
  * Data Structures and Types

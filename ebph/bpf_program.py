@@ -30,7 +30,7 @@ import ctypes as ct
 from collections import defaultdict
 from typing import List, Optional, Tuple
 
-from bcc import BPF
+from pybpf import BPFObjectBuilder
 from ratelimit import limits
 
 from ebph.libebph import Lib
@@ -45,28 +45,6 @@ from ebph.structs import (
 from ebph import defs
 
 logger = get_logger()
-
-
-def ringbuf_callback(bpf: BPF, map_name: str, infer_type: bool = True, ratelimit_per_sec = 9999999999):
-    """
-    Decorator that wraps a function in all of the logic
-    to associate it with a ringbuffer @map_name in BPF land.
-
-    If @infer_type is set, automatically get @bpf to cast
-    event data to the correct structure. Pretty neat!
-
-    TODO: Consider upstreaming this in bcc
-    """
-    def _inner(func):
-        @limits(calls=ratelimit_per_sec, period=1, raise_on_limit=False)
-        def _wrapper(ctx, data, size):
-            if infer_type:
-                data = bpf[map_name].event(data)
-            func(ctx, data, size)
-
-        bpf[map_name].open_ring_buffer(_wrapper)
-
-    return _inner
 
 
 class BPFProgram:
@@ -575,15 +553,16 @@ class BPFProgram:
         assert self.bpf is None
         logger.info('Loading BPF program...')
 
-        with open(defs.BPF_PROGRAM_C, 'r') as f:
-            bpf_text = f.read()
+        builder = BPFObjectBuilder()
+        #builder._generate_vmlinux(defs.BPF_PROGRAM_C)
+        #builder._generate_bpf_obj_file(defs.BPF_PROGRAM_C, self.cflags)
+        #builder._generate_bpf_skeleton()
+        #builder._generate_skeleton_obj_file()
+        builder.use_existing_skeleton('ebph.bpf.skel.so')
+        self.bpf = builder.build()
 
-        self.bpf = BPF(
-            text=bpf_text, usdt_contexts=[Lib.usdt_context], cflags=self.cflags
-        )
-        # FIXME: BPF cleanup function is segfaulting, so unregister it for now.
-        # It actually doesn't really do anything particularly useful.
-        atexit.unregister(self.bpf.cleanup)
+        sys.exit()
+
 
     def _cleanup(self) -> None:
         if self.auto_save:

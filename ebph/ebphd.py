@@ -112,6 +112,8 @@ def parse_args(args: List[str] = []) -> argparse.Namespace:
             f"Choices are: {', '.join(OPERATIONS)}.")
     parser.add_argument('--nodaemon', dest='nodaemon', action='store_true',
             help=f"Run this as a foreground process instead of a daemon.")
+    parser.add_argument('--noserver', dest='noserver', action='store_true',
+            help=f"Run ebphd without starting the server.")
     parser.add_argument('--nolog', dest='nolog', action='store_true',
             help=f"Write to stderr instead of logfile. In daemon mode, "
             "this will simply not write any logging information.")

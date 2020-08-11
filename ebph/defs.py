@@ -31,7 +31,7 @@ EBPH_DIR = project_path('ebph')
 # Path to BPF source directory
 BPF_DIR = project_path('ebph/bpf')
 # Path to BPF source code
-BPF_PROGRAM_C = project_path('ebph/bpf/bpf_program.c')
+BPF_PROGRAM_C = project_path('ebph/bpf/ebph.bpf.c')
 
 # Path to libebph.so
 LIBEBPH = project_path('ebph/libebph/bin/libebph.so')
