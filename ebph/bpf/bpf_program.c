@@ -418,8 +418,8 @@ LSM_PROBE(task_alloc, struct task_struct *task, unsigned long clone_flags)
     struct ebph_task_state_t *parent_state;
     struct ebph_task_state_t *child_state;
 
-    struct task_struct *p = task;
-    struct task_struct *c = task->parent;
+    struct task_struct *c = task;
+    struct task_struct *p = task->parent;
 
     u32 ppid = p->pid;
 
